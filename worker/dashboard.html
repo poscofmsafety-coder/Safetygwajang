@@ -1,1 +1,1071 @@
-<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>현장 작업 대시보드 | 안전과장</title><meta name="description" content="오늘 확인해야 할 작업과 위험수준, 담당자, 진행상태를 사용자가 직접 등록하는 개인 대시보드입니다. 특정 회사나 부서 데이터 없이 시작합니다."><meta name="robots" content="noindex,follow"><meta name="theme-color" content="#153b67"><link rel="stylesheet" href="../css/style.css"><link rel="stylesheet" href="../css/brand.css"><link rel="stylesheet" href="assets/worker.css"></head><body class="worker-page"><header class="site-nav"><div class="nav-inner"><a class="site-brand" href="../index.html?audience=worker">안전과장</a><div class="audience-switch" aria-label="이용자 유형"><a href="../index.html?audience=jobseeker">취준생</a><a class="active" href="../index.html?audience=worker">재직자</a></div><nav aria-label="재직자 메뉴"><a href="index.html">실무 홈</a><a href="dashboard.html">대시보드</a><a href="risk-assessment.html">위험성평가</a><a href="msds-management.html">MSDS</a><a href="incident-report.html">사고기록</a></nav></div></header><main class="container worker-shell" id="main-content"><section class="worker-hero"><div><span class="eyebrow">재직자 · 오늘의 작업</span><h1>현장 작업 대시보드</h1><p>오늘 확인해야 할 작업과 위험수준, 담당자, 진행상태를 사용자가 직접 등록하는 개인 대시보드입니다. 특정 회사나 부서 데이터 없이 시작합니다.</p></div><aside class="worker-mascot"><img src="../assets/jaeili-avatar.png" alt="안전과장 캐릭터 제일이"><div><strong>안전 제일, 기록은 간단하게.</strong><span>회사별 양식에 묶이지 않고<br>필요한 내용만 직접 쌓아가세요.</span></div></aside></section><div class="worker-status-note"><span class="dot"></span><div><b>빈 데이터로 시작합니다.</b> 회사명·부서·공장·담당자 등 사전 입력값은 없습니다. 새 기록을 직접 추가하고 수정·삭제할 수 있습니다.</div></div><div id="workerApp"></div></main><footer class="site-footer"><div class="footer-note"><div class="footer-links"><a href="../index.html?audience=worker">재직자 홈</a><a href="../about.html">사이트 소개</a><a href="../privacy.html">개인정보처리방침</a><a href="../terms.html">이용약관</a></div><p>현재 버전은 회원가입 전 단계입니다. 입력한 실무 기록은 이 브라우저에만 저장되며, 실제 법적 판단과 작업 승인을 대신하지 않습니다.</p><p>© 2026 Safetygwajang.</p></div></footer><script>window.WORKER_PAGE_CONFIG={"title": "현장 작업 대시보드", "eyebrow": "재직자 · 오늘의 작업", "desc": "오늘 확인해야 할 작업과 위험수준, 담당자, 진행상태를 사용자가 직접 등록하는 개인 대시보드입니다. 특정 회사나 부서 데이터 없이 시작합니다.", "listTitle": "내 작업 기록", "listDescription": "작업명·장소·위험수준·담당자·상태를 자유롭게 기록하세요.", "fields": [{"name": "date", "label": "작업일", "type": "date", "required": true}, {"name": "task", "label": "작업명", "required": true, "placeholder": "예: 설비 점검"}, {"name": "location", "label": "장소", "placeholder": "예: 생산동 2층"}, {"name": "riskLevel", "label": "위험수준", "type": "select", "options": ["낮음", "보통", "높음"]}, {"name": "owner", "label": "담당자", "placeholder": "이름 또는 역할"}, {"name": "status", "label": "진행상태", "type": "select", "options": ["예정", "진행", "완료"]}, {"name": "note", "label": "확인사항", "type": "textarea", "full": true, "placeholder": "위험요인, 보호조치, 특이사항 등"}], "slug": "dashboard", "storageKey": "sgw_v4_dashboard"};</script><script src="assets/worker-crud.js"></script></body></html>
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>현장 작업 대시보드 | 안전과장</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+    <script src="https://unpkg.com/docx@8.5.0/build/index.umd.js"></script>
+    <style>
+        details[open] summary .fa-chevron-down { transform: rotate(180deg); }
+        summary { list-style: none; cursor: pointer; }
+        summary::-webkit-details-marker { display: none; }
+        .chain-arrow { color: #94a3b8; font-weight: 900; }
+        @keyframes trophy-shine { 0%,100% {transform:scale(1);} 50% {transform:scale(1.08);} }
+        .multiplier-badge { animation: trophy-shine 2s ease-in-out infinite; }
+    </style>
+<meta name="robots" content="noindex,follow"><meta name="theme-color" content="#153b67"><link rel="stylesheet" href="../css/brand.css"><link rel="stylesheet" href="assets/legacy-brand.css"></head>
+<body class="legacy-tool-page bg-slate-100 min-h-screen text-gray-800"><header class="legacy-brand-nav"><div class="legacy-brand-inner"><a class="legacy-brand-name" href="../index.html?audience=worker"><img src="../assets/jaeili-logo.png" alt="안전과장 제일이 로고"><span>안전과장</span></a><nav class="legacy-worker-nav" aria-label="재직자 실무 메뉴"><a href="dashboard.html">현장 대시보드</a><a href="safety-education.html">안전교육</a><a href="risk-assessment.html">위험성평가</a><a href="risk-guide.html">실무가이드</a><a href="laws.html">법령·지침</a><a href="msds-management.html">MSDS</a><a href="confined-space.html">밀폐공간</a><a href="incident-report.html">사고기록</a></nav><a class="legacy-back" href="../index.html?audience=worker">재직자 홈</a></div></header><div class="brand-page-note"><div class="brand-page-note-inner"><img src="../assets/jaeili-full.png" alt="제일이 전체 캐릭터"><span><b>안전과장 실무도구</b> · 회사명·부서·공장 등 특정 사업장 데이터 없이 시작합니다. 필요한 정보만 직접 입력하고 저장·내보내기 기능으로 관리하세요.</span></div></div><div class="legacy-actionbar"><button type="button" onclick="toggleAdminMode()"><i class="fa-solid fa-sliders"></i> 작업 데이터 관리</button><span>엑셀 붙여넣기 · JSON 백업/복원 · 무재해 기준 설정은 여기에서 관리합니다.</span></div>
+
+    <nav class="legacy-old-header bg-[#00529C] text-white shadow-lg sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center space-x-3 cursor-pointer" onclick="location.href='dashboard.html'">
+                    <i class="fa-solid fa-shield-halved text-2xl text-blue-300"></i>
+                    <span class="font-black text-xl tracking-wider">안전과장</span>
+                    <span class="bg-blue-800 text-xs px-2.5 py-1 rounded-full font-medium">안전관리 실무</span>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <button onclick="toggleAdminMode()" id="adminBtn" class="bg-amber-500 hover:bg-amber-600 text-xs font-bold px-3 py-2 rounded-lg transition flex items-center space-x-1">
+                        <i class="fa-solid fa-user-shield"></i><span id="adminBtnText">관리자 모드</span>
+                    </button>
+                    <div class="text-right hidden sm:block">
+                        <p class="text-sm font-bold" id="navUserName">안전관리자</p>
+                        <p class="text-xs text-blue-200" id="navUserDept"></p>
+                    </div>
+                    <a href="index.html" class="bg-blue-800 hover:bg-blue-900 text-xs font-semibold px-3 py-2 rounded-lg border border-blue-600 transition flex items-center space-x-1">
+                        <i class="fa-solid fa-right-from-bracket"></i><span>로그아웃</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <section id="adminPanel" class="hidden bg-amber-50 border-b-2 border-amber-300">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 space-y-4">
+            <h2 class="text-base font-black text-amber-900 flex items-center gap-2">
+                <i class="fa-solid fa-user-shield"></i>관리자 설정
+            </h2>
+            <div class="bg-white rounded-lg p-4 border border-amber-200 flex flex-wrap items-end gap-3">
+                <div>
+                    <label class="block text-xs font-bold text-gray-600 mb-1">
+                        <i class="fa-solid fa-calendar-day mr-1 text-emerald-600"></i>무재해 달성 시작일
+                    </label>
+                    <input type="date" id="noAccidentStart" class="border border-gray-300 rounded px-3 py-2 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-600 mb-1">
+                        <i class="fa-solid fa-trophy mr-1 text-amber-500"></i>무재해 1배수 기준 (일)
+                    </label>
+                    <input type="number" id="noAccidentBase" min="1" placeholder="예: 365" class="border border-gray-300 rounded px-3 py-2 text-sm w-32">
+                </div>
+                <button onclick="saveNoAccidentSettings()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2 rounded text-sm">
+                    <i class="fa-solid fa-save mr-1"></i>저장
+                </button>
+                <p class="text-xs text-gray-500 ml-2 flex-1 min-w-0">
+                    현재 <b class="text-emerald-700" id="hintCurrentDays">-</b>일 / 기준 <b class="text-amber-700" id="hintBaseDays">-</b>일 → <b class="text-[#00529C]" id="hintMultiplier">-</b>
+                </p>
+            </div>
+            <div class="bg-white rounded-lg p-4 border border-amber-200">
+                <label class="block text-xs font-bold text-gray-600 mb-2">
+                    <i class="fa-solid fa-table mr-1"></i>현장 작업 엑셀 데이터 붙여넣기
+                </label>
+                <p class="text-[11px] text-gray-500 mb-2">
+                    엑셀에서 <b>헤더 포함 통째로 복사</b> OK. 헤더 행은 자동 스킵.<br>
+                    ※ 인원: <b>"47"</b>=주간만 / <b>"주 53↵야 47"</b>=주야 교대 자동 인식<br>
+                    ※ 위험/조치 4번만 있고 4-1이 조치에만 있으면 → 위험 셀 <b>자동 병합(rowSpan)</b>
+                </p>
+                <textarea id="excelPaste" rows="6" placeholder="7/31&#9;1&#9;X&#9;..." 
+                    class="w-full border border-gray-300 rounded px-3 py-2 text-xs font-mono resize-y focus:outline-none focus:border-amber-500"></textarea>
+                <div class="flex flex-wrap gap-2 mt-3">
+                    <button onclick="parseAndApply()" class="bg-[#00529C] hover:bg-blue-900 text-white font-bold px-4 py-2 rounded text-sm">
+                        <i class="fa-solid fa-play mr-1"></i>파싱 & 반영
+                    </button>
+                    <button onclick="clearWorkData()" class="bg-rose-500 hover:bg-rose-600 text-white font-bold px-4 py-2 rounded text-sm">
+                        <i class="fa-solid fa-trash mr-1"></i>작업 데이터 초기화
+                    </button>
+                    <button onclick="exportJSON()" class="bg-slate-600 hover:bg-slate-700 text-white font-bold px-4 py-2 rounded text-sm">
+                        <i class="fa-solid fa-download mr-1"></i>JSON 내보내기
+                    </button>
+                    <label class="bg-slate-600 hover:bg-slate-700 text-white font-bold px-4 py-2 rounded text-sm cursor-pointer">
+                        <i class="fa-solid fa-upload mr-1"></i>JSON 불러오기
+                        <input type="file" accept=".json" onchange="importJSON(event)" class="hidden">
+                    </label>
+                    <span id="parseResult" class="ml-2 self-center text-sm font-bold"></span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            <div class="bg-white rounded-xl shadow-sm p-4 border-l-4 border-emerald-500 relative overflow-hidden">
+                <div class="flex items-center justify-between">
+                    <p class="text-[11px] font-bold text-gray-500 uppercase">무재해 달성</p>
+                    <span id="kpiMultiplierBadge" class="hidden multiplier-badge bg-gradient-to-r from-amber-400 to-amber-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow">
+                        🏆 <span id="kpiMultiplierText">-</span>
+                    </span>
+                </div>
+                <div class="flex items-baseline gap-1.5 mt-1">
+                    <p class="text-2xl font-black text-emerald-600"><span id="kpiNoAccident">-</span><span class="text-sm text-gray-600"> 일</span></p>
+                </div>
+                <p class="text-[10px] text-gray-400 mt-0.5" id="kpiNoAccidentSince">시작일 미설정</p>
+                <div id="kpiProgressWrap" class="hidden mt-1.5">
+                    <div class="w-full bg-slate-100 rounded-full h-1">
+                        <div id="kpiProgressBar" class="bg-gradient-to-r from-emerald-400 to-emerald-600 h-1 rounded-full transition-all" style="width:0%"></div>
+                    </div>
+                    <p class="text-[9px] text-gray-500 mt-0.5"><span id="kpiProgressText">-</span></p>
+                </div>
+            </div>
+            <div class="bg-white rounded-xl shadow-sm p-4 border-l-4 border-[#00529C]">
+                <p class="text-[11px] font-bold text-gray-500 uppercase">금일 작업 현황</p>
+                <p class="text-2xl font-black text-[#00529C] mt-1"><span id="kpiTotalWork">0</span><span class="text-sm text-gray-600"> 건</span></p>
+                <p class="text-[10px] text-gray-400 mt-0.5"><span id="kpiWorkDate">-</span></p>
+            </div>
+            <div class="bg-white rounded-xl shadow-sm p-4 border-l-4 border-rose-500">
+                <p class="text-[11px] font-bold text-gray-500 uppercase">고위험 작업</p>
+                <p class="text-2xl font-black text-rose-600 mt-1"><span id="kpiHighRisk">0</span><span class="text-sm text-gray-600"> 건</span></p>
+                <p class="text-[10px] text-gray-400 mt-0.5"><span id="kpiHighRiskPct">0</span>% 비중</p>
+            </div>
+            <div class="bg-white rounded-xl shadow-sm p-4 border-l-4 border-indigo-500">
+                <p class="text-[11px] font-bold text-gray-500 uppercase">총 작업인원</p>
+                <p class="text-2xl font-black text-indigo-600 mt-1"><span id="kpiTotalPeople">0</span><span class="text-sm text-gray-600"> 명</span></p>
+                <p class="text-[10px] text-gray-500 mt-0.5">
+                    ☀ 주간 <b class="text-indigo-700"><span id="kpiDayPeople">0</span></b>명 · 🌙 야간 <b class="text-purple-700"><span id="kpiNightPeople">0</span></b>명
+                </p>
+            </div>
+            <div class="bg-white rounded-xl shadow-sm p-4 border-l-4 border-teal-500">
+                <p class="text-[11px] font-bold text-gray-500 uppercase">등록 MSDS</p>
+                <p class="text-2xl font-black text-teal-600 mt-1"><span id="kpiMsds">-</span><span class="text-sm text-gray-600"> 종</span></p>
+                <p class="text-[10px] text-rose-500 font-semibold mt-0.5">특별관리 <span id="kpiMsdsSpecial">-</span>종</p>
+            </div>
+            <div class="bg-white rounded-xl shadow-sm p-4 border-l-4 border-amber-500">
+                <p class="text-[11px] font-bold text-gray-500 uppercase">CCTV 미설치</p>
+                <p class="text-2xl font-black text-amber-600 mt-1"><span id="kpiNoCctv">0</span><span class="text-sm text-gray-600"> 건</span></p>
+                <p class="text-[10px] text-gray-400 mt-0.5">모니터링 사각지대</p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+                <h3 class="text-sm font-black text-gray-800 mb-3 flex items-center gap-2">
+                    <i class="fa-solid fa-triangle-exclamation text-rose-500"></i>잠재위험 요약
+                </h3>
+                <div class="grid grid-cols-5 gap-2">
+                    <div class="text-center p-2 bg-rose-50 rounded"><i class="fa-solid fa-fire text-rose-500"></i><p class="text-[10px] text-gray-600 mt-1">화재</p><p class="font-black text-rose-600" id="riskFire">0</p></div>
+                    <div class="text-center p-2 bg-orange-50 rounded"><i class="fa-solid fa-bomb text-orange-500"></i><p class="text-[10px] text-gray-600 mt-1">폭발</p><p class="font-black text-orange-600" id="riskExplode">0</p></div>
+                    <div class="text-center p-2 bg-purple-50 rounded"><i class="fa-solid fa-mask-ventilator text-purple-500"></i><p class="text-[10px] text-gray-600 mt-1">질식</p><p class="font-black text-purple-600" id="riskSuffocate">0</p></div>
+                    <div class="text-center p-2 bg-teal-50 rounded"><i class="fa-solid fa-droplet text-teal-500"></i><p class="text-[10px] text-gray-600 mt-1">누출</p><p class="font-black text-teal-600" id="riskLeak">0</p></div>
+                    <div class="text-center p-2 bg-slate-50 rounded"><i class="fa-solid fa-circle-exclamation text-slate-500"></i><p class="text-[10px] text-gray-600 mt-1">기타</p><p class="font-black text-slate-600" id="riskEtc">0</p></div>
+                </div>
+            </div>
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+                <h3 class="text-sm font-black text-gray-800 mb-3 flex items-center gap-2">
+                    <i class="fa-solid fa-hard-hat text-[#00529C]"></i>공사현장별 인원
+                </h3>
+                <div id="siteHeadcount" class="space-y-1.5 max-h-40 overflow-y-auto">
+                    <p class="text-xs text-gray-400 text-center py-4">데이터 없음</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+            <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+                <h3 class="text-base font-black text-gray-800 flex items-center gap-2">
+                    <i class="fa-solid fa-clipboard-list text-[#00529C]"></i>금일 작업 상세 현황
+                </h3>
+                <div class="flex items-center gap-2 flex-wrap">
+                    <button onclick="downloadAllBoards()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-1.5 rounded transition flex items-center gap-1">
+                        <i class="fa-solid fa-file-word"></i>
+                        <span>전체 소통보드 다운로드</span>
+                    </button>
+                    <select id="filterRisk" onchange="renderWorkList()" class="text-xs border border-gray-300 rounded px-2 py-1">
+                        <option value="all">전체</option>
+                        <option value="high">고위험만</option>
+                        <option value="normal">일반만</option>
+                    </select>
+                    <input type="text" id="filterKeyword" oninput="renderWorkList()" placeholder="🔍 부서/장소/담당자 검색" class="text-xs border border-gray-300 rounded px-2 py-1 w-56">
+                </div>
+            </div>
+            <div id="workList" class="space-y-3">
+                <p class="text-sm text-gray-400 text-center py-8">
+                    <i class="fa-solid fa-inbox text-3xl mb-2 block"></i>
+                    작업 데이터가 없습니다. <b>관리자 모드</b>에서 엑셀 데이터를 붙여넣으세요.
+                </p>
+            </div>
+        </div>
+
+        <div class="legacy-solution-section">
+            <h2 class="legacy-section-heading"><i class="fa-solid fa-layer-group"></i><span>안전관리 실무 기능</span></h2>
+            <div class="legacy-solution-grid">
+                <a href="dashboard.html"><span>DB</span><b>현장 작업 대시보드</b><small>작업·인원·잠재위험·고위험작업을 한 화면에서 확인합니다.</small></a>
+                <a href="safety-education.html"><span>ED</span><b>안전보건교육 관리</b><small>채용시·특별·MSDS·밀폐공간 등 교육 이수기록을 관리합니다.</small></a>
+                <a href="risk-assessment.html"><span>RA</span><b>위험성평가</b><small>계획·실시·감소대책·검증·결과공유 흐름을 관리합니다.</small></a>
+                <a href="risk-guide.html"><span>GUIDE</span><b>위험성평가 실무 가이드</b><small>평가 작성법과 감소대책 우선순위를 현장 관점에서 확인합니다.</small></a>
+                <a href="laws.html"><span>LAW</span><b>법령·지침 검색</b><small>산업안전보건 관계 법령과 안전보건 지침을 검색합니다.</small></a>
+                <a href="msds-management.html"><span>MS</span><b>MSDS 보건관리</b><small>화학물질·법규·경고표지·측정·건강진단 정보를 연결합니다.</small></a>
+                <a href="confined-space.html"><span>CS</span><b>밀폐공간·온열질환</b><small>체적·환기량·가동시간·체감온도 기준을 계산합니다.</small></a>
+                <a href="incident-report.html"><span>IR</span><b>사고·아차사고 기록</b><small>발생내용·4M 원인·즉시조치·재발방지대책을 기록합니다.</small></a>
+            </div>
+        </div>
+    </main>
+
+    <script>
+    const STORAGE_KEYS = {
+        noAccident:'sgw_no_accident_start', noAccidentBase:'sgw_no_accident_base',
+        workData:'sgw_work_data', adminMode:'sgw_admin_mode'
+    };
+    let WORK_DATA = [];
+    const FONT = "나눔바른고딕";
+
+    function toggleAdminMode(){
+        const panel = document.getElementById('adminPanel');
+        const isOpen = !panel.classList.contains('hidden');
+        if(isOpen){
+            panel.classList.add('hidden');
+            document.getElementById('adminBtnText').textContent = '관리자 모드';
+            localStorage.setItem(STORAGE_KEYS.adminMode, '0');
+        } else {
+            panel.classList.remove('hidden');
+            document.getElementById('adminBtnText').textContent = '관리자 모드 종료';
+            localStorage.setItem(STORAGE_KEYS.adminMode, '1');
+        }
+    }
+
+    function saveNoAccidentSettings(){
+        const dateVal = document.getElementById('noAccidentStart').value;
+        const baseVal = document.getElementById('noAccidentBase').value;
+        if(!dateVal){ alert('무재해 시작일을 선택하세요'); return; }
+        if(!baseVal || parseInt(baseVal) < 1){ alert('1배수 기준일을 1 이상으로 입력하세요'); return; }
+        localStorage.setItem(STORAGE_KEYS.noAccident, dateVal);
+        localStorage.setItem(STORAGE_KEYS.noAccidentBase, baseVal);
+        updateNoAccidentKPI();
+        alert(`✅ 저장 완료\n· 시작일: ${dateVal}\n· 1배수 기준: ${baseVal}일`);
+    }
+
+    function updateNoAccidentKPI(){
+        const start = localStorage.getItem(STORAGE_KEYS.noAccident);
+        const base = parseInt(localStorage.getItem(STORAGE_KEYS.noAccidentBase)) || 0;
+        const inpDate = document.getElementById('noAccidentStart');
+        const inpBase = document.getElementById('noAccidentBase');
+        if(inpDate && start) inpDate.value = start;
+        if(inpBase && base) inpBase.value = base;
+        const badge = document.getElementById('kpiMultiplierBadge');
+        const badgeText = document.getElementById('kpiMultiplierText');
+        const progressWrap = document.getElementById('kpiProgressWrap');
+        const progressBar = document.getElementById('kpiProgressBar');
+        const progressText = document.getElementById('kpiProgressText');
+        if(!start){
+            document.getElementById('kpiNoAccident').textContent = '-';
+            document.getElementById('kpiNoAccidentSince').textContent = '시작일 미설정';
+            badge.classList.add('hidden');
+            progressWrap.classList.add('hidden');
+            updateHint(0, base);
+            return;
+        }
+        const d1 = new Date(start);
+        const d2 = new Date();
+        const days = Math.floor((d2 - d1) / 86400000) + 1;
+        document.getElementById('kpiNoAccident').textContent = days.toLocaleString();
+        document.getElementById('kpiNoAccidentSince').textContent = `${start} ~`;
+        if(base > 0){
+            const multiplier = Math.floor(days / base);
+            const remainder = days % base;
+            const progressPct = Math.round((remainder / base) * 100);
+            if(multiplier >= 1){
+                badge.classList.remove('hidden');
+                badgeText.textContent = `${multiplier}배수 달성`;
+                progressWrap.classList.remove('hidden');
+                progressBar.style.width = progressPct + '%';
+                progressText.textContent = `다음 ${multiplier+1}배수까지 ${(base-remainder).toLocaleString()}일 남음`;
+            } else {
+                badge.classList.remove('hidden');
+                badge.classList.remove('from-amber-400','to-amber-600');
+                badge.classList.add('from-slate-400','to-slate-500');
+                badgeText.textContent = `1배수 진행중`;
+                progressWrap.classList.remove('hidden');
+                progressBar.style.width = progressPct + '%';
+                progressText.textContent = `1배수까지 ${(base-remainder).toLocaleString()}일 남음`;
+            }
+            updateHint(days, base);
+        } else {
+            badge.classList.add('hidden');
+            progressWrap.classList.add('hidden');
+            updateHint(days, 0);
+        }
+    }
+
+    function updateHint(days, base){
+        const h1 = document.getElementById('hintCurrentDays');
+        const h2 = document.getElementById('hintBaseDays');
+        const h3 = document.getElementById('hintMultiplier');
+        if(!h1) return;
+        h1.textContent = days > 0 ? days.toLocaleString() : '-';
+        h2.textContent = base > 0 ? base.toLocaleString() : '-';
+        if(days > 0 && base > 0){
+            const m = Math.floor(days/base);
+            h3.textContent = m >= 1 ? `🏆 ${m}배수 달성` : `⏳ 1배수 진행중 (${Math.round(days/base*100)}%)`;
+        } else {
+            h3.textContent = '-';
+        }
+    }
+
+    /* ========= 시공사 판정 ========= */
+    const EXTERNAL_CONTRACTORS = [];
+    function normalizeName(s){ return (s||'').trim().replace(/\s+/g,'').toUpperCase(); }
+    function isExternalContractor(orderDept){ return Boolean((orderDept||'').trim()); }
+    function getContractor(w){
+        const order = (w.orderDept||'').trim();
+        return order ? { name: order, isSelf: false } : { name: '자사', isSelf: true };
+    }
+
+    /* ========= 주/야 인원 파서 ========= */
+    function parseWorkforce(rawText) {
+        const raw = String(rawText||'').trim();
+        if (!raw) return { day: 0, night: 0, total: 0, hasShift: false, raw };
+        const simpleNum = raw.match(/^\d+$/);
+        if (simpleNum) {
+            const n = parseInt(raw);
+            return { day: n, night: 0, total: n, hasShift: false, raw };
+        }
+        const dayMatch = raw.match(/주\s*간?\s*[:：]?\s*(\d+)|(\d+)\s*\(?\s*주\s*간?\s*\)?/);
+        const nightMatch = raw.match(/야\s*간?\s*[:：]?\s*(\d+)|(\d+)\s*\(?\s*야\s*간?\s*\)?/);
+        const day = dayMatch ? parseInt(dayMatch[1] || dayMatch[2]) : 0;
+        const night = nightMatch ? parseInt(nightMatch[1] || nightMatch[2]) : 0;
+        if (day > 0 || night > 0) {
+            return { day, night, total: day + night, hasShift: (day > 0 && night > 0), raw };
+        }
+        const anyNum = raw.match(/(\d+)/);
+        const n = anyNum ? parseInt(anyNum[1]) : 0;
+        return { day: n, night: 0, total: n, hasShift: false, raw };
+    }
+
+    /* ========= TSV 파서 ========= */
+    function parseTSV(raw){
+        const rows = [];
+        let cur = []; let cell = ''; let inQuote = false;
+        for(let i = 0; i < raw.length; i++){
+            const c = raw[i];
+            if(inQuote){
+                if(c === '"'){
+                    if(raw[i+1] === '"'){ cell += '"'; i++; }
+                    else inQuote = false;
+                } else { cell += c; }
+            } else {
+                if(c === '"'){ inQuote = true; }
+                else if(c === '\t'){ cur.push(cell); cell = ''; }
+                else if(c === '\n'){ cur.push(cell); rows.push(cur); cur = []; cell = ''; }
+                else if(c === '\r'){}
+                else { cell += c; }
+            }
+        }
+        if(cell !== '' || cur.length > 0){ cur.push(cell); rows.push(cur); }
+        return rows;
+    }
+    function isHeaderRow(cells){
+        const joined = cells.slice(0, 6).join('').replace(/\s/g,'');
+        const headerKeywords = ['일자','작업상세정보','NO.','고위험','운전부서','작업지시부서','작업장소','작업명','부서','공장','가동상태','실장','현장소장','부식개소','안전Monitor','CCTV','유무'];
+        const c0 = (cells[0]||'').trim();
+        if(!c0) return true;
+        let hitCount = 0;
+        for(const kw of headerKeywords){
+            if(joined.includes(kw.replace(/\s/g,''))) hitCount++;
+            if(hitCount >= 2) return true;
+        }
+        return false;
+    }
+    function isValidDataRow(cells){
+        if(cells.length < 10) return false;
+        const c0 = (cells[0]||'').trim();
+        const c1 = (cells[1]||'').trim();
+        const c8 = (cells[8]||'').trim();
+        const dateOk = /^\d{1,4}[\/\-\.]\d{1,2}([\/\-\.]\d{1,4})?$/.test(c0);
+        const noOk = /^\d+$/.test(c1);
+        const peopleOk = /\d/.test(c8);
+        return (dateOk?1:0) + (noOk?1:0) + (peopleOk?1:0) >= 2;
+    }
+
+    function parseAndApply(){
+        const raw = document.getElementById('excelPaste').value;
+        const resultEl = document.getElementById('parseResult');
+        if(!raw.trim()){
+            resultEl.textContent = '❌ 데이터가 비어있습니다';
+            resultEl.className = 'ml-2 self-center text-sm font-bold text-rose-600';
+            return;
+        }
+        const rows = parseTSV(raw);
+        const parsed = [];
+        let skip = 0;
+        rows.forEach((cells, idx) => {
+            if(cells.length < 10){ skip++; return; }
+            if(isHeaderRow(cells)){ skip++; return; }
+            if(!isValidDataRow(cells)){ skip++; return; }
+            const isO = v => (v||'').trim().toUpperCase() === 'O';
+            const wf = parseWorkforce(cells[8]);
+            parsed.push({
+                id: 'w' + Date.now() + '_' + idx,
+                date:(cells[0]||'').trim(), no:(cells[1]||'').trim(), highRisk:isO(cells[2]),
+                deptOwner:(cells[3]||'').trim(), factory:(cells[4]||'').trim(),
+                orderDept:(cells[5]||'').trim(), location:(cells[6]||'').trim().replace(/^\n+/,''),
+                workName:(cells[7]||'').trim(),
+                peopleRaw:(cells[8]||'').trim(), peopleDay:wf.day, peopleNight:wf.night,
+                people:wf.total, hasShift:wf.hasShift,
+                time:(cells[9]||'').trim(), vendor:(cells[10]||'').trim(),
+                subVendor:(cells[11]||'').trim(), pfmSiteMgr:(cells[12]||'').trim(),
+                vendorSiteMgr:(cells[13]||'').trim(), hazard:(cells[14]||'').trim(),
+                action:(cells[15]||'').trim(), opStatus:(cells[16]||'').trim(),
+                signMgr1:isO(cells[17]), signSiteMgr:isO(cells[18]),
+                fire:isO(cells[19]), explode:isO(cells[20]), suffocate:isO(cells[21]),
+                leak:isO(cells[22]), etcRisk:isO(cells[23]), signMgr2:isO(cells[24]),
+                corrosion:isO(cells[25]), signHead:isO(cells[26]),
+                safetyMgrDept:(cells[27]||'').trim(), safetyMgrName:(cells[28]||'').trim(),
+                cctv:isO(cells[29])
+            });
+        });
+        if(parsed.length === 0){
+            resultEl.textContent = '❌ 유효한 데이터가 없습니다';
+            resultEl.className = 'ml-2 self-center text-sm font-bold text-rose-600';
+            return;
+        }
+        WORK_DATA = parsed;
+        localStorage.setItem(STORAGE_KEYS.workData, JSON.stringify(WORK_DATA));
+        const selfCount = parsed.filter(w => getContractor(w).isSelf).length;
+        const extCount = parsed.length - selfCount;
+        const shiftCount = parsed.filter(w => w.hasShift).length;
+        resultEl.textContent = `✅ ${parsed.length}건 (자체 ${selfCount} / 외부 ${extCount} · 주야교대 ${shiftCount}건)${skip?` · ${skip}행 스킵`:''}`;
+        resultEl.className = 'ml-2 self-center text-sm font-bold text-emerald-600';
+        renderAll();
+    }
+
+    function clearWorkData(){
+        if(!confirm('작업 데이터를 모두 삭제하시겠습니까?')) return;
+        WORK_DATA = [];
+        localStorage.removeItem(STORAGE_KEYS.workData);
+        document.getElementById('excelPaste').value = '';
+        document.getElementById('parseResult').textContent = '';
+        renderAll();
+    }
+
+    function exportJSON(){
+        const data = {
+            noAccidentStart: localStorage.getItem(STORAGE_KEYS.noAccident),
+            noAccidentBase: localStorage.getItem(STORAGE_KEYS.noAccidentBase),
+            workData: WORK_DATA, exportedAt: new Date().toISOString()
+        };
+        const blob = new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `ehs_dashboard_${new Date().toISOString().slice(0,10)}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+    function importJSON(evt){
+        const file = evt.target.files[0];
+        if(!file) return;
+        const reader = new FileReader();
+        reader.onload = e=>{
+            try{
+                const data = JSON.parse(e.target.result);
+                if(data.noAccidentStart) localStorage.setItem(STORAGE_KEYS.noAccident, data.noAccidentStart);
+                if(data.noAccidentBase) localStorage.setItem(STORAGE_KEYS.noAccidentBase, data.noAccidentBase);
+                if(data.workData){
+                    WORK_DATA = data.workData;
+                    localStorage.setItem(STORAGE_KEYS.workData, JSON.stringify(WORK_DATA));
+                }
+                renderAll();
+                alert('✅ 데이터 불러오기 완료');
+            }catch(err){ alert('❌ 파일 파싱 실패: '+err.message); }
+        };
+        reader.readAsText(file);
+    }
+
+    function updateKPI(){
+        const total = WORK_DATA.length;
+        const high = WORK_DATA.filter(w=>w.highRisk).length;
+        const dayPeople = WORK_DATA.reduce((s,w)=>s + (parseInt(w.peopleDay)||0), 0);
+        const nightPeople = WORK_DATA.reduce((s,w)=>s + (parseInt(w.peopleNight)||0), 0);
+        const totalPeople = dayPeople + nightPeople;
+        const noCctv = WORK_DATA.filter(w=>!w.cctv).length;
+        const dates = [...new Set(WORK_DATA.map(w=>w.date).filter(Boolean))];
+        document.getElementById('kpiTotalWork').textContent = total;
+        document.getElementById('kpiHighRisk').textContent = high;
+        document.getElementById('kpiHighRiskPct').textContent = total?Math.round(high/total*100):0;
+        document.getElementById('kpiTotalPeople').textContent = totalPeople.toLocaleString();
+        document.getElementById('kpiDayPeople').textContent = dayPeople.toLocaleString();
+        document.getElementById('kpiNightPeople').textContent = nightPeople.toLocaleString();
+        document.getElementById('kpiNoCctv').textContent = noCctv;
+        document.getElementById('kpiWorkDate').textContent = dates.length?dates.join(', '):'-';
+        document.getElementById('riskFire').textContent = WORK_DATA.filter(w=>w.fire).length;
+        document.getElementById('riskExplode').textContent = WORK_DATA.filter(w=>w.explode).length;
+        document.getElementById('riskSuffocate').textContent = WORK_DATA.filter(w=>w.suffocate).length;
+        document.getElementById('riskLeak').textContent = WORK_DATA.filter(w=>w.leak).length;
+        document.getElementById('riskEtc').textContent = WORK_DATA.filter(w=>w.etcRisk).length;
+        try{
+            const msdsRaw = localStorage.getItem('sgw_materials');
+            if(msdsRaw){
+                const mats = JSON.parse(msdsRaw);
+                document.getElementById('kpiMsds').textContent = mats.length.toLocaleString();
+                document.getElementById('kpiMsdsSpecial').textContent = mats.filter(m=>m.isSpecial).length;
+            } else {
+                document.getElementById('kpiMsds').textContent = '0';
+                document.getElementById('kpiMsdsSpecial').textContent = '0';
+            }
+        }catch(e){
+            document.getElementById('kpiMsds').textContent = '-';
+            document.getElementById('kpiMsdsSpecial').textContent = '-';
+        }
+    }
+
+    function renderSiteHeadcount(){
+        const box = document.getElementById('siteHeadcount');
+        if(WORK_DATA.length === 0){
+            box.innerHTML = '<p class="text-xs text-gray-400 text-center py-4">데이터 없음</p>';
+            return;
+        }
+        const grp = {};
+        WORK_DATA.forEach(w=>{
+            const key = w.factory || w.location || '기타';
+            if(!grp[key]) grp[key] = { day:0, night:0, works:0 };
+            grp[key].day += parseInt(w.peopleDay)||0;
+            grp[key].night += parseInt(w.peopleNight)||0;
+            grp[key].works += 1;
+        });
+        const sorted = Object.entries(grp).sort((a,b)=>(b[1].day+b[1].night)-(a[1].day+a[1].night));
+        const maxPeople = (sorted[0]?.[1].day + sorted[0]?.[1].night) || 1;
+        box.innerHTML = sorted.map(([site,info])=>{
+            const total = info.day + info.night;
+            const pct = Math.round(total/maxPeople*100);
+            const shiftInfo = info.night > 0 
+                ? `<span class="text-[10px] text-purple-600 ml-1">(☀${info.day}/🌙${info.night})</span>` 
+                : '';
+            return `
+            <div class="flex items-center gap-2 text-xs">
+                <span class="w-32 truncate font-semibold text-gray-700" title="${esc(site)}">${esc(site)}</span>
+                <div class="flex-1 bg-slate-100 rounded-full h-4 relative overflow-hidden">
+                    <div class="bg-[#00529C] h-full rounded-full" style="width:${pct}%"></div>
+                </div>
+                <span class="font-bold text-[#00529C] w-24 text-right">${total}명${shiftInfo}</span>
+                <span class="text-gray-400 w-10 text-right">${info.works}건</span>
+            </div>`;
+        }).join('');
+    }
+
+    function renderWorkList(){
+        const list = document.getElementById('workList');
+        const filterRisk = document.getElementById('filterRisk').value;
+        const keyword = document.getElementById('filterKeyword').value.trim().toLowerCase();
+        let filtered = WORK_DATA;
+        if(filterRisk==='high') filtered = filtered.filter(w=>w.highRisk);
+        if(filterRisk==='normal') filtered = filtered.filter(w=>!w.highRisk);
+        if(keyword){
+            filtered = filtered.filter(w=>
+                (w.deptOwner+w.factory+w.location+w.workName+w.pfmSiteMgr+w.vendorSiteMgr+w.vendor+w.safetyMgrName+w.orderDept).toLowerCase().includes(keyword)
+            );
+        }
+        if(filtered.length === 0){
+            list.innerHTML = `<p class="text-sm text-gray-400 text-center py-8">
+                <i class="fa-solid fa-inbox text-3xl mb-2 block"></i>
+                ${WORK_DATA.length===0?'작업 데이터가 없습니다. <b>관리자 모드</b>에서 엑셀 데이터를 붙여넣으세요.':'검색 결과가 없습니다.'}
+            </p>`;
+            return;
+        }
+        list.innerHTML = filtered.map(w=>{
+            const risks = [];
+            if(w.fire) risks.push('<span class="bg-rose-100 text-rose-700 text-[10px] font-bold px-1.5 py-0.5 rounded">🔥 화재</span>');
+            if(w.explode) risks.push('<span class="bg-orange-100 text-orange-700 text-[10px] font-bold px-1.5 py-0.5 rounded">💥 폭발</span>');
+            if(w.suffocate) risks.push('<span class="bg-purple-100 text-purple-700 text-[10px] font-bold px-1.5 py-0.5 rounded">😷 질식</span>');
+            if(w.leak) risks.push('<span class="bg-teal-100 text-teal-700 text-[10px] font-bold px-1.5 py-0.5 rounded">💧 누출</span>');
+            if(w.etcRisk) risks.push('<span class="bg-slate-100 text-slate-700 text-[10px] font-bold px-1.5 py-0.5 rounded">⚠ 기타</span>');
+            if(w.corrosion) risks.push('<span class="bg-yellow-100 text-yellow-800 text-[10px] font-bold px-1.5 py-0.5 rounded">🧪 부식개소</span>');
+            const c = getContractor(w);
+            const contractorBadge = c.isSelf
+                ? '<span class="bg-[#00529C] text-white text-[10px] font-black px-2 py-0.5 rounded">🏭 자체시공</span>'
+                : '<span class="bg-amber-500 text-white text-[10px] font-black px-2 py-0.5 rounded">🏗 외부시공</span>';
+            const displayContractor = c.isSelf ? '자사' : (w.orderDept || '-');
+            const opStatusMark = (w.opStatus||'').trim().toUpperCase()==='O' ? '✅' : '❌';
+            const peopleDisplay = w.hasShift
+                ? `<b>${w.people}명</b> <span class="text-purple-700">(☀${w.peopleDay}/🌙${w.peopleNight})</span>`
+                : `<b>${w.people}명</b>`;
+            const shiftBadge = w.hasShift ? '<span class="bg-purple-500 text-white text-[10px] font-black px-2 py-0.5 rounded">🌙 주야교대</span>' : '';
+            return `
+            <details class="border ${w.highRisk?'border-rose-200 bg-rose-50/30':'border-gray-200 bg-white'} rounded-lg">
+                <summary class="p-4">
+                    <div class="flex items-start justify-between gap-3 flex-wrap">
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2 flex-wrap mb-1.5">
+                                ${w.highRisk?'<span class="bg-rose-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full">⚠ 고위험</span>':'<span class="bg-slate-100 text-slate-600 text-[10px] font-bold px-2 py-0.5 rounded-full">일반</span>'}
+                                ${contractorBadge}
+                                ${shiftBadge}
+                                <span class="text-[11px] text-gray-500">${esc(w.date)} · NO.${esc(w.no)}</span>
+                                <span class="text-[11px] text-gray-500">📍 ${esc(w.factory||w.location)}</span>
+                                ${!w.cctv?'<span class="bg-amber-100 text-amber-700 text-[10px] font-bold px-1.5 py-0.5 rounded">📹 CCTV없음</span>':''}
+                            </div>
+                            <div class="flex items-center gap-1.5 flex-wrap text-[11px] mb-2 bg-slate-50 rounded px-2 py-1.5">
+                                <span class="text-gray-500">발주:</span>
+                                <b class="text-gray-800">${esc(w.deptOwner)||'-'}</b>
+                                <span class="chain-arrow">▶</span>
+                                <span class="text-gray-500">지시:</span>
+                                <b class="text-gray-800">${esc(w.orderDept)||'-'}</b>
+                                <span class="chain-arrow">▶</span>
+                                <span class="text-gray-500">시공:</span>
+                                <b class="${c.isSelf?'text-[#00529C]':'text-amber-700'}">${esc(displayContractor)}</b>
+                                <span class="chain-arrow">▶</span>
+                                <span class="text-gray-500">용역:</span>
+                                <b class="text-gray-800">${esc(w.vendor)||'-'}</b>
+                                ${w.subVendor && w.subVendor!=='없음' ? `<span class="chain-arrow">▶</span><span class="text-gray-500">하도급:</span><b class="text-gray-800">${esc(w.subVendor)}</b>` : ''}
+                            </div>
+                            <p class="text-sm font-black text-gray-900">${esc(w.workName)}</p>
+                            <div class="flex flex-wrap gap-x-4 gap-y-0.5 text-[11px] text-gray-600 mt-1.5">
+                                <span><i class="fa-solid fa-users mr-1 text-gray-400"></i>${peopleDisplay}</span>
+                                <span><i class="fa-solid fa-clock mr-1 text-gray-400"></i>${esc(w.time)}</span>
+                            </div>
+                            <div class="flex flex-wrap gap-x-4 gap-y-0.5 text-[11px] text-gray-600 mt-0.5">
+                                <span>🏢 현장소장: <b>${esc(w.pfmSiteMgr)||'-'}</b></span>
+                                <span>👷 용역사 현장소장: <b>${esc(w.vendorSiteMgr)||'-'}</b></span>
+                                <span>🛡 안전관리자: <b>${esc(w.safetyMgrName)||'-'}</b> <span class="text-gray-400">(${esc(w.safetyMgrDept)||'-'})</span></span>
+                            </div>
+                            ${risks.length?`<div class="flex flex-wrap gap-1 mt-2">${risks.join('')}</div>`:''}
+                        </div>
+                        <div class="flex flex-col items-end gap-2">
+                            <button onclick="event.preventDefault();event.stopPropagation();downloadBoard('${w.id}')" 
+                                class="bg-[#00529C] hover:bg-blue-900 text-white text-[10px] font-bold px-2.5 py-1.5 rounded transition flex items-center gap-1 shadow-sm whitespace-nowrap">
+                                <i class="fa-solid fa-file-word"></i>
+                                <span>소통보드</span>
+                            </button>
+                            <i class="fa-solid fa-chevron-down text-gray-400 transition-transform"></i>
+                        </div>
+                    </div>
+                </summary>
+                <div class="border-t border-gray-200 p-4 bg-slate-50 space-y-3">
+                    ${w.hazard?`<div>
+                        <p class="text-[11px] font-black text-rose-700 mb-1"><i class="fa-solid fa-triangle-exclamation mr-1"></i>잠재위험</p>
+                        <pre class="text-[11px] text-gray-700 whitespace-pre-wrap font-sans bg-white p-2 rounded border border-gray-200">${esc(w.hazard)}</pre>
+                    </div>`:''}
+                    ${w.action?`<div>
+                        <p class="text-[11px] font-black text-emerald-700 mb-1"><i class="fa-solid fa-shield-halved mr-1"></i>안전 조치사항</p>
+                        <pre class="text-[11px] text-gray-700 whitespace-pre-wrap font-sans bg-white p-2 rounded border border-gray-200">${esc(w.action)}</pre>
+                    </div>`:''}
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-[10px]">
+                        <div class="bg-white rounded p-2 border"><b>가동상태:</b> ${opStatusMark}</div>
+                        <div class="bg-white rounded p-2 border"><b>실장결재(수리):</b> ${w.signMgr1?'✅':'❌'}</div>
+                        <div class="bg-white rounded p-2 border"><b>소장결재(점검):</b> ${w.signSiteMgr?'✅':'❌'}</div>
+                        <div class="bg-white rounded p-2 border"><b>부장결재(부식):</b> ${w.signHead?'✅':'❌'}</div>
+                    </div>
+                </div>
+            </details>`;
+        }).join('');
+    }
+    function esc(s){ return String(s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+    function renderAll(){ updateNoAccidentKPI(); updateKPI(); renderSiteHeadcount(); renderWorkList(); }
+
+    /* ========= D-안전소통보드 로직 ========= */
+    function splitByNumber(text) {
+        if (!text) return [];
+        const lines = text.split(/\r?\n/);
+        const items = [];
+        let current = null;
+        const numRegex = /^(\d+(?:[-\.]\d+)?)\s*[\.\)\:]?\s+(.+)/;
+        const starRegex = /^\*\s*(.*)/;
+        for (let line of lines) {
+            const trimmed = line.trim();
+            if (!trimmed) continue;
+            const m = trimmed.match(numRegex);
+            const star = trimmed.match(starRegex);
+            if (m) {
+                let no = m[1].replace(/\./g, '-');
+                const content = (m[2] || '').trim();
+                if (current) items.push(current);
+                current = { no, text: content };
+            } else if (star) {
+                if (current) items.push(current);
+                current = { no: '*', text: star[1] };
+            } else if (current) {
+                current.text += ' ' + trimmed;
+            } else {
+                current = { no: '-', text: trimmed };
+            }
+        }
+        if (current) items.push(current);
+        return items;
+    }
+    function parseNoForSort(no) {
+        if (no === '*') return [9999, 0];
+        if (no === '-') return [9998, 0];
+        const parts = String(no).split('-').map(x => parseInt(x) || 0);
+        return [parts[0] || 0, parts[1] || 0];
+    }
+    function mergeLocation(plant, place) {
+        const norm = s => (s || '').replace(/\s+/g, '').trim();
+        if (!plant) return place || '';
+        if (!place) return plant;
+        if (norm(plant) === norm(place)) return plant;
+        return plant + " / " + place;
+    }
+    function splitJobNames(text) {
+        if (!text) return [''];
+        const lines = text.split(/\r?\n/).map(l=>l.trim()).filter(l=>l);
+        if (lines.length > 1) return lines;
+        const parts = text.split(/(?=\d+\.\s)/).map(s=>s.trim()).filter(s=>s);
+        return parts.length > 0 ? parts : [text];
+    }
+
+    /* =========================================================
+       ★★★ 위험/조치 병합 로직 (신규) ★★★
+       메인번호(4)로 그룹핑 후 한쪽 셀만 값이 있으면 rowSpan 병합
+       ========================================================= */
+    function buildMergedRows(risks, actions) {
+        const allNosSet = new Set([...risks.map(r=>r.no), ...actions.map(a=>a.no)]);
+        const allNos = [...allNosSet].sort((a, b) => {
+            const [a1, a2] = parseNoForSort(a);
+            const [b1, b2] = parseNoForSort(b);
+            if (a1 !== b1) return a1 - b1;
+            return a2 - b2;
+        });
+        const rowData = allNos.map(no => {
+            const [mainNo] = parseNoForSort(no);
+            return {
+                no, mainNo,
+                risk: (risks.find(x=>x.no===no)||{}).text || '',
+                action: (actions.find(x=>x.no===no)||{}).text || '',
+            };
+        });
+        // 메인번호별 그룹핑
+        const groups = {};
+        rowData.forEach(r => {
+            if (!groups[r.mainNo]) groups[r.mainNo] = [];
+            groups[r.mainNo].push(r);
+        });
+        // 각 그룹에서 병합 판정
+        Object.values(groups).forEach(group => {
+            if (group.length <= 1) return;
+            // 컬럼별로 앵커→빈칸 연속 병합
+            processMerge(group, 'risk', 'riskRowSpan', 'skipRisk');
+            processMerge(group, 'action', 'actionRowSpan', 'skipAction');
+        });
+        return rowData;
+    }
+    function processMerge(group, valueKey, spanKey, skipKey) {
+        let anchorIdx = -1;
+        for (let i = 0; i < group.length; i++) {
+            if (group[i][valueKey].trim()) {
+                anchorIdx = i;
+                group[i][spanKey] = 1;
+            } else if (anchorIdx >= 0) {
+                group[anchorIdx][spanKey]++;
+                group[i][skipKey] = true;
+            }
+        }
+    }
+
+    function downloadBoard(workId) {
+        if (typeof docx === 'undefined') { alert('❌ 라이브러리 로드 중입니다.'); return; }
+        const w = WORK_DATA.find(x => x.id === workId);
+        if (!w) { alert('❌ 작업 데이터를 찾을 수 없습니다.'); return; }
+        try { buildBoardDocx(w); } 
+        catch(e){ console.error(e); alert('❌ 오류: ' + e.message); }
+    }
+    function downloadAllBoards() {
+        if (typeof docx === 'undefined') { alert('❌ 라이브러리 로드 중입니다.'); return; }
+        const filterRisk = document.getElementById('filterRisk').value;
+        const keyword = document.getElementById('filterKeyword').value.trim().toLowerCase();
+        let filtered = WORK_DATA;
+        if(filterRisk==='high') filtered = filtered.filter(w=>w.highRisk);
+        if(filterRisk==='normal') filtered = filtered.filter(w=>!w.highRisk);
+        if(keyword){
+            filtered = filtered.filter(w=>
+                (w.deptOwner+w.factory+w.location+w.workName+w.pfmSiteMgr+w.vendorSiteMgr+w.vendor+w.safetyMgrName+w.orderDept).toLowerCase().includes(keyword)
+            );
+        }
+        if(filtered.length === 0){ alert('❌ 다운로드할 작업이 없습니다.'); return; }
+        if(!confirm(`📄 총 ${filtered.length}건의 D-안전소통보드를 다운로드하시겠습니까?`)) return;
+        filtered.forEach((w, i) => {
+            setTimeout(() => { try { buildBoardDocx(w); } catch(e){ console.error(e); } }, i * 400);
+        });
+    }
+
+    function buildBoardDocx(w) {
+        const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell,
+                WidthType, AlignmentType, HeightRule, VerticalAlign } = docx;
+        const CELL_MARGIN = { top: 100, bottom: 100, left: 120, right: 120 };
+        function cell(text, opts = {}) {
+            const texts = Array.isArray(text) ? text : String(text).split('\n');
+            return new TableCell({
+                shading: opts.shade ? { fill: opts.shadeColor || "D9E2F3" } : undefined,
+                columnSpan: opts.span, rowSpan: opts.rowSpan,
+                verticalAlign: VerticalAlign.CENTER, margins: CELL_MARGIN,
+                children: texts.map(t => new Paragraph({
+                    alignment: opts.align || AlignmentType.LEFT,
+                    spacing: { before: 30, after: 30, line: 280 },
+                    children: [new TextRun({ 
+                        text: String(t), bold: opts.bold || false, 
+                        size: opts.size || 20, font: FONT,
+                        color: opts.color || "000000"
+                    })]
+                }))
+            });
+        }
+        const dayPeople = parseInt(w.peopleDay) || 0;
+        const nightPeople = parseInt(w.peopleNight) || 0;
+        const totalPeople = dayPeople + nightPeople || parseInt(w.people) || 1;
+        const hasShift = w.hasShift && nightPeople > 0;
+        const d = {
+            일자:w.date||'', 운전공장:w.factory||'', 작업장소:w.location||'',
+            작업명:w.workName||'', 작업시간:w.time||'', 협력사:w.vendor||'',
+            하도급:w.subVendor||'', 작업담당자:w.pfmSiteMgr||'',
+            협력사담당자:w.vendorSiteMgr||'', 잠재위험:w.hazard||'',
+            조치사항:w.action||'', 감시자소속:w.safetyMgrDept||'',
+            감시자이름:w.safetyMgrName||'', CCTV:w.cctv?'O':'X'
+        };
+
+        // ★ 병합 로직 적용
+        const risks = splitByNumber(d.잠재위험);
+        const actions = splitByNumber(d.조치사항);
+        const rows = buildMergedRows(risks, actions);
+
+        const 작업장소_통합 = mergeLocation(d.운전공장, d.작업장소);
+        const 작업명_리스트 = splitJobNames(d.작업명);
+        const 용역사표시 = d.하도급 && d.하도급 !== '없음' ? `${d.협력사} / ${d.하도급}` : d.협력사;
+        const 인원표시 = hasShift 
+            ? `총 ${totalPeople}명\n(주간 ${dayPeople} / 야간 ${nightPeople})`
+            : `${totalPeople}명`;
+        const 총항목 = rows.length;
+        const 서명행높이 = totalPeople <= 8 ? 1100 : (totalPeople <= 15 ? 850 : (totalPeople <= 22 ? 700 : 600));
+        const 위험행높이 = 총항목 <= 6 ? 900 : (총항목 <= 10 ? 750 : 650);
+
+        const infoTable1 = new Table({
+            width: { size: 100, type: WidthType.PERCENTAGE },
+            columnWidths: [1150, 1400, 1600, 4700, 1150],
+            rows: [
+                new TableRow({
+                    cantSplit: true, height: { value: 450, rule: HeightRule.ATLEAST },
+                    children: [
+                        cell("일자", {shade:true, bold:true, align:AlignmentType.CENTER}),
+                        cell("작업시간", {shade:true, bold:true, align:AlignmentType.CENTER}),
+                        cell("작업장소", {shade:true, bold:true, align:AlignmentType.CENTER}),
+                        cell("작업명", {shade:true, bold:true, align:AlignmentType.CENTER}),
+                        cell("작업인원", {shade:true, bold:true, align:AlignmentType.CENTER}),
+                    ]
+                }),
+                new TableRow({
+                    cantSplit: true, height: { value: 1100, rule: HeightRule.ATLEAST },
+                    children: [
+                        cell(d.일자, {align:AlignmentType.CENTER}),
+                        cell(d.작업시간, {align:AlignmentType.CENTER}),
+                        cell(작업장소_통합, {align:AlignmentType.CENTER}),
+                        cell(작업명_리스트),
+                        cell(인원표시, {align:AlignmentType.CENTER, bold:hasShift}),
+                    ]
+                }),
+            ]
+        });
+        const infoTable2 = new Table({
+            width: { size: 100, type: WidthType.PERCENTAGE },
+            columnWidths: [1400, 1600, 1600, 3800, 1600],
+            rows: [
+                new TableRow({
+                    cantSplit: true, height: { value: 450, rule: HeightRule.ATLEAST },
+                    children: [
+                        cell("작업담당자", {shade:true, bold:true, align:AlignmentType.CENTER}),
+                        cell("용역사(수행사)", {shade:true, bold:true, align:AlignmentType.CENTER}),
+                        cell("용역사 담당자", {shade:true, bold:true, align:AlignmentType.CENTER}),
+                        cell("안전Monitor요원", {shade:true, bold:true, align:AlignmentType.CENTER}),
+                        cell("CCTV 가동", {shade:true, bold:true, align:AlignmentType.CENTER}),
+                    ]
+                }),
+                new TableRow({
+                    cantSplit: true, height: { value: 550, rule: HeightRule.ATLEAST },
+                    children: [
+                        cell(d.작업담당자, {align:AlignmentType.CENTER}),
+                        cell(용역사표시, {align:AlignmentType.CENTER}),
+                        cell(d.협력사담당자, {align:AlignmentType.CENTER}),
+                        cell(d.감시자이름 + (d.감시자소속 ? " ("+d.감시자소속+")" : ""), {align:AlignmentType.CENTER}),
+                        cell(d.CCTV === 'O' ? "가동 중(O)" : "미가동(X)", {align:AlignmentType.CENTER}),
+                    ]
+                }),
+            ]
+        });
+
+        // ★★★ 위험/조치 표 — rowSpan 병합 적용 ★★★
+        const riskRows = [
+            new TableRow({
+                tableHeader: true, cantSplit: true, height: { value: 450, rule: HeightRule.ATLEAST },
+                children: [
+                    cell("No.", {shade:true, bold:true, align:AlignmentType.CENTER}),
+                    cell("⚠ 잠재위험", {shade:true, bold:true, align:AlignmentType.CENTER}),
+                    cell("✅ 안전 조치사항", {shade:true, bold:true, align:AlignmentType.CENTER}),
+                ]
+            })
+        ];
+        rows.forEach(r => {
+            const rowCells = [
+                cell(r.no, {align:AlignmentType.CENTER, bold:true}),
+            ];
+            // 위험 셀 (skipRisk면 생략)
+            if (!r.skipRisk) {
+                rowCells.push(cell(r.risk, { 
+                    rowSpan: (r.riskRowSpan && r.riskRowSpan > 1) ? r.riskRowSpan : undefined 
+                }));
+            }
+            // 조치 셀 (skipAction이면 생략)
+            if (!r.skipAction) {
+                rowCells.push(cell(r.action, { 
+                    rowSpan: (r.actionRowSpan && r.actionRowSpan > 1) ? r.actionRowSpan : undefined 
+                }));
+            }
+            riskRows.push(new TableRow({
+                cantSplit: true, height: { value: 위험행높이, rule: HeightRule.ATLEAST },
+                children: rowCells
+            }));
+        });
+        const riskTable = new Table({
+            width: { size: 100, type: WidthType.PERCENTAGE },
+            columnWidths: [700, 4650, 4650], rows: riskRows
+        });
+
+        /* 서명란 (주야 분리) */
+        const signRows = [
+            new TableRow({
+                tableHeader: true, cantSplit: true, height: { value: 450, rule: HeightRule.ATLEAST },
+                children: [
+                    cell("No.", {shade:true, bold:true, align:AlignmentType.CENTER}),
+                    cell("소속", {shade:true, bold:true, align:AlignmentType.CENTER}),
+                    cell("성명", {shade:true, bold:true, align:AlignmentType.CENTER}),
+                    cell("서명", {shade:true, bold:true, align:AlignmentType.CENTER}),
+                    cell("종사자 의견 (위험요인, 개선 건의사항 및 안전다짐)", {shade:true, bold:true, align:AlignmentType.CENTER}),
+                ]
+            })
+        ];
+        if (hasShift) {
+            signRows.push(new TableRow({
+                cantSplit: true, height: { value: 400, rule: HeightRule.ATLEAST },
+                children: [ new TableCell({
+                    shading: { fill: "FFF4CC" }, columnSpan: 5,
+                    verticalAlign: VerticalAlign.CENTER, margins: CELL_MARGIN,
+                    children: [new Paragraph({
+                        alignment: AlignmentType.CENTER,
+                        children: [new TextRun({ text: `☀ 주간작업자 (${dayPeople}명)`, bold: true, size: 22, font: FONT, color: "B45309" })]
+                    })]
+                }) ]
+            }));
+            for (let i = 1; i <= dayPeople; i++) {
+                signRows.push(new TableRow({
+                    cantSplit: true, height: { value: 서명행높이, rule: HeightRule.ATLEAST },
+                    children: [ cell(String(i), {align:AlignmentType.CENTER}), cell(""), cell(""), cell(""), cell("") ]
+                }));
+            }
+            signRows.push(new TableRow({
+                cantSplit: true, height: { value: 400, rule: HeightRule.ATLEAST },
+                children: [ new TableCell({
+                    shading: { fill: "E0E7FF" }, columnSpan: 5,
+                    verticalAlign: VerticalAlign.CENTER, margins: CELL_MARGIN,
+                    children: [new Paragraph({
+                        alignment: AlignmentType.CENTER,
+                        children: [new TextRun({ text: `🌙 야간작업자 (${nightPeople}명)`, bold: true, size: 22, font: FONT, color: "3730A3" })]
+                    })]
+                }) ]
+            }));
+            for (let i = 1; i <= nightPeople; i++) {
+                signRows.push(new TableRow({
+                    cantSplit: true, height: { value: 서명행높이, rule: HeightRule.ATLEAST },
+                    children: [ cell(String(i), {align:AlignmentType.CENTER}), cell(""), cell(""), cell(""), cell("") ]
+                }));
+            }
+        } else {
+            for (let i = 1; i <= totalPeople; i++) {
+                signRows.push(new TableRow({
+                    cantSplit: true, height: { value: 서명행높이, rule: HeightRule.ATLEAST },
+                    children: [ cell(String(i), {align:AlignmentType.CENTER}), cell(""), cell(""), cell(""), cell("") ]
+                }));
+            }
+        }
+        const signTable = new Table({
+            width: { size: 100, type: WidthType.PERCENTAGE },
+            columnWidths: [600, 2400, 1400, 1400, 4200], rows: signRows
+        });
+        const 조치행높이 = totalPeople <= 10 ? 1700 : 1400;
+        const finalTable = new Table({
+            width: { size: 100, type: WidthType.PERCENTAGE },
+            columnWidths: [7000, 3000],
+            rows: [
+                new TableRow({
+                    cantSplit: true, height: { value: 450, rule: HeightRule.ATLEAST },
+                    children: [
+                        cell("종사자 의견에 대한 현장 조치 결과 (즉시 개선사항 기재)", {shade:true, bold:true, align:AlignmentType.CENTER}),
+                        cell("용역사 현장소장 확인", {shade:true, bold:true, align:AlignmentType.CENTER}),
+                    ]
+                }),
+                new TableRow({
+                    cantSplit: true, height: { value: 조치행높이, rule: HeightRule.ATLEAST },
+                    children: [ cell(""), cell(["", "(서명)", ""], {align:AlignmentType.CENTER}) ]
+                }),
+                new TableRow({
+                    cantSplit: true, height: { value: 450, rule: HeightRule.ATLEAST },
+                    children: [
+                        cell("종사자 의견에 대한 현장 조치 결과 (즉시 개선사항 기재)", {shade:true, bold:true, align:AlignmentType.CENTER}),
+                        cell("현장소장 확인", {shade:true, bold:true, align:AlignmentType.CENTER}),
+                    ]
+                }),
+                new TableRow({
+                    cantSplit: true, height: { value: 조치행높이, rule: HeightRule.ATLEAST },
+                    children: [ cell(""), cell(["", "(서명)", ""], {align:AlignmentType.CENTER}) ]
+                }),
+            ]
+        });
+        const 소제목 = (text) => new Paragraph({
+            spacing: { before: 200, after: 100 }, keepNext: true,
+            children: [new TextRun({ text, bold: true, size: 24, font: FONT })]
+        });
+        const 빈줄 = () => new Paragraph({
+            spacing: { before: 0, after: 0 },
+            children: [new TextRun({ text: "", font: FONT, size: 12 })]
+        });
+        const doc = new Document({
+            styles: { default: { document: { run: { font: FONT, size: 20 } } } },
+            sections: [{
+                properties: { page: { margin: { top: 720, right: 720, bottom: 720, left: 720 } } },
+                children: [
+                    new Paragraph({
+                        alignment: AlignmentType.CENTER, spacing: { after: 200 },
+                        children: [new TextRun({ text: "[ D-안전소통보드 및 종사자 의견 청취서 ]", bold: true, size: 32, font: FONT })]
+                    }),
+                    소제목("1. 작업 기본 정보"),
+                    infoTable1, 빈줄(), infoTable2,
+                    소제목("2. 주요 작업순서별 잠재위험 및 안전 조치사항"),
+                    new Paragraph({
+                        spacing: { after: 100 }, keepNext: true,
+                        children: [new TextRun({ text: "※ 관리감독자는 아래 사항을 작업자들에게 전파하고 지적확인을 실시해 주십시오.", size: 18, italics: true, font: FONT })]
+                    }),
+                    riskTable,
+                    소제목(hasShift 
+                        ? `3. 참석자 서명 및 종사자 의견 청취 (☀주간 ${dayPeople}명 / 🌙야간 ${nightPeople}명)` 
+                        : "3. 참석자 서명 및 종사자 의견 청취"),
+                    signTable,
+                    소제목("4. 현장 조치 결과 및 확인 (현장소장 작성란)"),
+                    finalTable,
+                ]
+            }]
+        });
+        Packer.toBlob(doc).then(blob => {
+            const safe = (작업장소_통합 || 'output').replace(/[\/\\:*?"<>|\n\r]/g,'_').substring(0, 50);
+            const dateSafe = (d.일자 || '').replace(/[\/\-\.]/g, '');
+            saveAs(blob, `D-안전소통보드_${dateSafe}_NO${w.no}_${safe}.docx`);
+        });
+    }
+
+    (function init(){
+        try{
+            const saved = localStorage.getItem(STORAGE_KEYS.workData);
+            if(saved) WORK_DATA = JSON.parse(saved);
+        }catch(e){ WORK_DATA = []; }
+        if(localStorage.getItem(STORAGE_KEYS.adminMode) === '1'){
+            document.getElementById('adminPanel').classList.remove('hidden');
+            document.getElementById('adminBtnText').textContent = '관리자 모드 종료';
+        }
+        renderAll();
+    })();
+    </script>
+</body>
+</html>

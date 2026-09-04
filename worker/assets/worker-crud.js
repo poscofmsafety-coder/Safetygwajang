@@ -71,7 +71,7 @@
             </table>
           </div>` : `
           <div class="worker-empty">
-            <img src="../assets/jaeili-avatar.png" alt="안전과장 캐릭터 제일이">
+            <img src="../assets/jaeili-logo.png" alt="안전과장 캐릭터 제일이">
             <strong>아직 저장된 데이터가 없습니다.</strong>
             <p>회사명·부서명·작업정보 등 사전 입력값 없이 시작합니다.<br>사용자 상황에 맞는 기록만 직접 추가해 주세요.</p>
             <button class="worker-btn primary" id="addRecordEmpty" type="button">첫 기록 만들기</button>

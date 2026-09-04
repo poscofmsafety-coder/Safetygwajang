@@ -13,6 +13,7 @@
 <meta content="자격증부터 취업, 현장 실무까지 이어지는 안전관리자 전문 학습·실무 플랫폼" property="og:description"/>
 <meta content="https://safetygwajang.com/" property="og:url"/>
 <meta content="#12345b" name="theme-color"/>
+<meta content="https://safetygwajang.com/assets/home-preview.png" property="og:image"/>
 <script async="" crossorigin="anonymous" src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9283463208175336"></script>
 <link href="css/style.css" rel="stylesheet"/>
 <link href="css/custom.css" rel="stylesheet"/>
@@ -28,31 +29,49 @@
 <button aria-selected="true" data-audience-target="jobseeker" role="tab" type="button">취준생</button>
 <button aria-selected="false" data-audience-target="worker" role="tab" type="button">재직자</button>
 </div>
-<nav aria-label="주요 메뉴">
-<a href="industrial-safety-guide.html">자격증</a>
-<a href="study.html?id=toeic-part1">영어</a>
-<a href="resume.html">자기소개서</a>
-<a href="interview.html">면접</a>
-<a href="about.html">소개</a>
+<nav aria-label="취준생 메뉴" data-nav-group="jobseeker">
+<a href="industrial-safety-guide.html">자격증</a><a href="study.html?id=toeic-part1">영어</a><a href="resume.html">자기소개서</a><a href="interview.html">면접</a><a href="about.html">소개</a>
 </nav>
-<div class="topbar-actions">
-<button class="btn-sm" id="settings-btn" title="학습 기록 설정" type="button">학습기록 설정</button>
-</div>
+<nav aria-label="재직자 메뉴" data-nav-group="worker" hidden>
+<a href="worker/dashboard.html">대시보드</a><a href="worker/safety-education.html">안전교육</a><a href="worker/risk-assessment.html">위험성평가</a><a href="worker/risk-guide.html">실무가이드</a><a href="worker/laws.html">법령·지침</a><a href="worker/msds-management.html">MSDS</a><a href="worker/confined-space.html">밀폐·온열</a><a href="worker/incident-report.html">사고기록</a>
+</nav>
+<div class="topbar-actions"><button class="btn-sm" data-jobseeker-only id="settings-btn" title="학습 기록 설정" type="button">학습기록 설정</button></div>
 </div>
 </header>
 <main class="container" id="main-content">
-<section class="home-hero">
-<div>
-<span class="home-kicker">SAFETY CAREER &amp; PRACTICE</span>
-<h1>취업 준비부터 현장 실무까지,<br/><em>안전관리자의 성장</em>을 한 곳에서</h1>
-<p>안전관리자를 준비하는 사람에게는 자격증 → 영어 → 자기소개서 → 면접의 순서를 보여드립니다.<br/>현직 안전관리자에게는 위험성평가 · MSDS · 교육 · 밀폐공간 등 실제 업무 흐름을 제공합니다.<br/>단순 자료 모음보다 <strong>다음에 무엇을 해야 하는지 보이는 구조</strong>를 지향합니다.</p>
-<div class="hero-badges">
-<span>산업안전기사 CBT</span><span>토익스피킹</span><span>자소서·면접</span><span>위험성평가</span><span>MSDS</span>
+<section class="home-hero home-hero-v4">
+<div class="hero-copy">
+<span class="home-kicker">안전한 오늘, 더 나은 내일을 위해</span>
+<h1>준비하는 사람도, 지키는 사람도<br/><em>안전과장</em>과 함께합니다.</h1>
+<p class="hero-lead">취업준비생에게는 <strong>자격증 → 영어 → 자기소개서 → 면접</strong>의 준비 순서를,<br/>재직자에게는 <strong>현장 작업 → 교육 → 위험성평가 → 보건관리</strong>의 실무 도구를 제공합니다.</p>
+<div class="hero-cta-row"><button class="home-cta primary" data-audience-target="jobseeker" type="button">취준생 시작하기 <span>→</span></button><button class="home-cta" data-audience-target="worker" type="button">재직자 시작하기 <span>→</span></button></div>
+<div class="hero-badges"><span>검증된 학습자료</span><span>현장 실무 도구</span><span>개인 기록 중심</span><span>취업부터 실무까지</span></div>
 </div>
+<div class="hero-visual hero-visual-full">
+<div class="hero-speech">안전은<br/><b>제일 먼저!</b></div>
+<img alt="안전모를 쓰고 인사하는 안전과장 캐릭터 제일이" src="assets/jaeili-hero-full.png"/>
+<div class="hero-handnote">오늘도<br/><b>안전한 하루!</b></div>
 </div>
-<div class="hero-visual">
-<img alt="안전모를 쓴 안전과장 캐릭터 제일이" height="595" src="assets/jaeili-hero.png" width="430"/>
+</section>
+<section class="audience-overview" aria-label="취준생과 재직자 빠른 메뉴">
+<article class="audience-overview-card job">
+<div class="audience-title-row"><div><span class="mini-label">CAREER</span><h2>취준생</h2><p>자격증부터 면접까지, 합격을 위한 준비를 한 흐름으로.</p></div><img src="assets/jaeili-logo.png" alt="제일이"></div>
+<div class="quick-grid quick-grid-4">
+<a href="#certificates" data-open-audience="jobseeker"><span class="quick-icon">📘</span><b>자격증</b><small>CBT · 기출 · 오답</small></a>
+<a href="#english" data-open-audience="jobseeker"><span class="quick-icon">🎧</span><b>영어</b><small>토익스피킹</small></a>
+<a href="resume.html"><span class="quick-icon">📄</span><b>자기소개서</b><small>항목별 작성 · 검토</small></a>
+<a href="interview.html"><span class="quick-icon">💬</span><b>면접</b><small>예상질문 · 답변전략</small></a>
 </div>
+</article>
+<article class="audience-overview-card worker">
+<div class="audience-title-row"><div><span class="mini-label">WORK</span><h2>재직자</h2><p>현장에서 바로 쓰는 안전관리 기록·계산·관리 도구.</p></div><img src="assets/jaeili-logo.png" alt="제일이"></div>
+<div class="quick-grid quick-grid-4">
+<a href="worker/dashboard.html"><span class="quick-icon">📊</span><b>현장 대시보드</b><small>작업현황 · 위험작업</small></a>
+<a href="worker/safety-education.html"><span class="quick-icon">🎓</span><b>안전보건교육</b><small>대상 · 시간 · 이수</small></a>
+<a href="worker/risk-assessment.html"><span class="quick-icon">⚠️</span><b>위험성평가</b><small>계획 · 실시 · 개선</small></a>
+<a href="worker/msds-management.html"><span class="quick-icon">🧪</span><b>MSDS</b><small>물질 · 보건관리</small></a>
+</div>
+</article>
 </section>
 <section class="audience-panel" data-audience-panel="jobseeker" id="jobseeker">
 <div class="section-head">
@@ -189,14 +208,14 @@
 <div><span class="eyebrow">WORK TOOLS</span><h2>실무 기능 바로가기</h2></div>
 </div>
 <div class="worker-tools-grid">
-<a class="tool-card" href="worker/risk-assessment.html"><span class="tool-icon">RA</span><h3>위험성평가</h3><p>계획·실시·감소대책·검증·교육까지 위험성평가 흐름을 단계별로 관리합니다.</p></a>
-<a class="tool-card" href="worker/msds-management.html"><span class="tool-icon">MS</span><h3>MSDS 보건관리</h3><p>화학물질 정보, 경고표지, 작업공정별 관리요령과 보건관리 항목을 정리합니다.</p></a>
-<a class="tool-card" href="worker/confined-space.html"><span class="tool-icon">CS</span><h3>밀폐공간·온열질환</h3><p>공간 체적, 환기량, 환기팬 가동시간과 유해가스 기준을 보조 계산합니다.</p></a>
-<a class="tool-card" href="worker/safety-education.html"><span class="tool-icon">ED</span><h3>안전보건교육 관리</h3><p>교육유형별 대상과 이수시간을 정리하고 현장 교육관리 기록을 보조합니다.</p></a>
-<a class="tool-card" href="worker/laws.html"><span class="tool-icon">LAW</span><h3>법령·지침 검색</h3><p>안전보건 관계 법령과 실무 기준을 찾아 업무 판단의 출발점을 정리합니다.</p></a>
-<a class="tool-card" href="worker/incident-report.html"><span class="tool-icon">IR</span><h3>사고·아차사고 기록</h3><p>사고·아차사고의 발생정보, 원인, 조치사항을 구조화해 기록하는 화면입니다.</p></a>
-<a class="tool-card" href="worker/dashboard.html"><span class="tool-icon">DB</span><h3>현장 작업 대시보드</h3><p>금일 작업과 위험작업, 담당자, 개선상태를 한 화면에서 살펴보는 실무 대시보드입니다.</p></a>
-<a class="tool-card" href="risk-assessment-guide.html"><span class="tool-icon">GUIDE</span><h3>위험성평가 실무 가이드</h3><p>도구를 사용하기 전 개념과 절차를 읽어볼 수 있는 설명형 콘텐츠입니다.</p></a>
+<a class="tool-card" href="worker/dashboard.html"><span class="tool-icon">DB</span><h3>현장 작업 대시보드</h3><p>엑셀 붙여넣기, 작업·인원·고위험요인 파싱, 무재해 현황과 작업별 안전조치를 한 화면에서 관리합니다.</p></a>
+<a class="tool-card" href="worker/safety-education.html"><span class="tool-icon">ED</span><h3>안전보건교육 관리</h3><p>채용시·특별·MSDS·밀폐공간 교육의 대상과 시간을 기록하고 이수 여부를 확인합니다.</p></a>
+<a class="tool-card" href="worker/risk-assessment.html"><span class="tool-icon">RA</span><h3>위험성평가</h3><p>계획 → 실시 → 개선조치·검증 → 결과공유의 흐름으로 평가 기록을 관리합니다.</p></a>
+<a class="tool-card" href="worker/risk-guide.html"><span class="tool-icon">GUIDE</span><h3>위험성평가 실무 가이드</h3><p>평가 방법, 위험도 판단, 감소대책 우선순위와 기록 시 유의점을 실무 관점으로 정리했습니다.</p></a>
+<a class="tool-card" href="worker/laws.html"><span class="tool-icon">LAW</span><h3>법령·지침 검색</h3><p>산업안전보건 관계 법령과 실무 키워드를 빠르게 찾아 업무 판단의 출발점을 확인합니다.</p></a>
+<a class="tool-card" href="worker/msds-management.html"><span class="tool-icon">MS</span><h3>MSDS 보건관리</h3><p>화학물질 등록·규제정보 확인·경고표지·작업환경측정·특수건강진단을 연결해 관리합니다.</p></a>
+<a class="tool-card" href="worker/confined-space.html"><span class="tool-icon">CS</span><h3>밀폐공간·온열질환 프로그램</h3><p>체적·환기량·환기팬 가동시간·체감온도·유해가스 기준을 계산하고 현장 조치를 확인합니다.</p></a>
+<a class="tool-card" href="worker/incident-report.html"><span class="tool-icon">IR</span><h3>사고·아차사고 기록</h3><p>발생정보, 즉시조치, 4M 원인, 재발방지대책과 위험성평가 연계를 구조화해 기록합니다.</p></a>
 </div>
 <section class="sg-panel">
 <h2>도구는 판단을 대신하지 않습니다</h2>

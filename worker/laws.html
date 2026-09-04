@@ -1,1 +1,420 @@
-<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>법령·지침 확인 노트 | 안전과장</title><meta name="description" content="업무 중 확인한 법령·고시·지침·사내기준의 링크와 핵심 메모를 직접 저장하는 개인 북마크입니다. 사이트가 법령 내용을 임의로 채워 넣지 않습니다."><meta name="robots" content="noindex,follow"><meta name="theme-color" content="#153b67"><link rel="stylesheet" href="../css/style.css"><link rel="stylesheet" href="../css/brand.css"><link rel="stylesheet" href="assets/worker.css"></head><body class="worker-page"><header class="site-nav"><div class="nav-inner"><a class="site-brand" href="../index.html?audience=worker">안전과장</a><div class="audience-switch" aria-label="이용자 유형"><a href="../index.html?audience=jobseeker">취준생</a><a class="active" href="../index.html?audience=worker">재직자</a></div><nav aria-label="재직자 메뉴"><a href="index.html">실무 홈</a><a href="dashboard.html">대시보드</a><a href="risk-assessment.html">위험성평가</a><a href="msds-management.html">MSDS</a><a href="incident-report.html">사고기록</a></nav></div></header><main class="container worker-shell" id="main-content"><section class="worker-hero"><div><span class="eyebrow">재직자 · 기준 확인</span><h1>법령·지침 확인 노트</h1><p>업무 중 확인한 법령·고시·지침·사내기준의 링크와 핵심 메모를 직접 저장하는 개인 북마크입니다. 사이트가 법령 내용을 임의로 채워 넣지 않습니다.</p></div><aside class="worker-mascot"><img src="../assets/jaeili-avatar.png" alt="안전과장 캐릭터 제일이"><div><strong>안전 제일, 기록은 간단하게.</strong><span>회사별 양식에 묶이지 않고<br>필요한 내용만 직접 쌓아가세요.</span></div></aside></section><div class="worker-status-note"><span class="dot"></span><div><b>빈 데이터로 시작합니다.</b> 회사명·부서·공장·담당자 등 사전 입력값은 없습니다. 새 기록을 직접 추가하고 수정·삭제할 수 있습니다.</div></div><div id="workerApp"></div></main><footer class="site-footer"><div class="footer-note"><div class="footer-links"><a href="../index.html?audience=worker">재직자 홈</a><a href="../about.html">사이트 소개</a><a href="../privacy.html">개인정보처리방침</a><a href="../terms.html">이용약관</a></div><p>현재 버전은 회원가입 전 단계입니다. 입력한 실무 기록은 이 브라우저에만 저장되며, 실제 법적 판단과 작업 승인을 대신하지 않습니다.</p><p>© 2026 Safetygwajang.</p></div></footer><script>window.WORKER_PAGE_CONFIG={"title": "법령·지침 확인 노트", "eyebrow": "재직자 · 기준 확인", "desc": "업무 중 확인한 법령·고시·지침·사내기준의 링크와 핵심 메모를 직접 저장하는 개인 북마크입니다. 사이트가 법령 내용을 임의로 채워 넣지 않습니다.", "listTitle": "내 기준·법령 노트", "listDescription": "고용노동부, 국가법령정보센터, 안전보건공단 등 직접 확인한 공식 자료를 저장하세요.", "fields": [{"name": "title", "label": "자료명", "required": true}, {"name": "category", "label": "구분", "type": "select", "options": ["법률", "시행령", "시행규칙", "고시", "KOSHA GUIDE", "사내기준", "기타"]}, {"name": "source", "label": "출처"}, {"name": "url", "label": "링크", "type": "url", "placeholder": "https://"}, {"name": "checkedDate", "label": "확인일", "type": "date"}, {"name": "note", "label": "핵심 메모", "type": "textarea", "full": true, "placeholder": "업무에 필요한 조항, 적용 조건, 확인할 사항 등"}, {"name": "status", "label": "검토상태", "type": "select", "options": ["확인 전", "검토중", "확인 완료"]}], "slug": "laws", "storageKey": "sgw_v4_laws"};</script><script src="assets/worker-crud.js"></script></body></html>
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>안전보건 법령·지침 검색 | 안전과장</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+        body { font-family: 'Pretendard', sans-serif; background-color: #f4f7f6; color: #333; }
+        .navbar-custom { background-color: #004280; padding: 15px 0; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .navbar-brand { font-weight: 900; color: white !important; font-size: 1.8rem; letter-spacing: -1px; text-decoration: none; }
+        .nav-btn { background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.3); border-radius: 20px; padding: 8px 18px; margin-left: 8px; font-size: 1rem; transition: 0.3s; text-decoration: none; font-weight: 700; }
+        .nav-btn:hover { background: white; color: #004280; }
+
+        .search-section { padding: 40px 0; text-align: center; }
+        .search-box { max-width: 800px; margin: 0 auto; position: relative; }
+        .search-box input { width: 100%; padding: 20px 30px; font-size: 1.3rem; border: 3px solid #005baa; border-radius: 50px; box-shadow: 0 5px 15px rgba(0,91,170,0.1); outline: none; }
+        .search-box button { position: absolute; right: 10px; top: 10px; bottom: 10px; background-color: #005baa; color: white; border: none; border-radius: 40px; padding: 0 35px; font-size: 1.2rem; font-weight: bold; cursor: pointer; }
+        .search-box button:hover { background-color: #003366; }
+
+        .db-status { max-width: 800px; margin: 10px auto; padding: 8px 20px; background: #e6f7ec; border-radius: 20px; font-size: 0.95rem; color: #00834e; font-weight: 700; text-align: center; }
+
+        .campaign-container { border: 4px solid #00b050; border-radius: 15px; padding: 30px; background-color: white; margin: 10px auto 30px; max-width: 900px; box-shadow: 0 10px 20px rgba(0,0,0,0.05); }
+        .campaign-title { font-weight: 900; font-size: 1.6rem; margin-bottom: 20px; color: #000; }
+        .campaign-cards { display: flex; gap: 15px; justify-content: space-between; margin-bottom: 30px; }
+        .c-card { background-color: #f4f4f4; border-radius: 15px; padding: 25px 15px; flex: 1; display: flex; flex-direction: column; align-items: center; text-align: center; justify-content: space-between; }
+        .c-text { font-weight: 800; font-size: 1.4rem; margin-bottom: 20px; word-break: keep-all; line-height: 1.4; color: #111; }
+        .highlight-green { color: #00b050; }
+        .c-icon { font-size: 4.5rem; line-height: 1; }
+        .campaign-footer { font-size: 1.6rem; font-weight: 800; color: #000; text-align: center; }
+        .highlight-green-underline { text-decoration: underline; text-decoration-color: #00b050; text-decoration-thickness: 5px; text-underline-offset: 6px; }
+
+        .quote-container { background-color: #e6f0fa; border-left: 6px solid #005baa; padding: 25px 30px; border-radius: 10px; max-width: 900px; margin: 0 auto 30px; text-align: center; }
+        .quote-title { font-size: 1.2rem; font-weight: 900; color: #005baa; margin-bottom: 15px; }
+        .quote-text { font-size: 1.4rem; font-weight: 800; color: #333; word-break: keep-all; line-height: 1.5; }
+
+        .section-title { font-size: 1.6rem; font-weight: 800; color: #004280; margin: 40px 0 20px; padding-bottom: 10px; border-bottom: 2px solid #e0e6ed; }
+        .badge-count { background-color: #005baa; color: white; font-size: 1.1rem; padding: 4px 12px; border-radius: 20px; margin-left: 10px; }
+
+        .result-card { background: white; border-radius: 15px; padding: 25px; height: 100%; box-shadow: 0 4px 15px rgba(0,0,0,0.04); border-top: 4px solid #005baa; }
+        .category-badge { display: inline-block; background-color: #e6f0fa; color: #005baa; padding: 6px 14px; border-radius: 15px; font-size: 1rem; font-weight: 800; margin-bottom: 15px; }
+        .badge-danger-custom { background-color: #ffebee; color: #d32f2f; }
+
+        .result-title { font-size: 1.35rem; font-weight: 800; margin-bottom: 15px; line-height: 1.4; }
+        .law-link { color: #004280; text-decoration: none; }
+        .law-link:hover { color: #00b050; text-decoration: underline; }
+
+        .result-content { color: #444; font-size: 1.1rem; line-height: 1.7; white-space: pre-wrap; background-color: #f8f9fa; padding: 20px; border-radius: 8px; max-height: 320px; overflow-y: auto; font-weight: 500; }
+
+        .highlight { background-color: #fff3cd; font-weight: bold; color: #d9534f; padding: 0 2px; }
+
+        @media (max-width: 768px) {
+            .navbar-brand { font-size: 1.2rem !important; }
+            .search-box input { font-size: 1.1rem; padding: 15px 20px; }
+            .campaign-cards { flex-direction: column; }
+            .c-text { font-size: 1.3rem; }
+            .campaign-footer { font-size: 1.3rem; }
+        }
+    </style>
+<meta name="robots" content="noindex,follow"><meta name="theme-color" content="#153b67"><link rel="stylesheet" href="../css/brand.css"><link rel="stylesheet" href="assets/legacy-brand.css"></head>
+<body class="legacy-tool-page"><header class="legacy-brand-nav"><div class="legacy-brand-inner"><a class="legacy-brand-name" href="../index.html?audience=worker"><img src="../assets/jaeili-logo.png" alt="안전과장 제일이 로고"><span>안전과장</span></a><nav class="legacy-worker-nav" aria-label="재직자 실무 메뉴"><a href="dashboard.html">현장 대시보드</a><a href="safety-education.html">안전교육</a><a href="risk-assessment.html">위험성평가</a><a href="risk-guide.html">실무가이드</a><a href="laws.html">법령·지침</a><a href="msds-management.html">MSDS</a><a href="confined-space.html">밀폐공간</a><a href="incident-report.html">사고기록</a></nav><a class="legacy-back" href="../index.html?audience=worker">재직자 홈</a></div></header><div class="brand-page-note"><div class="brand-page-note-inner"><img src="../assets/jaeili-full.png" alt="제일이 전체 캐릭터"><span><b>안전과장 실무도구</b> · 회사명·부서·공장 등 특정 사업장 데이터 없이 시작합니다. 필요한 정보만 직접 입력하고 저장·내보내기 기능으로 관리하세요.</span></div></div>
+
+    <nav class="legacy-old-header navbar navbar-custom">
+        <div class="container d-flex justify-content-between align-items-center flex-wrap">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-shield-alt me-2"></i>안전과장 스마트 안전보건법령 검색
+            </a>
+            <div class="d-flex align-items-center mt-2 mt-md-0 flex-wrap">
+                <a href="dashboard.html" class="nav-btn" style="background:#002b54; border-color:#93c5fd;">
+                    <i class="fas fa-arrow-left me-1"></i> 대시보드
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="search-section">
+        <div class="container">
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="검색어 입력 (예: 난간, 관리감독자, 안전보건관리규정)">
+                <button id="searchBtn" type="button"><i class="fas fa-search me-2"></i>검색</button>
+            </div>
+            <div class="db-status">
+                <i class="fas fa-database me-1"></i> 실시간 검색 준비 완료
+            </div>
+        </div>
+    </div>
+
+    <div class="container" style="margin-bottom: 80px; min-height: 500px;">
+        <div id="homeArea">
+            <div class="campaign-container">
+                <div class="campaign-title">우리의 안전</div>
+                <div class="campaign-cards">
+                    <div class="c-card">
+                        <div class="c-text"><span class="highlight-green">작업표준</span>으로 시작해</div>
+                        <div class="c-icon">👷‍♂️📋</div>
+                    </div>
+                    <div class="c-card">
+                        <div class="c-text"><span class="highlight-green">마주이야기</span>로<br>서로 소통하며</div>
+                        <div class="c-icon">👷💬👷‍♀️</div>
+                    </div>
+                    <div class="c-card">
+                        <div class="c-text"><span class="highlight-green">작업중지권</span><br>용기있게 사용으로</div>
+                        <div class="c-icon">🛑✋</div>
+                    </div>
+                </div>
+                <div class="campaign-footer">
+                    <span class="highlight-green">동료와 나</span>를 지키는 우리의 <span class="highlight-green-underline">안전문화</span>
+                </div>
+            </div>
+
+            <div class="quote-container">
+                <div class="quote-title">오늘의 안전 메시지</div>
+                <span class="quote-text" id="dailyQuote">안전은 생명입니다.</span>
+            </div>
+
+            <div style="max-width: 900px; margin: 30px auto 0; padding: 25px; background-color: #f8f9fa; border-radius: 15px; border-top: 4px solid #005baa;">
+                <div class="section-title" style="margin-top: 0; border-bottom: none;"><i class="fas fa-newspaper me-2"></i>안전전문지 바로가기</div>
+                <div style="display: flex; gap: 15px; flex-wrap: wrap; justify-content: center;">
+                    <a href="https://www.safetynews.co.kr/" target="_blank" style="flex: 1; min-width: 250px; text-decoration: none;">
+                        <div style="background: white; border: 1px solid #ddd; border-radius: 12px; padding: 20px; text-align: center;">
+                            <h4 style="color: #0056b3; margin: 0 0 15px 0; font-weight: 800;">안전신문</h4>
+                            <span style="display: inline-block; padding: 8px 20px; background: #0056b3; color: white; border-radius: 25px; font-weight: bold;">바로가기 <i class="fas fa-arrow-right ms-1"></i></span>
+                        </div>
+                    </a>
+                    <a href="http://www.safetimes.co.kr/" target="_blank" style="flex: 1; min-width: 250px; text-decoration: none;">
+                        <div style="background: white; border: 1px solid #ddd; border-radius: 12px; padding: 20px; text-align: center;">
+                            <h4 style="color: #d32f2f; margin: 0 0 15px 0; font-weight: 800;">세이프타임즈</h4>
+                            <span style="display: inline-block; padding: 8px 20px; background: #d32f2f; color: white; border-radius: 25px; font-weight: bold;">바로가기 <i class="fas fa-arrow-right ms-1"></i></span>
+                        </div>
+                    </a>
+                    <a href="https://www.idsn.co.kr/" target="_blank" style="flex: 1; min-width: 250px; text-decoration: none;">
+                        <div style="background: white; border: 1px solid #ddd; border-radius: 12px; padding: 20px; text-align: center;">
+                            <h4 style="color: #2e7d32; margin: 0 0 15px 0; font-weight: 800;">매일안전신문</h4>
+                            <span style="display: inline-block; padding: 8px 20px; background: #2e7d32; color: white; border-radius: 25px; font-weight: bold;">바로가기 <i class="fas fa-arrow-right ms-1"></i></span>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div id="loading" style="display: none; text-align: center; padding: 60px 0;">
+            <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status"></div>
+            <h5 class="mt-3 text-primary fw-bold">검색 중...</h5>
+        </div>
+
+        <div id="resultArea" style="display: none;">
+            <div class="section-title"><i class="fas fa-gavel me-2"></i>산업안전보건법 및 관계 법령 <span class="badge-count" id="cnt-law">0</span></div>
+            <div class="row" id="law-content"></div>
+
+            <div class="section-title"><i class="fas fa-book me-2"></i>KOSHA GUIDE 및 미디어 자료 <span class="badge-count" id="cnt-guide">0</span></div>
+            <div class="row" id="guide-content"></div>
+        </div>
+    </div>
+
+    <script>
+        var KOSHA_API_KEY = "4b39abd89a4760da331813df65f3d422dbb86fca4ce6db701a0aa6919a49a9a4";
+
+        var CAT_INFO = {
+            "8":  { name: "중대재해 처벌법",             search_name: "중대재해 처벌 등에 관한 법률",         priority: 1 },
+            "9":  { name: "중대재해 처벌법 시행령",      search_name: "중대재해 처벌 등에 관한 법률 시행령",  priority: 2 },
+            "1":  { name: "산업안전보건법",              search_name: "산업안전보건법",                       priority: 3 },
+            "2":  { name: "산업안전보건법 시행령",       search_name: "산업안전보건법 시행령",                priority: 4 },
+            "3":  { name: "산업안전보건법 시행규칙",     search_name: "산업안전보건법 시행규칙",              priority: 5 },
+            "4":  { name: "산업안전보건기준에 관한 규칙",search_name: "산업안전보건기준에 관한 규칙",         priority: 6 },
+            "11": { name: "유해·위험작업 취업제한 규칙", search_name: "유해ㆍ위험작업의 취업 제한에 관한 규칙",priority: 7 },
+            "5":  { name: "고시·훈령·예규",              search_name: "",                                     priority: 8 }
+        };
+
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log("[INIT] DOM Loaded");
+            displayRandomQuote();
+
+            var btn = document.getElementById('searchBtn');
+            var input = document.getElementById('searchInput');
+
+            btn.addEventListener('click', function() {
+                console.log("[CLICK] 검색 버튼");
+                doSearch();
+            });
+            input.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter' || e.keyCode === 13) {
+                    console.log("[KEY] Enter");
+                    doSearch();
+                }
+            });
+            console.log("[INIT] 이벤트 바인딩 완료");
+        });
+
+        function doSearch() {
+            var keyword = document.getElementById('searchInput').value.trim();
+            console.log("[SEARCH] 시작:", keyword);
+            if (!keyword) { alert('검색어를 입력해주세요.'); return; }
+
+            document.getElementById('homeArea').style.display = 'none';
+            document.getElementById('resultArea').style.display = 'none';
+            document.getElementById('loading').style.display = 'block';
+
+            var matchedLaws = [];
+            var matchedGuides = [];
+            var rendered = false;
+
+            function finishAndRender() {
+                if (rendered) return;
+                rendered = true;
+                console.log("[RENDER] 법령:", matchedLaws.length, "가이드:", matchedGuides.length);
+
+                if (matchedLaws.length === 0) {
+                    matchedLaws.push({
+                        category_name: "국가법령정보센터",
+                        title: '"' + keyword + '" 관련 법령 검색 결과',
+                        content: '클릭 시 국가법령정보센터에서 "' + keyword + '"와 관련된 실시간 법조문을 직접 확인하실 수 있습니다.',
+                        link: 'https://www.law.go.kr/lsSc.do?query=' + encodeURIComponent(keyword),
+                        priority: 99
+                    });
+                }
+                if (matchedGuides.length === 0) {
+                    matchedGuides.push({
+                        category_name: "KOSHA GUIDE",
+                        title: '"' + keyword + '" 관련 기술지침 검색',
+                        content: '한국산업안전보건공단에서 제공하는 "' + keyword + '" 기술지침 검색 결과입니다.',
+                        link: 'https://portal.kosha.or.kr/archive/resources/tech-support/search/all?page=1&rowsPerPage=10'
+                    });
+                }
+
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('resultArea').style.display = 'block';
+                document.getElementById('cnt-law').innerText = matchedLaws.length + '건';
+                document.getElementById('cnt-guide').innerText = matchedGuides.length + '건';
+
+                renderLawGrid('law-content', matchedLaws, keyword);
+                renderLawGrid('guide-content', matchedGuides, keyword);
+                console.log("[RENDER] 완료");
+            }
+
+            // 안전장치: 6초 후 무조건 렌더링
+            setTimeout(function() {
+                if (!rendered) {
+                    console.warn("[TIMEOUT] 6초 - 강제 렌더링");
+                    finishAndRender();
+                }
+            }, 6000);
+
+            var apiUrl = 'https://apis.data.go.kr/B552468/srch/smartSearch?serviceKey=' + KOSHA_API_KEY 
+                       + '&pageNo=1&numOfRows=100&searchValue=' + encodeURIComponent(keyword) 
+                       + '&category=0&type=json&_type=json';
+            console.log("[FETCH]", apiUrl);
+
+            try {
+                fetch(apiUrl)
+                    .then(function(response) {
+                        console.log("[FETCH] 응답:", response.status);
+                        if (!response.ok) throw new Error('API 응답 실패: ' + response.status);
+                        return response.json();
+                    })
+                    .then(function(data) {
+                        try {
+                            var body = (data.response && data.response.body) || {};
+                            var itemList = (body.items && body.items.item) || [];
+                            if (!Array.isArray(itemList)) itemList = [itemList];
+                            console.log("[PARSE] 아이템 수:", itemList.length);
+
+                            itemList.forEach(function(item) {
+                                var catId = String(item.category || "");
+                                var title = stripTags(item.title || "제목 없음");
+                                var content = stripTags(item.highlight_content || item.content || "");
+
+                                if (CAT_INFO[catId]) {
+                                    var catObj = CAT_INFO[catId];
+                                    var searchName = catObj.search_name;
+                                    var articleInfo = findArticle(title);
+                                    var lawLink = "";
+
+                                    if (searchName) {
+                                        if (articleInfo.joNo) {
+                                            if (articleInfo.joBrNo) {
+                                                lawLink = 'https://www.law.go.kr/법령/' + encodeURIComponent(searchName) + '/제' + articleInfo.joNo + '조의' + articleInfo.joBrNo;
+                                            } else {
+                                                lawLink = 'https://www.law.go.kr/법령/' + encodeURIComponent(searchName) + '/제' + articleInfo.joNo + '조';
+                                            }
+                                        } else {
+                                            lawLink = 'https://www.law.go.kr/법령/' + encodeURIComponent(searchName);
+                                        }
+                                    } else {
+                                        lawLink = 'https://www.law.go.kr/admRulSc.do?menuId=5&subMenuId=41&query=' + encodeURIComponent(title);
+                                    }
+
+                                    matchedLaws.push({
+                                        category_name: catObj.name,
+                                        title: title,
+                                        content: content,
+                                        priority: catObj.priority,
+                                        link: lawLink
+                                    });
+                                } else if (catId === "7") {
+                                    matchedGuides.push({
+                                        category_name: "KOSHA GUIDE",
+                                        title: title,
+                                        content: content,
+                                        link: "https://portal.kosha.or.kr/archive/resources/tech-support/search/all?page=1&rowsPerPage=10"
+                                    });
+                                } else if (catId === "6") {
+                                    matchedGuides.push({
+                                        category_name: item.media_style || "미디어",
+                                        title: title,
+                                        content: "안전보건공단 기술미디어 자료입니다.",
+                                        link: item.filepath || "https://www.kosha.or.kr"
+                                    });
+                                }
+                            });
+
+                            matchedLaws.sort(function(a, b) { return a.priority - b.priority; });
+                        } catch (parseErr) {
+                            console.error("[ERROR] 파싱:", parseErr);
+                        }
+                        finishAndRender();
+                    })
+                    .catch(function(err) {
+                        console.error("[ERROR] fetch:", err);
+                        finishAndRender();
+                    });
+            } catch (fatalErr) {
+                console.error("[ERROR] fatal:", fatalErr);
+                finishAndRender();
+            }
+        }
+
+        function stripTags(str) {
+            if (!str) return "";
+            var tmp = document.createElement("div");
+            tmp.innerHTML = String(str);
+            return tmp.textContent || tmp.innerText || "";
+        }
+
+        function findArticle(text) {
+            var result = { joNo: null, joBrNo: null };
+            if (!text) return result;
+            var idx = text.indexOf("제");
+            while (idx !== -1) {
+                var rest = text.substring(idx + 1);
+                var numMatch = "";
+                for (var i = 0; i < rest.length; i++) {
+                    var ch = rest.charAt(i);
+                    if (ch >= "0" && ch <= "9") numMatch += ch;
+                    else break;
+                }
+                if (numMatch && rest.charAt(numMatch.length) === "조") {
+                    result.joNo = numMatch;
+                    var afterJo = rest.substring(numMatch.length + 1);
+                    if (afterJo.indexOf("의") === 0) {
+                        var brNum = "";
+                        for (var j = 1; j < afterJo.length; j++) {
+                            var ch2 = afterJo.charAt(j);
+                            if (ch2 >= "0" && ch2 <= "9") brNum += ch2;
+                            else break;
+                        }
+                        if (brNum) result.joBrNo = brNum;
+                    }
+                    return result;
+                }
+                idx = text.indexOf("제", idx + 1);
+            }
+            return result;
+        }
+
+        function highlight(text, keyword) {
+            if (!text) return "";
+            if (!keyword) return escapeHtml(text);
+            var safeText = escapeHtml(String(text));
+            var safeKw = escapeHtml(String(keyword));
+            var parts = safeText.split(safeKw);
+            return parts.join("<span class='highlight'>" + safeKw + "</span>");
+        }
+
+        function escapeHtml(str) {
+            return String(str)
+                .split("&").join("&amp;")
+                .split("<").join("&lt;")
+                .split(">").join("&gt;")
+                .split('"').join("&quot;");
+        }
+
+        function renderLawGrid(elementId, items, keyword) {
+            var container = document.getElementById(elementId);
+            if (!container) return;
+            if (items.length === 0) {
+                container.innerHTML = '<div class="col-12 text-center p-4 text-muted">결과가 없습니다.</div>';
+                return;
+            }
+            var html = '';
+            items.forEach(function(item) {
+                var badgeClass = item.category_name.indexOf("중대재해") !== -1 ? "category-badge badge-danger-custom" : "category-badge";
+                html += '<div class="col-lg-6 col-md-12 mb-4">'
+                      +   '<div class="result-card">'
+                      +     '<div class="' + badgeClass + '">' + item.category_name + '</div>'
+                      +     '<div class="result-title"><a href="' + item.link + '" target="_blank" class="law-link">' 
+                      +        highlight(item.title, keyword) 
+                      +        ' <i class="fas fa-external-link-alt ms-1" style="font-size: 0.9rem;"></i></a></div>'
+                      +     '<div class="result-content">' + highlight(item.content, keyword) + '</div>'
+                      +   '</div>'
+                      + '</div>';
+            });
+            container.innerHTML = html;
+        }
+
+        var safetyQuotes = [
+            "법은 최소한의 조치입니다.",
+            "위험을 보면 멈추세요.",
+            "모든 사고는 예방할 수 있습니다.",
+            "안전은 선택이 아닌 필수입니다.",
+            "작업 전 5분, 사고 후 평생을 바꿉니다."
+        ];
+        function displayRandomQuote() {
+            var el = document.getElementById('dailyQuote');
+            if (el) el.innerText = safetyQuotes[Math.floor(Math.random() * safetyQuotes.length)];
+        }
+    </script>
+</body>
+</html>
