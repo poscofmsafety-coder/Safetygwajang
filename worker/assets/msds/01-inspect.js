@@ -1,552 +1,161 @@
 /* =========================================================
-   [0] KOSHA 공단 API 검수 설정 (단일 소스)
+   KOSHA MSDS OpenAPI 검수 v7
+   - 공공데이터포털 15157612 / msdschem 사용
+   - CAS 일치 및 KOSHA MSDS 15항을 보조근거로 사용
+   - API 미연결 시 가짜/데모 판정을 생성하지 않음
    ========================================================= */
-const INSPECT_CONFIG = {
-    proxyBase: '/api/inspect',
-    cacheTTL: {
-        success: 30 * 24 * 60 * 60 * 1000,
-        failure: 1 * 24 * 60 * 60 * 1000
-    },
-    timeout: 10000
+const INSPECT_CONFIG={
+  lookup:'/api/msds/lookup', health:'/api/health', timeout:12000,
+  cacheTTL:{success:7*24*60*60*1000,failure:4*60*60*1000}
 };
-
-const InspectCache = {
-    get(cas){
-        try{
-            const raw = localStorage.getItem('sgw_inspect_'+cas);
-            if(!raw) return null;
-            const obj = JSON.parse(raw);
-            const ttl = obj.ok ? INSPECT_CONFIG.cacheTTL.success : INSPECT_CONFIG.cacheTTL.failure;
-            if(Date.now() - obj.checkedAt > ttl) return null;
-            return obj;
-        }catch(e){ return null; }
-    },
-    set(cas, data){ try{ localStorage.setItem('sgw_inspect_'+cas, JSON.stringify(data)); }catch(e){} },
-    del(cas){ localStorage.removeItem('sgw_inspect_'+cas); },
-    clearAll(){
-        Object.keys(localStorage).filter(k=>k.startsWith('sgw_inspect_')).forEach(k=>localStorage.removeItem(k));
-    }
+const InspectCache={
+  get(cas){try{const x=JSON.parse(localStorage.getItem('sgw_inspect_'+cas)||'null');if(!x)return null;const ttl=x.ok?INSPECT_CONFIG.cacheTTL.success:INSPECT_CONFIG.cacheTTL.failure;if(Date.now()-(x.checkedAt||0)>ttl)return null;return x}catch(e){return null}},
+  set(cas,v){try{localStorage.setItem('sgw_inspect_'+cas,JSON.stringify(v))}catch(e){}},
+  del(cas){localStorage.removeItem('sgw_inspect_'+cas)},
+  clearAll(){Object.keys(localStorage).filter(k=>k.startsWith('sgw_inspect_')).forEach(k=>localStorage.removeItem(k))}
 };
-
-let apiConnected = false;
+let apiConnected=false, apiStatusDetail='';
 async function checkApiHealth(){
-    try{
-        const ctrl = new AbortController();
-        setTimeout(()=>ctrl.abort(), 3000);
-        const res = await fetch(INSPECT_CONFIG.proxyBase+'/health', { signal: ctrl.signal });
-        apiConnected = res.ok;
-    }catch(e){ apiConnected = false; }
-    updateApiStatusPill();
+  try{const ctrl=new AbortController();setTimeout(()=>ctrl.abort(),3500);const r=await fetch(INSPECT_CONFIG.health,{signal:ctrl.signal});const j=await r.json().catch(()=>({}));apiConnected=r.ok&&j.configured!==false;apiStatusDetail=j.message||'';}catch(e){apiConnected=false;apiStatusDetail=e.message||''} updateApiStatusPill();
 }
-
 function updateApiStatusPill(){
-    const pill = document.getElementById('apiStatusPill');
-    if(!pill) return;
-    if(apiConnected){
-        pill.innerHTML = '<span class="w-2 h-2 rounded-full bg-emerald-500"></span><span class="text-emerald-700">KOSHA 공단 API 연결됨</span>';
-        pill.className = 'inline-flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 text-[11px] font-bold px-2.5 py-1 rounded-full';
-    } else {
-        pill.innerHTML = '<span class="w-2 h-2 rounded-full bg-amber-500 pulse-dot"></span><span class="text-amber-700">데모 모드 (프록시 미연결)</span>';
-        pill.className = 'inline-flex items-center gap-1.5 bg-amber-50 border border-amber-200 text-[11px] font-bold px-2.5 py-1 rounded-full';
-    }
+  const el=document.getElementById('apiStatusPill');if(!el)return;
+  if(apiConnected){el.textContent='KOSHA 공공데이터 API 연결됨';el.className='inline-flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 text-emerald-700 text-[11px] font-bold px-2.5 py-1 rounded-full';}
+  else{el.textContent='KOSHA API 미설정 · 업로드 MSDS 15항 우선';el.className='inline-flex items-center gap-1.5 bg-amber-50 border border-amber-200 text-amber-800 text-[11px] font-bold px-2.5 py-1 rounded-full';}
 }
-
-/* =========================================================
-   백엔드 응답 정규화
-   백엔드 [cas].js는 { ok, casNo, matchedName, status, tags, docs, meta } 반환
-   프론트가 기대하는 형태: { ok, matched:{kosha}, sources:{kosha}, tags, status }
-   ========================================================= */
-function normalizeBackendResponse(cas, raw){
-    if(!raw || raw.ok === false){
-        return {
-            ok: false,
-            casNo: cas,
-            error: raw?.error || '조회 실패',
-            checkedAt: Date.now()
-        };
-    }
-
-    const koshaHit = raw.status === 'REGULATED';
-    const docs = raw.docs || [];
-
-    return {
-        ok: true,
-        casNo: cas,
-        matchedName: raw.matchedName || null,
-        status: raw.status || 'NO_MATCH',
-        tags: raw.tags || [],
-        matched: { kosha: koshaHit },
-        sources: {
-            kosha: koshaHit ? {
-                ok: true, hit: true,
-                note: `산업안전보건법령 ${docs.length}건 매칭`,
-                name: raw.matchedName,
-                docs: docs
-            } : {
-                ok: true, hit: false,
-                note: '산업안전보건법령 매칭 없음'
-            }
-        },
-        meta: raw.meta || {},
-        checkedAt: Date.now()
-    };
+function triText(v){return v===true?'해당으로 기재':v===false?'해당 없음으로 기재':'자동 확정 안 됨';}
+function normalizeBackendResponse(cas,raw){
+  if(!raw||raw.ok===false)return{ok:false,casNo:cas,error:raw?.error||'조회 실패',checkedAt:Date.now()};
+  return{...raw,ok:true,casNo:raw.casNo||cas,status:raw.status||'FOUND',checkedAt:Date.now(),sources:{kosha:{ok:true,hit:raw.status==='FOUND',note:'KOSHA 물질안전보건자료 조회 서비스',evidence:raw.legal?.evidence||[]}}};
 }
-
-async function inspectByCas(cas, forceRefresh=false){
-    cas = (cas||'').trim();
-    if(!cas) throw new Error('CAS No.를 입력하세요');
-
-    if(!forceRefresh){
-        const hit = InspectCache.get(cas);
-        if(hit) return { ...hit, fromCache: true };
-    }
-
-    let result;
-    if(apiConnected){
-        try{
-            const ctrl = new AbortController();
-            setTimeout(()=>ctrl.abort(), INSPECT_CONFIG.timeout);
-            const res = await fetch(
-                `${INSPECT_CONFIG.proxyBase}/${encodeURIComponent(cas)}${forceRefresh?'?refresh=true':''}`,
-                { signal: ctrl.signal }
-            );
-            if(!res.ok) throw new Error('HTTP '+res.status);
-            const raw = await res.json();
-            result = normalizeBackendResponse(cas, raw);
-        }catch(e){
-            result = { ok:false, casNo:cas, error:e.message, checkedAt:Date.now() };
-        }
-    } else {
-        await new Promise(r=>setTimeout(r, 300+Math.random()*300));
-        result = demoInspect(cas);
-        result.checkedAt = Date.now();
-        result.ok = true;
-        result.demo = true;
-    }
-
-    InspectCache.set(cas, result);
-    return result;
+async function inspectByCas(cas,forceRefresh=false){
+  cas=String(cas||'').trim();if(!cas)throw new Error('CAS No.를 입력하세요.');
+  if(!forceRefresh){const c=InspectCache.get(cas);if(c)return{...c,fromCache:true}}
+  if(!apiConnected){const x={ok:false,unavailable:true,casNo:cas,error:'KOSHA API가 아직 연결되지 않았습니다. 업로드한 MSDS 15항을 확인하고 API 설정 후 재조회하세요.',checkedAt:Date.now()};InspectCache.set(cas,x);return x;}
+  try{const ctrl=new AbortController();setTimeout(()=>ctrl.abort(),INSPECT_CONFIG.timeout);const u=INSPECT_CONFIG.lookup+'?cas='+encodeURIComponent(cas)+(forceRefresh?'&refresh=1':'');const r=await fetch(u,{signal:ctrl.signal});const raw=await r.json();const out=normalizeBackendResponse(cas,raw);InspectCache.set(cas,out);return out;}catch(e){const out={ok:false,casNo:cas,error:e.message,checkedAt:Date.now()};InspectCache.set(cas,out);return out;}
 }
-
-/* =========================================================
-   데모 DB (KOSHA 단일 소스)
-   ========================================================= */
-const DEMO_REG_DB = {
-    '872-50-4':  { name:'NMP', kosha:true,  tags:['특별관리','생식독성1B','산안법'] },
-    '10124-43-3':{ name:'황산코발트', kosha:true, tags:['특별관리','발암성','산안법'] },
-    '7786-81-4': { name:'황산니켈', kosha:true, tags:['특별관리','발암성','산안법'] },
-    '1310-65-2': { name:'수산화리튬', kosha:true, tags:['부식성','산안법'] },
-    '64-17-5':   { name:'에탄올', kosha:true, tags:['인화성'] },
-    '71-43-2':   { name:'벤젠', kosha:true, tags:['특별관리','발암성1A','산안법'] },
-    '67-56-1':   { name:'메탄올', kosha:true, tags:['특별관리','급성독성','인화성'] },
-    '50-00-0':   { name:'포름알데히드', kosha:true, tags:['특별관리','발암성1B','산안법'] },
-    '1309-48-4': { name:'산화마그네슘', kosha:true, tags:['자극성'] },
-    '64742-54-7':{ name:'광유계 윤활기유', kosha:true, tags:['건강유해성'] },
-    '7664-93-9': { name:'황산', kosha:true, tags:['부식성','산안법'] },
-    '7732-18-5': { name:'물', kosha:false, tags:[] }
-};
-
-function demoInspect(cas){
-    const rec = DEMO_REG_DB[cas];
-    if(!rec){
-        return {
-            casNo: cas, status: 'NO_MATCH',
-            matched: { kosha:false },
-            tags: [],
-            sources: {
-                kosha: { ok:true, hit:false, note:'KOSHA MSDS 목록에 없음' }
-            }
-        };
-    }
-    return {
-        casNo: cas, matchedName: rec.name,
-        status: rec.kosha ? 'REGULATED' : 'NO_MATCH',
-        matched: { kosha: rec.kosha },
-        tags: rec.tags,
-        sources: {
-            kosha: rec.kosha
-                ? { ok:true, hit:true, note:'KOSHA 안전보건법령 등재', name:rec.name }
-                : { ok:true, hit:false, note:'KOSHA MSDS 목록에 없음' }
-        }
-    };
-}
-
-/* =========================================================
-   자동 검수 → material 필드 반영
-   ========================================================= */
-function applyInspectionToMaterial(material, inspection){
-    if(!material || !inspection || !inspection.ok) return false;
-
-    let updated = false;
-    const tags = inspection.tags || [];
-    const matched = inspection.matched || {};
-
-    if(!material.tags) material.tags = [];
-    tags.forEach(t=>{
-        if(!material.tags.includes(t)) { material.tags.push(t); updated = true; }
-    });
-
-    if(tags.some(t=>t.includes('특별관리'))){
-        if(!material.isSpecial){ material.isSpecial = true; updated = true; }
-    }
-
-    const isCMR = tags.some(t=>t.includes('발암') || t.includes('변이') || t.includes('생식'));
-    if(isCMR && !material.tags.includes('cmr')){
-        material.tags.push('cmr');
-        updated = true;
-    }
-
-    if(material.isSpecial || isCMR){
-        if(!material.envTarget){ material.envTarget = true; material.envCycle = 6; updated = true; }
-        if(!material.healthTarget){ material.healthTarget = true; material.healthCycle = 12; updated = true; }
-    }
-
-    if(!material.laws) material.laws = {};
-    material.laws.kosha = material.laws.kosha || !!matched.kosha;
-    material.laws.checkedAt = inspection.checkedAt;
-    material.laws.status = inspection.status;
-    updated = true;
-
-    if(inspection.matchedName && (!material.subtitle || material.subtitle === '수동 등록' || material.subtitle === '-')){
-        material.subtitle = inspection.matchedName + ' (' + material.cas + ')';
-        updated = true;
-    }
-
-    return updated;
-}
-
-/* =========================================================
-   혼합물 전체 성분 CAS 병렬 조회
-   ========================================================= */
-async function inspectAllComponents(material, forceRefresh=false){
-    if(!material) return null;
-
-    const casSet = new Set();
-    if(material.cas && material.cas !== '-') casSet.add(material.cas);
-    (material.composition || []).forEach(c=>{
-        if(c.cas && c.cas !== '-') casSet.add(c.cas);
-    });
-
-    if(casSet.size === 0) return null;
-
-    const casList = [...casSet];
-    const results = [];
-
-    await Promise.all(casList.map(async cas=>{
-        try{
-            const r = await inspectByCas(cas, forceRefresh);
-            if(r && r.ok){
-                results.push({ cas, inspection: r });
-            }
-        }catch(e){
-            console.warn('[inspectAllComponents]', cas, e.message);
-        }
-    }));
-
-    if(results.length === 0) return null;
-
-    material.compInspections = results.map(x=>({
-        cas: x.cas,
-        matchedName: x.inspection.matchedName || null,
-        status: x.inspection.status,
-        matched: x.inspection.matched || {},
-        tags: x.inspection.tags || [],
-        checkedAt: x.inspection.checkedAt
-    }));
-
-    // KOSHA union
-    if(!material.laws) material.laws = {};
-    material.laws.kosha = results.some(x=>x.inspection.matched?.kosha);
-    material.laws.checkedAt = Date.now();
-    material.laws.status = results.some(x=>x.inspection.status==='REGULATED') ? 'REGULATED' : 'NO_MATCH';
-
-    if(!material.tags) material.tags = [];
-    results.forEach(x=>{
-        (x.inspection.tags||[]).forEach(t=>{
-            if(!material.tags.includes(t)) material.tags.push(t);
+function applyInspectionToMaterial(m,ins){
+  if(!m||!ins||!ins.ok)return false;let changed=false;
+  m.laws=m.laws||{};m.laws.kosha=ins.status==='FOUND';m.laws.checkedAt=ins.checkedAt;m.laws.status=ins.status;m.laws.koshaName=ins.matchedName||'';m.laws.koshaChemId=ins.chemId||'';changed=true;
+  const legal=ins.legal||{};
+  if(legal.workEnvTarget===true||legal.workEnvTarget===false){m.envTarget=legal.workEnvTarget;changed=true;}
+  if(legal.specialHealthTarget===true||legal.specialHealthTarget===false){m.healthTarget=legal.specialHealthTarget;changed=true;}
+  if(legal.specialManagement===true||legal.specialManagement===false){
+    m.isSpecial=legal.specialManagement;changed=true;
+    if(legal.specialManagement===true){
+      const comp=(m.composition||[]).find(c=>c.cas===ins.casNo);
+      const cmr=legal.cmr||{};
+      m.specialMaterials=m.specialMaterials||[];
+      if(!m.specialMaterials.some(x=>x.cas===ins.casNo)){
+        m.specialMaterials.push({
+          name:comp?.name||ins.matchedName||'물질명 확인 필요', nameEn:'', content:comp?.content||'-', cas:ins.casNo,
+          acute:null, carcino:cmr.carcinogenic, mutagen:cmr.mutagenic, repro:cmr.reprotoxic,
+          needsConfirm:true, source:'KOSHA MSDS 15항 보조검토'
         });
-    });
-
-    const allTags = results.flatMap(x=>x.inspection.tags||[]);
-    if(allTags.some(t=>t.includes('특별관리'))) material.isSpecial = true;
-    if(allTags.some(t=>t.includes('발암')||t.includes('변이')||t.includes('생식'))){
-        if(!material.tags.includes('cmr')) material.tags.push('cmr');
+      }
     }
-    if(material.isSpecial || material.tags.includes('cmr')){
-        material.envTarget = true; material.envCycle = 6;
-        material.healthTarget = true; material.healthCycle = 12;
-    }
-
-    return material.compInspections;
+  }
+  m.regulatoryProfile=m.regulatoryProfile||{source:'업로드 MSDS 15항',evidence:[]};
+  m.regulatoryProfile.kosha={...legal,source:'KOSHA MSDS 15항',checkedAt:ins.checkedAt};
+  m.tags=m.tags||[];
+  if(m.isSpecial&&!m.tags.includes('special'))m.tags.push('special');
+  const cmr=legal.cmr||{};if([cmr.carcinogenic,cmr.mutagenic,cmr.reprotoxic].includes(true)&&!m.tags.includes('cmr'))m.tags.push('cmr');
+  if(ins.matchedName&&(!m.subtitle||m.subtitle==='-'||m.subtitle==='원본 MSDS 기준'))m.subtitle=ins.matchedName+' · '+m.cas;
+  return changed;
 }
+async function inspectAllComponents(material,forceRefresh=false){
+  if(!material)return null;
+  const set=new Set();
+  if(material.cas&&material.cas!=='-')set.add(material.cas);
+  (material.composition||[]).forEach(c=>{if(c.cas&&c.cas!=='-')set.add(c.cas)});
+  if(!set.size)return null;
 
-/* =========================================================
-   단일 물질 자동 검수
-   ========================================================= */
-async function autoInspectMaterial(materialId, showToastMsg=true){
-    const m = MATERIALS.find(x=>x.id===materialId);
-    if(!m) return null;
+  const results=await Promise.all([...set].map(async cas=>{
+    const inspection=await inspectByCas(cas,forceRefresh);
+    if(inspection.ok)applyInspectionToMaterial(material,inspection);
+    return {cas,inspection,status:inspection.status||'ERROR',tags:inspection.tags||[]};
+  }));
 
-    const hasCas = m.cas && m.cas !== '-';
-    const hasComponents = (m.composition||[]).some(c=>c.cas && c.cas!=='-');
-    if(!hasCas && !hasComponents) return null;
-
-    try{
-        const result = await inspectAllComponents(m, false);
-        if(result){
-            saveMATERIALS();
-            if(typeof renderListTable === 'function') renderListTable();
-            if(typeof updateAllKPI === 'function') updateAllKPI();
-            if(typeof applyMaterialToForms === 'function'){
-                applyMaterialToForms(MATERIALS.find(x=>x.id===materialId));
-            }
-            if(showToastMsg && typeof showToast === 'function'){
-                const regCnt = result.filter(x=>x.status==='REGULATED').length;
-                if(regCnt > 0){
-                    showToast(`🔍 KOSHA 검수 완료: ${result.length}개 CAS, 규제 매칭 ${regCnt}건`);
-                } else {
-                    showToast(`🔍 KOSHA 검수 완료: ${result.length}개 CAS, 매칭 없음`);
-                }
-            }
-        }
-        return result;
-    }catch(e){
-        console.warn('[autoInspect] 실패:', m.cas, e.message);
-    }
+  // 혼합물은 한 성분의 결과가 다른 성분의 true 판정을 덮어쓰지 않도록 CAS별 결과를 합산한다.
+  // true가 하나라도 있으면 대상, 모든 확인값이 false일 때만 비대상, 그 외에는 확인 필요(null)로 둔다.
+  const legalRows=results.filter(x=>x.inspection?.ok&&x.inspection.status==='FOUND').map(x=>x.inspection.legal||{});
+  const aggregateTri=(key)=>{
+    const values=legalRows.map(x=>x[key]).filter(v=>v===true||v===false);
+    if(values.includes(true))return true;
+    if(values.length && values.length===legalRows.length && values.every(v=>v===false))return false;
     return null;
+  };
+  const koshaEnv=aggregateTri('workEnvTarget');
+  const koshaHealth=aggregateTri('specialHealthTarget');
+  const koshaSpecial=aggregateTri('specialManagement');
+  const sourceReg=material.regulatoryProfile||{};
+  // 공급자 MSDS 15항과 KOSHA 참고자료 중 하나라도 명시적 true이면 대상 근거 있음으로 둡니다.
+  // true가 없고 어느 한 쪽에 명시적 false가 있을 때만 false, 둘 다 정보가 없으면 null을 유지합니다.
+  const combineTri=(sourceValue,koshaValue)=>{
+    if(sourceValue===true||koshaValue===true)return true;
+    if(sourceValue===false||koshaValue===false)return false;
+    return null;
+  };
+  const env=combineTri(sourceReg.workEnvTarget,koshaEnv);
+  const health=combineTri(sourceReg.specialHealthTarget,koshaHealth);
+  const special=combineTri(sourceReg.specialManagement,koshaSpecial);
+  material.envTarget=env;
+  material.healthTarget=health;
+  material.isSpecial=special;
+
+  const found=results.filter(x=>x.inspection?.ok&&x.inspection.status==='FOUND');
+  const notFound=results.filter(x=>x.inspection?.ok&&x.inspection.status==='NOT_FOUND');
+  material.laws=material.laws||{};
+  material.laws.status=found.length?'FOUND':(notFound.length===results.length?'NOT_FOUND':'PARTIAL');
+  material.laws.kosha=found.length>0;
+  material.laws.checkedAt=Date.now();
+  material.laws.componentCount=results.length;
+  material.laws.foundCount=found.length;
+
+  const anyCmr=legalRows.some(x=>{
+    const c=x.cmr||{};return [c.carcinogenic,c.mutagenic,c.reprotoxic].includes(true);
+  });
+  material.tags=material.tags||[];
+  material.tags=material.tags.filter(t=>t!=='special'&&t!=='cmr');
+  if(special===true)material.tags.push('special');
+  if(anyCmr)material.tags.push('cmr');
+
+  // 특별관리물질 상세은 이번 KOSHA 대조에서 실제로 true인 CAS만 재구성한다.
+  material.specialMaterials=found.filter(x=>x.inspection?.legal?.specialManagement===true).map(x=>{
+    const comp=(material.composition||[]).find(c=>c.cas===x.cas);
+    const cmr=x.inspection.legal?.cmr||{};
+    return {
+      name:comp?.name||x.inspection.matchedName||'물질명 확인 필요', nameEn:'', content:comp?.content||'-', cas:x.cas,
+      acute:null, carcino:cmr.carcinogenic, mutagen:cmr.mutagenic, repro:cmr.reprotoxic,
+      needsConfirm:true, source:'KOSHA MSDS 15항 보조검토'
+    };
+  });
+
+  material.regulatoryProfile=material.regulatoryProfile||{source:'업로드 MSDS 15항',evidence:[]};
+  material.regulatoryProfile.koshaAggregate={workEnvTarget:koshaEnv,specialHealthTarget:koshaHealth,specialManagement:koshaSpecial,checkedAt:Date.now()};
+  material.regulatoryProfile.koshaComponents=results.map(x=>({
+    cas:x.cas,status:x.inspection?.status||'ERROR',matchedName:x.inspection?.matchedName||'',legal:x.inspection?.legal||null,checkedAt:x.inspection?.checkedAt||Date.now()
+  }));
+  material.compInspections=results;
+  return results;
 }
-
-/* =========================================================
-   백그라운드 자동조회
-   ========================================================= */
-let _autoInspectRunning = false;
-let _autoInspectDone = false;
-
+async function autoInspectMaterial(materialId,showToastMsg=true){
+  const m=MATERIALS.find(x=>x.id===materialId);if(!m)return null;const r=await inspectAllComponents(m,false);if(r){saveMATERIALS();if(typeof renderListTable==='function')renderListTable();if(typeof updateAllKPI==='function')updateAllKPI();if(typeof applyMaterialToForms==='function')applyMaterialToForms(m);if(showToastMsg&&typeof showToast==='function'){const found=r.filter(x=>x.inspection?.ok&&x.inspection.status==='FOUND').length;showToast(`KOSHA 조회 완료: ${r.length}개 CAS · 자료 확인 ${found}건`);}}return r;
+}
+let _autoInspectRunning=false,_autoInspectDone=false;
 async function autoInspectAllPending(force=false){
-    if(_autoInspectRunning) return;
-    if(_autoInspectDone && !force) return;
-    _autoInspectRunning = true;
-
-    try{
-        const pending = MATERIALS.filter(m=>{
-            if(m.laws && m.laws.checkedAt) return false;
-            const hasCas = m.cas && m.cas !== '-';
-            const hasComp = (m.composition||[]).some(c=>c.cas && c.cas!=='-');
-            return hasCas || hasComp;
-        });
-
-        if(pending.length === 0){
-            _autoInspectDone = true;
-            _autoInspectRunning = false;
-            return;
-        }
-
-        insLog(`🤖 KOSHA 자동 검수 시작 (${pending.length}건 대기)`);
-
-        const BATCH = 3;
-        for(let i=0; i<pending.length; i+=BATCH){
-            const batch = pending.slice(i, i+BATCH);
-            await Promise.all(batch.map(async m=>{
-                try{
-                    const results = await inspectAllComponents(m, false);
-                    if(results){
-                        const regCnt = results.filter(x=>x.status==='REGULATED').length;
-                        insLog(`  ✓ ${m.name} (${results.length}개 CAS) → 규제 ${regCnt}건`);
-                    }
-                }catch(e){
-                    insLog(`  ✗ ${m.name} ${e.message}`);
-                }
-            }));
-            await new Promise(r=>setTimeout(r, 200));
-        }
-
-        saveMATERIALS();
-        if(typeof renderListTable === 'function') renderListTable();
-        if(typeof updateAllKPI === 'function') updateAllKPI();
-        insLog(`🎉 자동 검수 완료`);
-        _autoInspectDone = true;
-    } finally {
-        _autoInspectRunning = false;
-    }
+  if(!apiConnected||_autoInspectRunning||(_autoInspectDone&&!force))return;_autoInspectRunning=true;try{const list=MATERIALS.filter(m=>force||!m.laws?.checkedAt);for(const m of list){await inspectAllComponents(m,force);await new Promise(r=>setTimeout(r,120));}saveMATERIALS();if(typeof renderListTable==='function')renderListTable();if(typeof updateAllKPI==='function')updateAllKPI();_autoInspectDone=true;}finally{_autoInspectRunning=false;}
 }
-
-function insLog(msg){
-    const box = document.getElementById('insLog');
-    if(!box) return;
-    box.classList.remove('hidden');
-    const p = document.createElement('p');
-    p.innerHTML = `<span class="text-gray-400">[${new Date().toLocaleTimeString()}]</span> ${msg}`;
-    box.appendChild(p);
-    box.scrollTop = box.scrollHeight;
-}
-
-async function inspectCasSingle(forceRefresh){
-    const cas = document.getElementById('insCasInput').value.trim();
-    if(!cas){ showToast('CAS No.를 입력하세요'); return; }
-    openInspectModal(cas);
-    try{
-        insLog(`🔍 ${cas} KOSHA 조회 시작${forceRefresh?' (재조회)':''}`);
-        const result = await inspectByCas(cas, forceRefresh);
-        renderInspectModal(cas, result);
-        insLog(`✅ ${cas} 완료 · ${result.fromCache?'캐시':'신규'} · ${result.status||'ERROR'}`);
-
-        if(result.ok){
-            let anyUpdated = false;
-            MATERIALS.forEach(m=>{
-                const isMatch = m.cas === cas || (m.composition||[]).some(c=>c.cas===cas);
-                if(isMatch){
-                    if(applyInspectionToMaterial(m, result)) anyUpdated = true;
-                }
-            });
-            if(anyUpdated){
-                saveMATERIALS();
-                if(typeof applyMaterialToForms === 'function' && typeof selectedMaterialId !== 'undefined' && selectedMaterialId){
-                    applyMaterialToForms(MATERIALS.find(m=>m.id===selectedMaterialId));
-                }
-            }
-        }
-
-        if(typeof renderListTable === 'function') renderListTable();
-        if(typeof updateInspectKpi === 'function') updateInspectKpi();
-    }catch(e){
-        renderInspectModal(cas, { ok:false, error:e.message });
-        insLog(`❌ ${cas} 실패: ${e.message}`);
-    }
-}
-
-async function reinspectAll(){
-    const btn = document.getElementById('btnReinspectAll');
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fa-solid fa-spinner spin mr-1"></i>재조회 중…';
-    const list = MATERIALS.filter(m=>(m.cas && m.cas!=='-') || (m.composition||[]).some(c=>c.cas));
-    insLog(`🚀 전체 재조회 시작 (${list.length}건)`);
-    const BATCH = 3;
-    for(let i=0; i<list.length; i+=BATCH){
-        const batch = list.slice(i, i+BATCH);
-        await Promise.all(batch.map(async m=>{
-            try{
-                const results = await inspectAllComponents(m, true);
-                if(results){
-                    const regCnt = results.filter(x=>x.status==='REGULATED').length;
-                    insLog(`  · ${m.name} (${results.length}개 CAS) → 규제 ${regCnt}건`);
-                }
-            }catch(e){
-                insLog(`  · ${m.name} ❌ ${e.message}`);
-            }
-        }));
-    }
-    saveMATERIALS();
-    if(typeof renderListTable === 'function') renderListTable();
-    if(typeof updateInspectKpi === 'function') updateInspectKpi();
-    insLog(`🎉 전체 재조회 완료`);
-    btn.disabled = false;
-    btn.innerHTML = '<i class="fa-solid fa-arrows-rotate mr-1"></i>전체 재조회';
-    showToast('✅ 전체 재조회 완료');
-}
-
-function clearInspectCache(){
-    if(!confirm('모든 KOSHA 검수 캐시를 삭제하시겠습니까?')) return;
-    InspectCache.clearAll();
-    _autoInspectDone = false;
-    if(typeof renderListTable === 'function') renderListTable();
-    if(typeof updateInspectKpi === 'function') updateInspectKpi();
-    showToast('🗑 캐시 초기화 완료');
-}
-
-function openInspectModal(cas){
-    document.getElementById('insModalCas').textContent = 'CAS No. ' + cas;
-    document.getElementById('inspectModalBody').innerHTML =
-        '<p class="text-center py-8 text-gray-400"><i class="fa-solid fa-spinner spin mr-2"></i>KOSHA 공단 API 조회 중…</p>';
-    const m = document.getElementById('inspectModal');
-    m.classList.remove('hidden'); m.classList.add('flex');
-}
-
-function closeInspectModal(){
-    const m = document.getElementById('inspectModal');
-    m.classList.add('hidden'); m.classList.remove('flex');
-}
-
-/* =========================================================
-   ⭐ 모달 렌더링 - KOSHA 단일 카드로 변경
-   ========================================================= */
-function renderInspectModal(cas, r){
-    const body = document.getElementById('inspectModalBody');
-
-    if(!r.ok){
-        body.innerHTML = `
-            <div class="bg-rose-50 border border-rose-200 rounded-lg p-4 text-rose-700">
-                <p class="font-bold mb-1"><i class="fa-solid fa-triangle-exclamation mr-1"></i>조회 실패</p>
-                <p class="text-sm">${r.error||'알수없는 오류'}</p>
-                <p class="text-xs text-rose-500 mt-2">CAS: ${cas}</p>
-            </div>`;
-        return;
-    }
-
-    const kosha = (r.sources && r.sources.kosha) || {};
-    const hit = kosha.hit || (r.matched && r.matched.kosha);
-    const docs = kosha.docs || [];
-
-    const statusBadge = r.status==='REGULATED'
-        ? '<span class="bg-rose-100 text-rose-700 px-3 py-1 rounded-full font-black text-xs">⚠ 산업안전보건법 규제 대상</span>'
-        : '<span class="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full font-black text-xs">✓ 규제 매칭 없음</span>';
-
-    const tags = (r.tags||[]).map(t=>
-        `<span class="bg-indigo-100 text-indigo-700 text-[10px] font-bold px-2 py-0.5 rounded">${t}</span>`
-    ).join(' ');
-
-    const docsHtml = docs.length ? `
-        <div class="mt-3">
-            <p class="text-[11px] font-black text-gray-700 mb-1.5">
-                <i class="fa-solid fa-file-lines mr-1"></i>근거 법령 (${docs.length}건)
-            </p>
-            <ul class="space-y-1.5 max-h-64 overflow-y-auto pr-1">
-                ${docs.slice(0, 10).map(d=>`
-                    <li class="bg-white border border-gray-200 rounded p-2 text-[11px]">
-                        <p class="font-bold text-gray-800">${escapeHtml(d.title || '(제목 없음)')}</p>
-                        <p class="text-gray-400 font-mono text-[10px] mt-0.5">${escapeHtml(d.docId || '')}</p>
-                    </li>
-                `).join('')}
-            </ul>
-        </div>
-    ` : '';
-
-    body.innerHTML = `
-        <div class="flex items-center justify-between flex-wrap gap-2 pb-3 border-b border-gray-100">
-            <div>
-                <p class="text-xs text-gray-500">물질명 (KOSHA 매칭): <b class="text-gray-800">${r.matchedName||'-'}</b></p>
-                <div class="flex gap-1 mt-1 flex-wrap">${tags}</div>
-            </div>
-            ${statusBadge}
-        </div>
-
-        <div class="mt-4 border ${hit?'border-rose-200 bg-rose-50/40':'border-emerald-200 bg-emerald-50/40'} rounded-lg p-4">
-            <div class="flex items-center justify-between mb-2 flex-wrap gap-2">
-                <p class="text-sm font-black text-gray-800">
-                    <i class="fa-solid fa-shield-halved mr-1.5 ${hit?'text-rose-600':'text-emerald-600'}"></i>
-                    한국산업안전보건공단 (KOSHA)
-                </p>
-                ${hit
-                    ? '<span class="bg-rose-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">규제 대상</span>'
-                    : '<span class="bg-emerald-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">매칭 없음</span>'}
-            </div>
-            <p class="text-[11px] text-gray-500 mb-2">산업안전보건법 · 시행령 · 시행규칙 · 안전보건기준에 관한 규칙</p>
-            <p class="text-xs text-gray-700 font-semibold">${kosha.note || (hit?'매칭됨':'해당 없음')}</p>
-            ${docsHtml}
-        </div>
-
-        <div class="mt-3 bg-slate-50 rounded-lg p-3 text-[11px] text-gray-600 flex items-center justify-between flex-wrap gap-2">
-            <span><i class="fa-solid fa-clock mr-1"></i>조회 시각: ${new Date(r.checkedAt).toLocaleString()}</span>
-            <span>
-                ${r.fromCache?'📦 캐시':'🌐 신규 조회'}
-                ${r.demo?'· 데모 모드':''}
-                ${r.meta?.elapsedMs?`· ${r.meta.elapsedMs}ms`:''}
-            </span>
-        </div>
-    `;
-}
-
-function escapeHtml(s){
-    return String(s||'').replace(/[&<>"']/g, c=>({
-        '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
-    }[c]));
+function startAutoInspectOnce(){autoInspectAllPending(false)}
+function insLog(msg){const b=document.getElementById('insLog');if(!b)return;b.classList.remove('hidden');const p=document.createElement('p');p.textContent='['+new Date().toLocaleTimeString()+'] '+msg;b.appendChild(p);b.scrollTop=b.scrollHeight;}
+async function inspectCasSingle(forceRefresh){const input=document.getElementById('insCasInput');const cas=input?.value.trim();if(!cas){showToast('CAS No.를 입력하세요');return;}openInspectModal(cas);insLog(cas+' KOSHA 조회 시작');const r=await inspectByCas(cas,forceRefresh);renderInspectModal(cas,r);if(r.ok){for(const m of MATERIALS){if(m.cas===cas||(m.composition||[]).some(c=>c.cas===cas))await inspectAllComponents(m,false);}saveMATERIALS();if(typeof renderListTable==='function')renderListTable();if(typeof updateAllKPI==='function')updateAllKPI();}insLog(cas+' 조회 완료');}
+async function reinspectAll(){const btn=document.getElementById('btnReinspectAll');if(btn){btn.disabled=true;btn.textContent='재조회 중';}InspectCache.clearAll();_autoInspectDone=false;await autoInspectAllPending(true);if(btn){btn.disabled=false;btn.textContent='전체 재조회';}showToast('KOSHA 전체 재조회 완료');}
+function clearInspectCache(){if(!confirm('KOSHA 조회 캐시를 삭제하시겠습니까?'))return;InspectCache.clearAll();_autoInspectDone=false;showToast('조회 캐시를 삭제했습니다.');}
+function openInspectModal(cas){const m=document.getElementById('inspectModal');if(!m)return;const c=document.getElementById('insModalCas');if(c)c.textContent='CAS No. '+cas;m.classList.remove('hidden');m.classList.add('flex');const body=document.getElementById('inspectModalBody');if(body)body.innerHTML='<p class="text-center py-8 text-gray-500">KOSHA 공공데이터를 조회하고 있습니다.</p>';}
+function closeInspectModal(){const m=document.getElementById('inspectModal');if(m){m.classList.add('hidden');m.classList.remove('flex')}}
+function renderInspectModal(cas,r){
+  const body=document.getElementById('inspectModalBody');if(!body)return;
+  if(!r.ok){body.innerHTML=`<div class="bg-amber-50 border border-amber-200 rounded-lg p-4 text-amber-900"><p class="font-bold">조회 결과를 불러오지 못했습니다.</p><p class="text-sm mt-1">${escapeHtml(r.error||'API 설정을 확인하세요.')}</p><p class="text-xs mt-2">업로드 MSDS 15항과 최신 법령을 우선 확인하세요.</p></div>`;return;}
+  const l=r.legal||{};const ev=(l.evidence||[]).slice(0,8);
+  body.innerHTML=`<div class="space-y-3"><div class="bg-slate-50 border border-slate-200 rounded-lg p-3"><p class="text-xs text-gray-500">KOSHA 물질 확인</p><p class="font-bold text-gray-900 mt-1">${escapeHtml(r.matchedName||'물질명 확인')} · ${escapeHtml(cas)}</p><p class="text-[11px] text-gray-500 mt-1">KOSHA 자료는 MSDS 작성·검토의 참고자료이며 최종 법적 적용은 원본 MSDS와 최신 법령으로 확인해야 합니다.</p></div><div class="grid grid-cols-1 sm:grid-cols-3 gap-2"><div class="border rounded p-3"><p class="text-[11px] text-gray-500">작업환경측정</p><b>${triText(l.workEnvTarget)}</b></div><div class="border rounded p-3"><p class="text-[11px] text-gray-500">특수건강진단</p><b>${triText(l.specialHealthTarget)}</b></div><div class="border rounded p-3"><p class="text-[11px] text-gray-500">특별관리물질</p><b>${triText(l.specialManagement)}</b></div></div>${ev.length?`<div class="border rounded p-3"><p class="text-xs font-bold mb-2">KOSHA 15항 근거 문구</p><ul class="text-[11px] space-y-1">${ev.map(x=>`<li>· ${escapeHtml(x)}</li>`).join('')}</ul></div>`:''}<div class="bg-blue-50 border border-blue-200 rounded p-3 text-[11px] text-blue-900">작업환경측정은 시행규칙 별표 21, 특수건강진단은 별표 22, 검진 시기·주기는 별표 23, 특별관리물질은 안전보건규칙 별표 12 및 제440조를 최신본으로 확인하세요.</div></div>`;
 }

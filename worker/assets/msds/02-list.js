@@ -34,7 +34,7 @@ function editListCell(id, field, el){
         if(!isNaN(d.getTime())){
             m.uploadedAt = d.toISOString();
         } else {
-            showToast('⚠ 날짜 형식이 올바르지 않습니다 (예: 2025-01-15)');
+            showToast(' 날짜 형식이 올바르지 않습니다 (예: 2025-01-15)');
             renderListTable();
             return;
         }
@@ -52,14 +52,14 @@ function editListCell(id, field, el){
         if(val && val !== oldCas && val !== '-' && typeof autoInspectMaterial === 'function'){
             autoInspectMaterial(id, true);
         }
-        showToast('✅ CAS 저장됨');
+        showToast(' CAS 저장됨');
         return;
     } else {
         m[field] = val;
     }
 
     saveMATERIALS();
-    showToast('✅ 저장됨');
+    showToast(' 저장됨');
     // 리스트 재렌더 (다른 셀 편집 중이 아닐 때만 안전)
     renderListTable();
 }
@@ -103,9 +103,8 @@ function renderCasCell(m){
             let badge = '';
             if(!cache){
                 badge = '<span class="text-[9px] text-gray-400">(대기)</span>';
-            } else if(cache.status === 'REGULATED'){
-                const cnt = Object.values(cache.matched||{}).filter(Boolean).length;
-                badge = `<span class="text-[9px] bg-rose-100 text-rose-700 px-1 rounded font-bold">규제${cnt}</span>`;
+            } else if(cache.status === 'FOUND'){
+                badge = `<span class="text-[9px] bg-rose-100 text-rose-700 px-1 rounded font-bold">KOSHA확인</span>`;
             } else {
                 badge = '<span class="text-[9px] bg-emerald-50 text-emerald-700 px-1 rounded">-</span>';
             }
@@ -121,34 +120,16 @@ function renderCasCell(m){
    ========================================================= */
 function getUnifiedLawTags(m){
     const tags = [];
-    if(m.isSpecial) tags.push({t:'특별관리', c:'bg-rose-100 text-rose-700'});
+    if(m.isSpecial===true) tags.push({t:'특별관리', c:'bg-rose-100 text-rose-700'});
     if((m.tags||[]).includes('cmr')) tags.push({t:'CMR', c:'bg-orange-100 text-orange-700'});
-    if((m.pictograms||[]).includes('GHS02')) tags.push({t:'위험물', c:'bg-orange-100 text-orange-700'});
+    if(m.envTarget===true) tags.push({t:'작업환경측정', c:'bg-sky-100 text-sky-700'});
+    if(m.healthTarget===true) tags.push({t:'특수건강진단', c:'bg-violet-100 text-violet-700'});
 
-    // 대표 material.laws
-    const laws = m.laws || {};
-    // 성분별 결과 union
-    let kosha = !!laws.kosha, nier = !!laws.nier, nfa = !!laws.nfa, cci = !!laws.cci;
-    (m.compInspections||[]).forEach(ci=>{
-        if(ci.matched?.kosha) kosha = true;
-        if(ci.matched?.nier) nier = true;
-        if(ci.matched?.nfa) nfa = true;
-        if(ci.matched?.cci) cci = true;
-    });
-    // 대표 CAS 캐시도 참조
-    if(m.cas && m.cas!=='-'){
-        const cache = InspectCache.get(m.cas);
-        if(cache?.matched){
-            if(cache.matched.kosha) kosha = true;
-            if(cache.matched.nier) nier = true;
-            if(cache.matched.nfa) nfa = true;
-            if(cache.matched.cci) cci = true;
-        }
-    }
-    if(kosha) tags.push({t:'산안법', c:'bg-blue-100 text-blue-700'});
-    if(nier)  tags.push({t:'화관법', c:'bg-emerald-100 text-emerald-700'});
-    if(nfa)   tags.push({t:'소방법', c:'bg-red-100 text-red-700'});
-    if(cci)   tags.push({t:'화안원', c:'bg-purple-100 text-purple-700'});
+    const inspections = (m.compInspections||[]).map(x=>x.inspection||x).filter(Boolean);
+    const hasFound = m.laws?.status==='FOUND' || inspections.some(x=>x.ok && x.status==='FOUND');
+    const hasNotFound = m.laws?.status==='NOT_FOUND' || inspections.some(x=>x.ok && x.status==='NOT_FOUND');
+    if(hasFound) tags.push({t:'KOSHA 자료확인', c:'bg-blue-100 text-blue-700'});
+    else if(hasNotFound) tags.push({t:'KOSHA 자료없음', c:'bg-slate-100 text-slate-600'});
     return tags;
 }
 
@@ -181,10 +162,9 @@ function renderListTable(){
         if(f.hazard === 'carcino' && !((m.tags||[]).includes('carcino') || (m.hazards||[]).some(h=>h.includes('발암')))) return false;
         if(f.hazard === 'repro' && !((m.hazards||[]).some(h=>h.includes('생식')))) return false;
         if(f.hazard === 'flam' && !(m.pictograms||[]).includes('GHS02')) return false;
-        if(f.law){
-            if(f.law === '산업안전보건법' && !m.isSpecial && !m.laws?.kosha) return false;
-            if(f.law === '위험물안전관리법' && !(m.pictograms||[]).includes('GHS02') && !m.laws?.nfa) return false;
-        }
+        if(f.law==='KOSHA_FOUND' && m.laws?.status!=='FOUND') return false;
+        if(f.law==='KOSHA_NOT_FOUND' && m.laws?.status!=='NOT_FOUND') return false;
+        if(f.law==='KOSHA_PENDING' && m.laws?.checkedAt) return false;
         if(kw){
             // 성분 CAS까지 검색 대상 포함
             const compCas = (m.composition||[]).map(c=>c.cas).join(' ');
@@ -207,7 +187,7 @@ function renderListTable(){
         if(emptyState) emptyState.classList.remove('hidden');
     } else if(pageData.length === 0){
         if(emptyState) emptyState.classList.add('hidden');
-        tbody.innerHTML = `<tr><td colspan="9" class="text-center py-10 text-gray-400 text-xs"><i class="fa-solid fa-filter-circle-xmark text-2xl mb-2 block"></i>필터 조건에 맞는 항목이 없습니다. <button onclick="resetFilter2()" class="text-teal-600 underline ml-1">필터 초기화</button></td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="9" class="text-center py-10 text-gray-400 text-xs">필터 조건에 맞는 항목이 없습니다. <button onclick="resetFilter2()" class="text-teal-600 underline ml-1">필터 초기화</button></td></tr>`;
     } else {
         if(emptyState) emptyState.classList.add('hidden');
         tbody.innerHTML = pageData.map(m=>{
@@ -217,12 +197,11 @@ function renderListTable(){
             if(!m.cas || m.cas==='-'){
                 apiCell = `<span class="text-[10px] text-gray-400">CAS 없음</span>`;
             } else if(!cache){
-                apiCell = `<button onclick="event.stopPropagation(); document.getElementById('insCasInput').value='${m.cas}'; inspectCasSingle(false);" class="bg-blue-50 border border-blue-300 text-blue-700 text-[10px] font-bold px-2 py-1 rounded hover:bg-blue-100"><i class="fa-solid fa-spinner spin mr-1"></i>대기중</button>`;
-            } else if(cache.status==='REGULATED'){
-                const cnt = Object.values(cache.matched||{}).filter(Boolean).length;
-                apiCell = `<button onclick="event.stopPropagation(); document.getElementById('insCasInput').value='${m.cas}'; inspectCasSingle(false);" class="bg-rose-100 text-rose-700 text-[10px] font-bold px-2 py-1 rounded hover:bg-rose-200"><i class="fa-solid fa-triangle-exclamation mr-1"></i>규제 ${cnt}건</button>`;
+                apiCell = `<button onclick="event.stopPropagation(); document.getElementById('insCasInput').value='${m.cas}'; inspectCasSingle(false);" class="bg-blue-50 border border-blue-300 text-blue-700 text-[10px] font-bold px-2 py-1 rounded hover:bg-blue-100">대기중</button>`;
+            } else if(cache.status==='FOUND'){
+                apiCell = `<button onclick="event.stopPropagation(); document.getElementById('insCasInput').value='${m.cas}'; inspectCasSingle(false);" class="bg-rose-100 text-rose-700 text-[10px] font-bold px-2 py-1 rounded hover:bg-rose-200">KOSHA 자료 확인</button>`;
             } else {
-                apiCell = `<button onclick="event.stopPropagation(); document.getElementById('insCasInput').value='${m.cas}'; inspectCasSingle(false);" class="bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] font-bold px-2 py-1 rounded hover:bg-emerald-100"><i class="fa-solid fa-check mr-1"></i>매칭 없음</button>`;
+                apiCell = `<button onclick="event.stopPropagation(); document.getElementById('insCasInput').value='${m.cas}'; inspectCasSingle(false);" class="bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] font-bold px-2 py-1 rounded hover:bg-emerald-100">KOSHA 자료 없음</button>`;
             }
 
             const ghsHtml = (m.pictograms||[]).map(code=>{
@@ -238,7 +217,7 @@ function renderListTable(){
             } else if(m.laws?.checkedAt){
                 lawHtml = '<span class="text-gray-400 text-[10px]">해당 없음</span>';
             } else if((m.cas && m.cas!=='-') || (m.composition||[]).some(c=>c.cas)){
-                lawHtml = '<span class="text-blue-500 text-[10px]"><i class="fa-solid fa-spinner spin mr-1"></i>분석중</span>';
+                lawHtml = '<span class="text-blue-500 text-[10px]">조회 대기</span>';
             } else {
                 lawHtml = '<span class="text-gray-400 text-[10px]">-</span>';
             }
@@ -271,9 +250,9 @@ function renderListTable(){
                     <td class="px-3 py-2.5 text-center">${apiCell}</td>
                     <td class="px-3 py-2.5 text-center text-gray-600 text-[10px]">${editSpan('uploadedAt', regDate, '-')}</td>
                     <td class="px-3 py-2.5 text-center whitespace-nowrap" onclick="event.stopPropagation()">
-                        <button onclick="viewInLabelTab('${m.id}')" class="text-teal-600 hover:text-teal-800 mr-2" title="경고표지 보기"><i class="fa-solid fa-tag"></i></button>
-                        ${m.cas && m.cas!=='-' ? `<button onclick="autoInspectMaterial('${m.id}', true);" class="text-indigo-600 hover:text-indigo-800 mr-2" title="성분별 재조회"><i class="fa-solid fa-rotate"></i></button>`:''}
-                        <button onclick="deleteMaterial('${m.id}')" class="text-rose-600 hover:text-rose-800" title="삭제"><i class="fa-solid fa-trash"></i></button>
+                        <button onclick="viewInLabelTab('${m.id}')" class="text-teal-700 hover:text-teal-900 mr-2 text-[10px] font-bold" title="경고표지 보기">표지</button>
+                        ${m.cas && m.cas!=='-' ? `<button onclick="autoInspectMaterial('${m.id}', true);" class="text-indigo-700 hover:text-indigo-900 mr-2 text-[10px] font-bold" title="성분별 재조회">재조회</button>`:''}
+                        <button onclick="deleteMaterial('${m.id}')" class="text-rose-700 hover:text-rose-900 text-[10px] font-bold" title="삭제">삭제</button>
                     </td>
                 </tr>`;
         }).join('');
@@ -304,15 +283,15 @@ function renderPagination2(totalPages){
     if(totalPages <= 1){ container.innerHTML = ''; return; }
     const cur = list2State.page;
     let html = '';
-    html += `<button ${cur===1?'disabled':''} onclick="goToPage2(1)" class="px-2 py-1 text-xs border border-gray-300 rounded hover:bg-slate-50 disabled:opacity-40"><i class="fa-solid fa-angles-left"></i></button>`;
-    html += `<button ${cur===1?'disabled':''} onclick="goToPage2(${cur-1})" class="px-2 py-1 text-xs border border-gray-300 rounded hover:bg-slate-50 disabled:opacity-40"><i class="fa-solid fa-angle-left"></i></button>`;
+    html += `<button ${cur===1?'disabled':''} onclick="goToPage2(1)" class="px-2 py-1 text-xs border border-gray-300 rounded hover:bg-slate-50 disabled:opacity-40">처음</button>`;
+    html += `<button ${cur===1?'disabled':''} onclick="goToPage2(${cur-1})" class="px-2 py-1 text-xs border border-gray-300 rounded hover:bg-slate-50 disabled:opacity-40">이전</button>`;
     const startP = Math.max(1, cur-2);
     const endP = Math.min(totalPages, startP+4);
     for(let i=startP; i<=endP; i++){
         html += `<button onclick="goToPage2(${i})" class="px-3 py-1 text-xs border ${i===cur?'border-teal-500 bg-teal-500 text-white font-bold':'border-gray-300 hover:bg-slate-50'} rounded">${i}</button>`;
     }
-    html += `<button ${cur===totalPages?'disabled':''} onclick="goToPage2(${cur+1})" class="px-2 py-1 text-xs border border-gray-300 rounded hover:bg-slate-50 disabled:opacity-40"><i class="fa-solid fa-angle-right"></i></button>`;
-    html += `<button ${cur===totalPages?'disabled':''} onclick="goToPage2(${totalPages})" class="px-2 py-1 text-xs border border-gray-300 rounded hover:bg-slate-50 disabled:opacity-40"><i class="fa-solid fa-angles-right"></i></button>`;
+    html += `<button ${cur===totalPages?'disabled':''} onclick="goToPage2(${cur+1})" class="px-2 py-1 text-xs border border-gray-300 rounded hover:bg-slate-50 disabled:opacity-40">다음</button>`;
+    html += `<button ${cur===totalPages?'disabled':''} onclick="goToPage2(${totalPages})" class="px-2 py-1 text-xs border border-gray-300 rounded hover:bg-slate-50 disabled:opacity-40">끝</button>`;
     container.innerHTML = html;
 }
 function goToPage2(p){ list2State.page = p; renderListTable(); }
@@ -331,7 +310,7 @@ function applyFilter2(){
     };
     list2State.page = 1;
     renderListTable();
-    showToast('🔎 검색·필터 적용 완료');
+    showToast('검색·필터 적용 완료');
 }
 function resetFilter2(){
     ['f2-dept','f2-process','f2-hazard','f2-law','f2-search'].forEach(id=>{
@@ -362,7 +341,7 @@ function deleteSelected2(){
     saveMATERIALS();
     renderMaterialList();
     renderListTable();
-    showToast('✅ 선택 항목 삭제 완료');
+    showToast(' 선택 항목 삭제 완료');
 }
 function deleteMaterial(id){
     const m = MATERIALS.find(x=>x.id===id);
@@ -377,7 +356,7 @@ function deleteMaterial(id){
     renderMaterialList();
     renderListTable();
     if(MATERIALS.length > 0) applyMaterialToForms(MATERIALS.find(x=>x.id===selectedMaterialId));
-    showToast('🗑 삭제 완료');
+    showToast(' 삭제 완료');
 }
 
 /* =========================================================
@@ -389,10 +368,10 @@ function openDetailPanel(id){
     document.getElementById('dp-name').textContent = m.name;
     document.getElementById('dp-cas').textContent = m.cas || '-';
 
-    const specialBadge = m.isSpecial ? `
+    const specialBadge = m.isSpecial===true ? `
         <div class="bg-rose-50 border-l-4 border-rose-500 rounded-r-lg p-3">
-            <p class="text-xs font-bold text-rose-700"><i class="fa-solid fa-triangle-exclamation mr-1"></i>특별관리물질</p>
-            <p class="text-xs text-rose-600 mt-1">임신 중 노출 시 태아에게 해를 끼칠 우려. 특별관리 필요.</p>
+            <p class="text-xs font-bold text-rose-700">특별관리물질 확인</p>
+            <p class="text-xs text-rose-700 mt-1">안전보건규칙 별표 12 및 제440조에 따른 고지 대상 여부가 확인된 항목입니다. CMR 구분과 취급기록 요건은 원본 MSDS와 최신 법령으로 최종 확인하세요.</p>
         </div>` : '';
 
     const ghsBadges = (m.pictograms||[]).map(code=>{
@@ -424,63 +403,71 @@ function openDetailPanel(id){
                         `).join('')}
                     </tbody>
                 </table>
-                <p class="text-[10px] text-gray-500 mt-2">합계: <b>${m.compositionSum||0}%</b> ${m.compositionReviewed?'· ✅ 검수완료':''}</p>
+                <p class="text-[10px] text-gray-500 mt-2">합계: <b>${m.compositionSum||0}%</b> ${m.compositionReviewed?'·  검수완료':''}</p>
             </div>
         </div>`;
     }
 
-    // ⭐⭐⭐ 성분별 법규 상세 (compInspections)
+    // 구성성분별 KOSHA MSDS 공공데이터 대조 (CAS 기준)
     let compInspHtml = '';
     if(m.compInspections && m.compInspections.length > 0){
         compInspHtml = `
         <div>
-            <p class="text-xs font-bold text-gray-500 mb-1">🔬 성분별 법규 자동매칭 <span class="text-[10px] text-gray-400">(공식 API)</span></p>
+            <p class="text-xs font-bold text-gray-500 mb-1">구성성분별 KOSHA 공공데이터 대조 <span class="text-[10px] text-gray-400">(CAS No. 기준 · 참고자료)</span></p>
             <div class="bg-white border border-indigo-200 rounded-lg divide-y divide-indigo-100">
                 ${m.compInspections.map(ci=>{
+                    const ins = ci.inspection || ci || {};
+                    const legal = ins.legal || {};
                     const badges = [];
-                    if(ci.matched?.kosha) badges.push('<span class="bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded text-[10px] font-bold">산안법</span>');
-                    if(ci.matched?.nier)  badges.push('<span class="bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded text-[10px] font-bold">화관법</span>');
-                    if(ci.matched?.nfa)   badges.push('<span class="bg-red-100 text-red-700 px-1.5 py-0.5 rounded text-[10px] font-bold">소방법</span>');
-                    if(ci.matched?.cci)   badges.push('<span class="bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded text-[10px] font-bold">화안원</span>');
-                    const status = ci.status === 'REGULATED'
-                        ? '<span class="bg-rose-100 text-rose-700 px-2 py-0.5 rounded text-[10px] font-black">⚠ 규제</span>'
-                        : '<span class="bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-[10px]">매칭 없음</span>';
-                    const tagChips = (ci.tags||[]).slice(0,5).map(t=>`<span class="bg-indigo-50 text-indigo-700 px-1 py-0.5 rounded text-[9px]">${escHtml(t)}</span>`).join(' ');
+                    if(legal.workEnvTarget===true) badges.push('<span class="bg-sky-100 text-sky-700 px-1.5 py-0.5 rounded text-[10px] font-bold">작업환경측정</span>');
+                    if(legal.specialHealthTarget===true) badges.push('<span class="bg-violet-100 text-violet-700 px-1.5 py-0.5 rounded text-[10px] font-bold">특수건강진단</span>');
+                    if(legal.specialManagement===true) badges.push('<span class="bg-rose-100 text-rose-700 px-1.5 py-0.5 rounded text-[10px] font-bold">특별관리물질</span>');
+                    const cmr = legal.cmr || {};
+                    if([cmr.carcinogenic,cmr.mutagenic,cmr.reprotoxic].includes(true)) badges.push('<span class="bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded text-[10px] font-bold">CMR</span>');
+                    const status = ins.ok && ins.status === 'FOUND'
+                        ? '<span class="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-[10px] font-black">KOSHA 자료 확인</span>'
+                        : (ins.ok && ins.status === 'NOT_FOUND'
+                            ? '<span class="bg-slate-100 text-slate-600 px-2 py-0.5 rounded text-[10px]">KOSHA 자료 없음</span>'
+                            : '<span class="bg-amber-50 text-amber-700 px-2 py-0.5 rounded text-[10px]">조회 확인 필요</span>');
+                    const evidence=(legal.evidence||[]).slice(0,2).map(x=>`<p class="text-[10px] text-gray-500 mt-1">· ${escHtml(x)}</p>`).join('');
                     return `
                         <div class="p-2.5">
-                            <div class="flex items-center justify-between gap-2 flex-wrap">
-                                <div>
-                                    <p class="font-bold text-xs text-gray-800">${escHtml(ci.matchedName || '(미확인)')} <span class="font-mono text-[10px] text-gray-500">${escHtml(ci.cas)}</span></p>
-                                    <div class="flex gap-1 mt-1 flex-wrap">${badges.join('')} ${tagChips}</div>
+                            <div class="flex items-start justify-between gap-2 flex-wrap">
+                                <div class="min-w-0">
+                                    <p class="font-bold text-xs text-gray-800">${escHtml(ins.matchedName || '물질명 확인 필요')} <span class="font-mono text-[10px] text-gray-500">${escHtml(ci.cas||ins.casNo||'-')}</span></p>
+                                    <div class="flex gap-1 mt-1 flex-wrap">${badges.join('') || '<span class="text-[10px] text-gray-400">명시적 대상 근거 자동확정 없음</span>'}</div>
+                                    ${evidence}
                                 </div>
                                 ${status}
                             </div>
                         </div>`;
                 }).join('')}
             </div>
+            <p class="text-[10px] text-gray-500 mt-1.5">KOSHA 화학물질정보는 MSDS 작성·검토의 참고자료입니다. 실제 법적 대상 여부는 공급자 MSDS, 취급조건 및 최신 법령을 함께 확인하세요.</p>
         </div>`;
     }
 
-    // 통합 법규 요약
+    // 산업안전보건 관련 요약
     let lawsHtml = '';
-    if(m.laws){
+    if(m.laws || m.envTarget!==undefined || m.healthTarget!==undefined || m.isSpecial!==undefined){
         const lawItems = [];
-        if(m.laws.kosha) lawItems.push('<li>✓ KOSHA MSDS <b>등재</b> (산업안전보건법)</li>');
-        if(m.laws.nier) lawItems.push('<li>✓ 환경공단 <b>화관법 유독물질</b> 해당</li>');
-        if(m.laws.nfa) lawItems.push('<li>✓ 소방청 <b>위험물</b> 지정 (위험물안전관리법)</li>');
-        if(m.laws.cci) lawItems.push('<li>✓ 화학물질안전원 <b>안전관리정보</b> 등재</li>');
-        if(m.envTarget) lawItems.push(`<li>✓ 작업환경측정 대상 (${m.envCycle||6}개월 주기)</li>`);
-        if(m.healthTarget) lawItems.push(`<li>✓ 특수건강진단 대상 (${m.healthCycle||12}개월 주기)</li>`);
+        if(m.laws?.status==='FOUND') lawItems.push('<li><b>KOSHA MSDS 자료 확인:</b> 등록된 CAS No.를 공공데이터와 대조했습니다.</li>');
+        if(m.laws?.status==='NOT_FOUND') lawItems.push('<li><b>KOSHA 자료 없음:</b> 해당 CAS No.로 조회되는 자료를 찾지 못했습니다. 원본 MSDS를 기준으로 수동 검토하세요.</li>');
+        if(m.envTarget===true) lawItems.push('<li><b>작업환경측정 대상 근거:</b> 시행규칙 제186조·별표 21과 실제 노출 작업 여부를 함께 확인하세요.</li>');
+        else if(m.envTarget===false) lawItems.push('<li><b>작업환경측정:</b> 현재 저장된 근거에는 비대상으로 기재되어 있습니다. 취급조건 변경 시 다시 확인하세요.</li>');
+        if(m.healthTarget===true) lawItems.push('<li><b>특수건강진단 대상 근거:</b> 시행규칙 별표 22를 확인하고, 첫 검진 시기·주기는 별표 23을 물질별로 확인하세요.</li>');
+        else if(m.healthTarget===false) lawItems.push('<li><b>특수건강진단:</b> 현재 저장된 근거에는 비대상으로 기재되어 있습니다. 최신 별표 22를 다시 확인하세요.</li>');
+        if(m.isSpecial===true) lawItems.push('<li><b>특별관리물질:</b> 안전보건규칙 별표 12 및 제440조의 CMR 고지사항을 확인하고 근로자에게 알리세요.</li>');
 
         if(lawItems.length > 0){
-            const checkedDate = m.laws.checkedAt ? new Date(m.laws.checkedAt).toLocaleString() : '-';
+            const checkedDate = m.laws?.checkedAt ? new Date(m.laws.checkedAt).toLocaleString() : '-';
             lawsHtml = `
             <div>
-                <p class="text-xs font-bold text-gray-500 mb-1">⚖️ 법규 통합 요약</p>
+                <p class="text-xs font-bold text-gray-500 mb-1">산업안전보건 법적 검토 요약</p>
                 <ul class="bg-indigo-50 border border-indigo-200 rounded-lg p-3 space-y-1 text-xs text-indigo-900">
                     ${lawItems.join('')}
                 </ul>
-                <p class="text-[10px] text-gray-400 mt-1">📅 검수일시: ${checkedDate}</p>
+                <p class="text-[10px] text-gray-400 mt-1">최근 KOSHA 대조: ${checkedDate}</p>
             </div>`;
         }
     }
@@ -522,11 +509,11 @@ function openDetailPanel(id){
         </div>
         <div class="flex gap-2">
             <button onclick="viewInLabelTab('${m.id}'); closeDetailPanel();" class="flex-1 bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold py-2 rounded-lg">
-                <i class="fa-solid fa-tag mr-1"></i>경고표지 보기
+                경고표지 보기
             </button>
-            ${((m.cas && m.cas!=='-') || (m.composition||[]).some(c=>c.cas)) ? `<button onclick="autoInspectMaterial('${m.id}', true); closeDetailPanel();" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-bold py-2 px-4 rounded-lg"><i class="fa-solid fa-satellite-dish mr-1"></i>성분별 재검수</button>`:''}
+            ${((m.cas && m.cas!=='-') || (m.composition||[]).some(c=>c.cas)) ? `<button onclick="autoInspectMaterial('${m.id}', true); closeDetailPanel();" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-bold py-2 px-4 rounded-lg">성분별 재검수</button>`:''}
             <button onclick="deleteMaterial('${m.id}'); closeDetailPanel();" class="bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold py-2 px-4 rounded-lg">
-                <i class="fa-solid fa-trash mr-1"></i>삭제
+                삭제
             </button>
         </div>
     `;
@@ -553,14 +540,11 @@ function exportList2Excel(){
         '월사용량(kg)': m.usageInfo||'-',
         '신호어': m.signalWord||'-',
         '픽토그램': (m.pictograms||[]).join(', '),
-        '특별관리물질': m.isSpecial ? 'Y' : 'N',
-        'CMR': (m.tags||[]).includes('cmr') ? 'Y' : 'N',
-        '산안법(KOSHA)': m.laws?.kosha ? 'Y' : 'N',
-        '화관법(NIER)': m.laws?.nier ? 'Y' : 'N',
-        '소방법(NFA)': m.laws?.nfa ? 'Y' : 'N',
-        '화안원(CCI)': m.laws?.cci ? 'Y' : 'N',
-        '작업환경측정': m.envTarget ? '대상' : '-',
-        '특수건강진단': m.healthTarget ? '대상' : '-',
+        '특별관리물질': m.isSpecial===true ? '대상 근거 있음' : (m.isSpecial===false ? '비대상 기재' : '확인 필요'),
+        'CMR': (m.tags||[]).includes('cmr') ? '근거 있음' : '확인 필요',
+        'KOSHA 자료상태': m.laws?.status==='FOUND' ? '자료 확인' : (m.laws?.status==='NOT_FOUND' ? '자료 없음' : '미조회/확인 필요'),
+        '작업환경측정': m.envTarget===true ? '대상 근거 있음' : (m.envTarget===false ? '비대상 기재' : '확인 필요'),
+        '특수건강진단': m.healthTarget===true ? '대상 근거 있음' : (m.healthTarget===false ? '비대상 기재' : '확인 필요'),
         '유해위험문구': (m.hazards||[]).join(' / '),
         '구성성분': (m.composition||[]).map(c=>`${c.name}(${c.cas}) ${c.content}`).join(' / '),
         '등록일': m.uploadedAt ? new Date(m.uploadedAt).toISOString().slice(0,10) : '-'
@@ -570,14 +554,14 @@ function exportList2Excel(){
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'MSDS리스트');
     XLSX.writeFile(wb, 'MSDS리스트_'+new Date().toISOString().slice(0,10)+'.xlsx');
-    showToast('📥 Excel 다운로드 완료');
+    showToast('엑셀 다운로드가 완료되었습니다.');
 }
 function updateAllKPI(){
     const total = MATERIALS.length;
     const special = MATERIALS.filter(m=>m.isSpecial).length;
     const cmr = MATERIALS.filter(m=>(m.tags||[]).includes('cmr') || (m.hazards||[]).some(h=>h.includes('발암')||h.includes('생식')||h.includes('변이원'))).length;
-    const envTarget = MATERIALS.filter(m=>m.envTarget || m.isSpecial || (m.hazards||[]).some(h=>h.includes('발암')||h.includes('생식'))).length;
-    const healthTarget = MATERIALS.filter(m=>m.healthTarget || m.isSpecial).length;
+    const envTarget = MATERIALS.filter(m=>m.envTarget===true).length;
+    const healthTarget = MATERIALS.filter(m=>m.healthTarget===true).length;
 
     const set=(id,v)=>{const el=document.getElementById(id); if(el) el.textContent=v;};
     set('k2-total', total);
@@ -595,15 +579,20 @@ function updateAllKPI(){
 }
 function updateInspectKpi(){
     let matched=0, nomatch=0, refresh=0;
-    const withCas = MATERIALS.filter(m=>m.cas && m.cas!=='-');
-    withCas.forEach(m=>{
-        const c = InspectCache.get(m.cas);
+    const casSet=new Set();
+    MATERIALS.forEach(m=>{
+        if(m.cas&&m.cas!=='-')casSet.add(m.cas);
+        (m.composition||[]).forEach(c=>{if(c.cas&&c.cas!=='-')casSet.add(c.cas);});
+    });
+    [...casSet].forEach(cas=>{
+        const c=InspectCache.get(cas);
         if(!c) refresh++;
-        else if(c.status==='REGULATED') matched++;
-        else nomatch++;
+        else if(c.ok&&c.status==='FOUND') matched++;
+        else if(c.ok&&c.status==='NOT_FOUND') nomatch++;
+        else refresh++;
     });
     const set=(id,v)=>{const el=document.getElementById(id); if(el) el.textContent=v;};
-    set('ins-total', withCas.length);
+    set('ins-total', casSet.size);
     set('ins-matched', matched);
     set('ins-nomatch', nomatch);
     set('ins-refresh', refresh);

@@ -17,7 +17,7 @@
         .multiplier-badge { animation: trophy-shine 2s ease-in-out infinite; }
     </style>
 <meta name="robots" content="noindex,follow"><meta name="theme-color" content="#153b67"><link rel="stylesheet" href="../css/brand.css"><link rel="stylesheet" href="assets/legacy-brand.css"></head>
-<body class="legacy-tool-page bg-slate-100 min-h-screen text-gray-800"><header class="legacy-brand-nav"><div class="legacy-brand-inner"><a class="legacy-brand-name" href="../index.html?audience=worker"><img src="../assets/jaeili-logo.png" alt="안전과장 제일이 로고"><span>안전과장</span></a><nav class="legacy-worker-nav" aria-label="재직자 실무 메뉴"><a href="dashboard.html">현장 대시보드</a><a href="safety-education.html">안전교육</a><a href="risk-assessment.html">위험성평가</a><a href="risk-guide.html">실무가이드</a><a href="laws.html">법령·지침</a><a href="msds-management.html">MSDS</a><a href="confined-space.html">밀폐공간</a><a href="incident-report.html">사고기록</a></nav><a class="legacy-back" href="../index.html?audience=worker">재직자 홈</a></div></header><div class="brand-page-note"><div class="brand-page-note-inner"><img src="../assets/jaeili-full.png" alt="제일이 전체 캐릭터"><span><b>안전과장 실무도구</b> · 회사명·부서·공장 등 특정 사업장 데이터 없이 시작합니다. 필요한 정보만 직접 입력하고 저장·내보내기 기능으로 관리하세요.</span></div></div><div class="legacy-actionbar"><button type="button" onclick="toggleAdminMode()"><i class="fa-solid fa-sliders"></i> 작업 데이터 관리</button><span>엑셀 붙여넣기 · JSON 백업/복원 · 무재해 기준 설정은 여기에서 관리합니다.</span></div>
+<body class="legacy-tool-page bg-slate-100 min-h-screen text-gray-800"><header class="legacy-brand-nav"><div class="legacy-brand-inner"><a class="legacy-brand-name" href="../index.html?audience=worker"><img src="../assets/jaeili-head.png" alt="안전과장 제일이 로고" data-cheer-mascot><span>안전과장</span></a><nav class="legacy-worker-nav" aria-label="재직자 실무 메뉴"><a href="dashboard.html">현장 대시보드</a><a href="safety-education.html">안전교육</a><a href="risk-assessment.html">위험성평가</a><a href="risk-guide.html">실무가이드</a><a href="laws.html">법령·지침</a><a href="msds-management.html">MSDS</a><a href="confined-space.html">밀폐공간</a><a href="incident-report.html">사고기록</a></nav><a class="legacy-back" href="../index.html?audience=worker">재직자 홈</a></div></header><div class="brand-page-note"><div class="brand-page-note-inner"><img src="../assets/jaeili-full.png" alt="제일이 전체 캐릭터"><span><b>안전과장 실무도구</b> · 회사명·부서·공장 등 특정 사업장 데이터 없이 시작합니다. 필요한 정보만 직접 입력하고 저장·내보내기 기능으로 관리하세요.</span></div></div><div class="legacy-actionbar"><button type="button" onclick="toggleAdminMode()"><i class="fa-solid fa-sliders"></i> 작업 데이터 관리</button><span>엑셀 붙여넣기 · JSON 백업/복원 · 무재해 기준 설정은 여기에서 관리합니다.</span></div>
 
     <nav class="legacy-old-header bg-[#00529C] text-white shadow-lg sticky top-0 z-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -29,14 +29,14 @@
                 </div>
                 <div class="flex items-center space-x-3">
                     <button onclick="toggleAdminMode()" id="adminBtn" class="bg-amber-500 hover:bg-amber-600 text-xs font-bold px-3 py-2 rounded-lg transition flex items-center space-x-1">
-                        <i class="fa-solid fa-user-shield"></i><span id="adminBtnText">관리자 모드</span>
+                        <i class="fa-solid fa-user-shield"></i><span id="adminBtnText">데이터 관리</span>
                     </button>
                     <div class="text-right hidden sm:block">
                         <p class="text-sm font-bold" id="navUserName">안전관리자</p>
                         <p class="text-xs text-blue-200" id="navUserDept"></p>
                     </div>
                     <a href="index.html" class="bg-blue-800 hover:bg-blue-900 text-xs font-semibold px-3 py-2 rounded-lg border border-blue-600 transition flex items-center space-x-1">
-                        <i class="fa-solid fa-right-from-bracket"></i><span>로그아웃</span>
+                        <i class="fa-solid fa-right-from-bracket"></i><span>재직자 홈</span>
                     </a>
                 </div>
             </div>
@@ -46,7 +46,7 @@
     <section id="adminPanel" class="hidden bg-amber-50 border-b-2 border-amber-300">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 space-y-4">
             <h2 class="text-base font-black text-amber-900 flex items-center gap-2">
-                <i class="fa-solid fa-user-shield"></i>관리자 설정
+                <i class="fa-solid fa-sliders"></i>작업 데이터 설정
             </h2>
             <div class="bg-white rounded-lg p-4 border border-amber-200 flex flex-wrap items-end gap-3">
                 <div>
@@ -192,7 +192,7 @@
             <div id="workList" class="space-y-3">
                 <p class="text-sm text-gray-400 text-center py-8">
                     <i class="fa-solid fa-inbox text-3xl mb-2 block"></i>
-                    작업 데이터가 없습니다. <b>관리자 모드</b>에서 엑셀 데이터를 붙여넣으세요.
+                    작업 데이터가 없습니다. 상단 <b>작업 데이터 관리</b>에서 엑셀 데이터를 붙여넣으세요.
                 </p>
             </div>
         </div>
@@ -225,11 +225,11 @@
         const isOpen = !panel.classList.contains('hidden');
         if(isOpen){
             panel.classList.add('hidden');
-            document.getElementById('adminBtnText').textContent = '관리자 모드';
+            document.getElementById('adminBtnText').textContent = '데이터 관리';
             localStorage.setItem(STORAGE_KEYS.adminMode, '0');
         } else {
             panel.classList.remove('hidden');
-            document.getElementById('adminBtnText').textContent = '관리자 모드 종료';
+            document.getElementById('adminBtnText').textContent = '데이터 관리 닫기';
             localStorage.setItem(STORAGE_KEYS.adminMode, '1');
         }
     }
@@ -568,7 +568,7 @@
         if(filtered.length === 0){
             list.innerHTML = `<p class="text-sm text-gray-400 text-center py-8">
                 <i class="fa-solid fa-inbox text-3xl mb-2 block"></i>
-                ${WORK_DATA.length===0?'작업 데이터가 없습니다. <b>관리자 모드</b>에서 엑셀 데이터를 붙여넣으세요.':'검색 결과가 없습니다.'}
+                ${WORK_DATA.length===0?'작업 데이터가 없습니다. 상단 <b>작업 데이터 관리</b>에서 엑셀 데이터를 붙여넣으세요.':'검색 결과가 없습니다.'}
             </p>`;
             return;
         }
@@ -1062,10 +1062,11 @@
         }catch(e){ WORK_DATA = []; }
         if(localStorage.getItem(STORAGE_KEYS.adminMode) === '1'){
             document.getElementById('adminPanel').classList.remove('hidden');
-            document.getElementById('adminBtnText').textContent = '관리자 모드 종료';
+            document.getElementById('adminBtnText').textContent = '데이터 관리 닫기';
         }
         renderAll();
     })();
     </script>
+<script src="../js/mascot-cheer.js"></script>
 </body>
 </html>

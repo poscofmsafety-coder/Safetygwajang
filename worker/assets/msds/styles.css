@@ -50,3 +50,12 @@
 .comp-review-table input { width: 100%; padding: 4px 6px; border: 1px solid #cbd5e1; border-radius: 3px; font-size: 12px; }
 .comp-review-table input:focus { outline: 2px solid #0d9488; border-color: #0d9488; }
 .comp-review-table input.error { border-color: #f87171; background: #fef2f2; }
+
+
+/* 선택한 MSDS 양식만 출력 */
+@media print {
+  body * { visibility: hidden !important; }
+  .msds-print-target, .msds-print-target * { visibility: visible !important; }
+  .msds-print-target { position: absolute !important; left: 0; top: 0; width: 100% !important; margin: 0 !important; padding: 0 !important; box-shadow: none !important; }
+  .msds-print-target img { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+}

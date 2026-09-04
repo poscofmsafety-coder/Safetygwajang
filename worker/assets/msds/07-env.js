@@ -17,7 +17,7 @@ function renderMat(list){
 
     grid.innerHTML = list.map(m=>{
         const next = m.date ? new Date(m.date) : null;
-        if(next) next.setMonth(next.getMonth()+m.cycle);
+        if(next && m.cycle) next.setMonth(next.getMonth()+Number(m.cycle)); else if(next && !m.cycle) next.setTime(NaN);
         const dday = next ? Math.ceil((next-today)/86400000) : null;
         const status = m.ratio>100 ? 'bad' : (dday!==null && dday<30 ? 'soon' : 'ok');
         if(dday!==null && dday<30 && dday>=0) soon++;
@@ -25,10 +25,10 @@ function renderMat(list){
         workers += Number(m.workers)||0;
         if(m.site || m.loc) locs.add((m.site||'')+'/'+(m.loc||''));
 
-        const badgeSpc = m.special==='Y' ? '<span class="bg-rose-100 text-rose-700 text-[10px] font-bold px-1.5 py-0.5 rounded">🔴 특별관리</span>' : '';
-        const badgeSt = status==='ok' ? '<span class="bg-emerald-100 text-emerald-700 text-[10px] font-bold px-1.5 py-0.5 rounded">✅ 적합</span>'
+        const badgeSpc = m.special==='Y' ? '<span class="bg-rose-100 text-rose-700 text-[10px] font-bold px-1.5 py-0.5 rounded"> 특별관리</span>' : '';
+        const badgeSt = status==='ok' ? '<span class="bg-emerald-100 text-emerald-700 text-[10px] font-bold px-1.5 py-0.5 rounded"> 적합</span>'
                       : status==='soon' ? '<span class="bg-amber-100 text-amber-700 text-[10px] font-bold px-1.5 py-0.5 rounded">⏰ 만료임박</span>'
-                      : '<span class="bg-rose-100 text-rose-700 text-[10px] font-bold px-1.5 py-0.5 rounded">⚠ 부적합</span>';
+                      : '<span class="bg-rose-100 text-rose-700 text-[10px] font-bold px-1.5 py-0.5 rounded"> 부적합</span>';
         const gaugeClass = m.ratio>100 ? 'gauge-bad' : (m.ratio>50 ? 'gauge-warn' : 'gauge-ok');
 
         // ⭐ 사업장 색상은 자유입력이라 고정 매핑 대신 해시 기반 동적 색상
@@ -42,11 +42,11 @@ function renderMat(list){
                 ${m.site ? `<span class="text-[10px] ${siteColor} px-2 py-0.5 rounded-full font-bold">${m.site}</span>` : ''}
             </div>
             <p class="text-sm font-black text-gray-900 leading-tight">${m.name}</p>
-            <p class="text-[11px] text-gray-500 mt-0.5">CAS ${m.cas||'-'} · ${m.cycle}개월 주기</p>
+            <p class="text-[11px] text-gray-500 mt-0.5">CAS ${m.cas||'-'} · ${m.cycle?m.cycle+'개월 주기':'주기 별도 확인'}</p>
             <div class="mt-3 space-y-1 text-[11px] text-gray-700">
-                <p><i class="fa-solid fa-building text-gray-400 w-4"></i> ${m.dept||'-'}</p>
-                <p><i class="fa-solid fa-location-dot text-gray-400 w-4"></i> ${m.loc||'-'}</p>
-                <p><i class="fa-solid fa-users text-gray-400 w-4"></i> 노출자 <b>${m.workers||0}명</b></p>
+                <p> ${m.dept||'-'}</p>
+                <p> ${m.loc||'-'}</p>
+                <p> 노출자 <b>${m.workers||0}명</b></p>
             </div>
             <div class="mt-3 bg-slate-50 rounded-lg p-2">
                 <div class="flex justify-between text-[11px] mb-1">
@@ -58,12 +58,12 @@ function renderMat(list){
             </div>
             ${next ? `
             <div class="mt-3 flex items-center justify-between text-[11px]">
-                <span class="text-gray-500"><i class="fa-solid fa-clock mr-1"></i>차기 ${next.toISOString().slice(0,10)}</span>
+                <span class="text-gray-500">차기 ${next.toISOString().slice(0,10)}</span>
                 <span class="font-bold ${dday<0?'text-rose-600':dday<30?'text-amber-600':'text-emerald-600'}">D${dday>=0?'-':'+'}${Math.abs(dday)}</span>
             </div>` : ''}
             <div class="mt-3 pt-3 border-t border-gray-100 flex gap-2">
-                <button onclick="editMat(${m.id})" class="flex-1 bg-white border border-gray-300 hover:bg-slate-50 text-xs font-semibold py-1.5 rounded"><i class="fa-solid fa-pen mr-1"></i>편집</button>
-                <button onclick="delMat(${m.id})" class="flex-1 bg-rose-50 border border-rose-200 hover:bg-rose-100 text-rose-700 text-xs font-semibold py-1.5 rounded"><i class="fa-solid fa-trash mr-1"></i>삭제</button>
+                <button onclick="editMat(${m.id})" class="flex-1 bg-white border border-gray-300 hover:bg-slate-50 text-xs font-semibold py-1.5 rounded">편집</button>
+                <button onclick="delMat(${m.id})" class="flex-1 bg-rose-50 border border-rose-200 hover:bg-rose-100 text-rose-700 text-xs font-semibold py-1.5 rounded">삭제</button>
             </div>
         </div>`;
     }).join('');
@@ -88,7 +88,7 @@ function applyFilter4(){
         if(q && !((m.name||'').toLowerCase().includes(q)||(m.cas||'').toLowerCase().includes(q))) return false;
         if(status){
             const next = m.date ? new Date(m.date) : null;
-            if(next) next.setMonth(next.getMonth()+m.cycle);
+            if(next && m.cycle) next.setMonth(next.getMonth()+Number(m.cycle)); else if(next && !m.cycle) next.setTime(NaN);
             const dday = next ? Math.ceil((next-today)/86400000) : null;
             const st = m.ratio>100?'bad':(dday!==null && dday<30?'soon':'ok');
             if(st!==status) return false;
@@ -108,7 +108,7 @@ function openMatModal(){
     document.getElementById('matModalTitle').textContent='측정물질 등록';
     // ⭐ 사업장도 자유입력이므로 초기값 빈 문자열로
     ['m-name','m-cas','m-site','m-dept','m-loc','m-twa','m-date','m-val'].forEach(id=>document.getElementById(id).value='');
-    document.getElementById('m-cycle').value=6;
+    document.getElementById('m-cycle').value='';
     document.getElementById('m-workers').value=0;
     document.getElementById('m-special').value='N';
     document.getElementById('matModal').classList.remove('hidden');
@@ -120,7 +120,7 @@ function editMat(id){
     document.getElementById('matModalTitle').textContent='측정물질 수정';
     document.getElementById('m-name').value=m.name||''; document.getElementById('m-cas').value=m.cas||'';
     document.getElementById('m-site').value=m.site||''; document.getElementById('m-dept').value=m.dept||'';
-    document.getElementById('m-loc').value=m.loc||''; document.getElementById('m-cycle').value=m.cycle||6;
+    document.getElementById('m-loc').value=m.loc||''; document.getElementById('m-cycle').value=m.cycle||'';
     document.getElementById('m-twa').value=m.twa||''; document.getElementById('m-date').value=m.date||'';
     document.getElementById('m-val').value=m.val||''; document.getElementById('m-workers').value=m.workers||0;
     document.getElementById('m-special').value=m.special||'N';
@@ -138,7 +138,7 @@ function saveMat(){
         site:document.getElementById('m-site').value.trim(),
         dept:document.getElementById('m-dept').value.trim(),
         loc:document.getElementById('m-loc').value.trim(),
-        cycle:Number(document.getElementById('m-cycle').value)||6,
+        cycle:(()=>{const v=Number(document.getElementById('m-cycle').value);return Number.isFinite(v)&&v>0?v:null;})(),
         twa:document.getElementById('m-twa').value.trim(),
         date:document.getElementById('m-date').value,
         val:document.getElementById('m-val').value.trim(),
@@ -156,10 +156,27 @@ function saveMat(){
     } else {
         obj.id = Date.now(); materials.push(obj);
     }
-    saveMatLS(); renderMat(materials); closeMatModal(); showToast('✅ 저장되었습니다');
+    saveMatLS(); renderMat(materials); closeMatModal(); showToast(' 저장되었습니다');
 }
 function delMat(id){
     if(!confirm('삭제하시겠습니까?')) return;
     materials = materials.filter(m=>m.id!==id);
     saveMatLS(); renderMat(materials); showToast('삭제되었습니다');
+}
+
+
+function syncEnvTargetsFromMsds(){
+    const targets=(MATERIALS||[]).filter(m=>m.envTarget===true);
+    if(!targets.length){showToast('작업환경측정 대상으로 명시 확인된 MSDS 물질이 없습니다.');return;}
+    let added=0;
+    targets.forEach(m=>{
+        const comps=(m.composition||[]).filter(c=>c.cas&&c.cas!=='-');
+        const candidates=comps.length?comps:[{name:m.name,cas:m.cas||'-'}];
+        candidates.forEach(c=>{
+            const already=materials.some(x=>x.sourceMaterialId===m.id && x.cas===c.cas);
+            if(already)return;
+            materials.push({id:Date.now()+Math.random(),sourceMaterialId:m.id,name:c.name||m.name,cas:c.cas||m.cas||'-',site:'',dept:m.deptInfo||'',loc:m.processInfo||'',cycle:null,twa:'',date:'',val:'',workers:0,special:m.isSpecial?'Y':'N',ratio:0}); added++;
+        });
+    });
+    saveMatLS();renderMat(materials);showToast(`MSDS 작업환경측정 대상물질 ${added}건을 가져왔습니다. 사업장·측정주기는 확인 후 입력하세요.`);
 }

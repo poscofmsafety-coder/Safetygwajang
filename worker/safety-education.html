@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>안전보건교육 관리 | 안전과장</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
     <style>
         .cell-invalid { background-color: #fee2e2 !important; border: 2px solid #dc2626 !important; }
         .cell-valid { background-color: #dcfce7 !important; }
@@ -22,30 +22,14 @@
         .subhead { background: #e0e7ff; color: #3730a3; font-size: 10px; font-weight: bold; }
     </style>
 <meta name="robots" content="noindex,follow"><meta name="theme-color" content="#153b67"><link rel="stylesheet" href="../css/brand.css"><link rel="stylesheet" href="assets/legacy-brand.css"></head>
-<body class="legacy-tool-page bg-slate-100 min-h-screen text-gray-800"><header class="legacy-brand-nav"><div class="legacy-brand-inner"><a class="legacy-brand-name" href="../index.html?audience=worker"><img src="../assets/jaeili-logo.png" alt="안전과장 제일이 로고"><span>안전과장</span></a><nav class="legacy-worker-nav" aria-label="재직자 실무 메뉴"><a href="dashboard.html">현장 대시보드</a><a href="safety-education.html">안전교육</a><a href="risk-assessment.html">위험성평가</a><a href="risk-guide.html">실무가이드</a><a href="laws.html">법령·지침</a><a href="msds-management.html">MSDS</a><a href="confined-space.html">밀폐공간</a><a href="incident-report.html">사고기록</a></nav><a class="legacy-back" href="../index.html?audience=worker">재직자 홈</a></div></header><div class="brand-page-note"><div class="brand-page-note-inner"><img src="../assets/jaeili-full.png" alt="제일이 전체 캐릭터"><span><b>안전과장 실무도구</b> · 회사명·부서·공장 등 특정 사업장 데이터 없이 시작합니다. 필요한 정보만 직접 입력하고 저장·내보내기 기능으로 관리하세요.</span></div></div>
-
-    <!-- 상단 네비 (dashboard.html과 동일 구조) -->
-    <nav class="legacy-old-header bg-[#00529C] text-white shadow-lg sticky top-0 z-50">
-        <div class="max-w-full mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex items-center justify-between h-16">
-                <div class="flex items-center space-x-3 cursor-pointer" onclick="location.href='dashboard.html'">
-                    <i class="fa-solid fa-shield-halved text-2xl text-blue-300"></i>
-                    <span class="font-black text-xl tracking-wider">안전과장</span>
-                    <span class="bg-blue-800 text-xs px-2.5 py-1 rounded-full font-medium">안전보건교육 관리</span>
-                </div>
-                <a href="dashboard.html" class="bg-blue-800 hover:bg-blue-900 text-xs font-semibold px-3 py-2 rounded-lg border border-blue-600 transition flex items-center space-x-1">
-                    <i class="fa-solid fa-arrow-left"></i><span>대시보드로</span>
-                </a>
-            </div>
-        </div>
-    </nav>
+<body class="legacy-tool-page bg-slate-100 min-h-screen text-gray-800"><header class="legacy-brand-nav"><div class="legacy-brand-inner"><a class="legacy-brand-name" href="../index.html?audience=worker"><img src="../assets/jaeili-head.png" alt="안전과장 제일이 로고" data-cheer-mascot><span>안전과장</span></a><nav class="legacy-worker-nav" aria-label="재직자 실무 메뉴"><a href="dashboard.html">현장 대시보드</a><a href="safety-education.html">안전교육</a><a href="risk-assessment.html">위험성평가</a><a href="risk-guide.html">실무가이드</a><a href="laws.html">법령·지침</a><a href="msds-management.html">MSDS</a><a href="confined-space.html">밀폐공간</a><a href="incident-report.html">사고기록</a></nav><a class="legacy-back" href="../index.html?audience=worker">재직자 홈</a></div></header><div class="brand-page-note"><div class="brand-page-note-inner"><img src="../assets/jaeili-full.png" alt="제일이 전체 캐릭터"><span><b>안전과장 실무도구</b> · 회사명·부서·공장 등 특정 사업장 데이터 없이 시작합니다. 필요한 정보만 직접 입력하고 저장·내보내기 기능으로 관리하세요.</span></div></div>
 
     <main class="max-w-full mx-auto px-4 py-6 space-y-5">
 
         <!-- 현장 정보 -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
             <h2 class="text-base font-black text-gray-800 mb-3 flex items-center gap-2">
-                <i class="fa-solid fa-map-marker-alt text-[#00529C]"></i>현장 정보
+                현장 정보
             </h2>
             <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
                 <div>
@@ -73,38 +57,51 @@
             </div>
         </div>
 
+
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+            <div class="flex flex-wrap items-start justify-between gap-2 mb-3">
+                <div><h2 class="text-base font-black text-gray-800">교육시간 관리 기준 설정</h2><p class="text-xs text-gray-500 mt-1">법령·근로자 구분·작업 특성을 확인한 뒤 이 화면에서 관리할 목표시간만 직접 입력하세요. 비워두면 이수·미이수를 자동 판정하지 않습니다.</p></div>
+            </div>
+            <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+                <div><label class="block text-xs font-bold text-gray-600 mb-1">채용 시 목표(H)</label><input id="targetHire" type="number" min="0" step="0.5" placeholder="직접 입력" class="w-full border border-gray-300 rounded px-3 py-2 text-sm"></div>
+                <div><label class="block text-xs font-bold text-gray-600 mb-1">MSDS 목표(H)</label><input id="targetMsds" type="number" min="0" step="0.5" placeholder="직접 입력" class="w-full border border-gray-300 rounded px-3 py-2 text-sm"></div>
+                <div><label class="block text-xs font-bold text-gray-600 mb-1">특별교육 목표(H)</label><input id="targetSpecial" type="number" min="0" step="0.5" placeholder="직접 입력" class="w-full border border-gray-300 rounded px-3 py-2 text-sm"></div>
+                <div><label class="block text-xs font-bold text-gray-600 mb-1">밀폐공간 목표(H)</label><input id="targetConfined" type="number" min="0" step="0.5" placeholder="직접 입력" class="w-full border border-gray-300 rounded px-3 py-2 text-sm"></div>
+                <div><label class="block text-xs font-bold text-gray-600 mb-1">특수형태근로 목표(H)</label><input id="targetSpecialWorker" type="number" min="0" step="0.5" placeholder="직접 입력" class="w-full border border-gray-300 rounded px-3 py-2 text-sm"></div>
+            </div>
+        </div>
+
         <!-- 법적 기준 안내 -->
         <div class="bg-amber-50 border-l-4 border-amber-500 rounded p-4 text-xs space-y-1">
-            <p class="font-black text-amber-900"><i class="fa-solid fa-circle-info mr-1"></i>법정 교육시간 기준 (산업안전보건법 시행규칙 별표 4·5)</p>
+            <p class="font-black text-amber-900">안전보건교육 관리 기준</p>
             <ul class="ml-5 list-disc text-amber-800 space-y-0.5">
-                <li><b>채용시 교육</b>: 1주일~1개월 작업 → <b>4시간</b> / 그 외 → <b>8시간</b></li>
-                <li><b>특별교육</b>: 2개월 이내 작업 → <b>2시간</b> / 그 외 → <b>16시간</b> (최초 종사 전 4시간 + 남은 12시간은 3개월 이내 분할 가능)</li>
-                <li><b>MSDS 교육</b>: 화학물질 취급 시 필수</li>
-                <li><b>특수형태근로종사자</b>: 크레인·지게차 등 중장비 기사 대상 <b>1시간</b></li>
-                <li>🚨 <b>16시간 미달 시 빨간색으로 표시</b>됩니다.</li>
-            </ul>
+<li>교육 종류·대상·시간은 산업안전보건법 시행규칙 제26조 및 별표 4·5의 최신 기준을 확인해 적용하세요.</li>
+<li>채용 시 교육, 정기교육, 작업내용 변경 시 교육, 특별교육은 근로자 구분과 작업 특성에 따라 기준이 달라질 수 있습니다.</li>
+<li>MSDS 대상물질 취급 근로자 교육은 해당 물질의 유해성·위험성, 취급상 주의사항, 적절한 보호구와 응급조치를 포함해 기록하세요.</li>
+<li>이 화면은 교육기록 관리 도구이며 법정 교육대상·시간을 자동 확정하지 않습니다.</li>
+</ul>
         </div>
 
         <!-- 작업 도구 버튼 -->
         <div class="flex flex-wrap items-center gap-2">
             <button onclick="addWorker()" class="bg-[#00529C] hover:bg-blue-900 text-white font-bold px-4 py-2 rounded text-sm">
-                <i class="fa-solid fa-user-plus mr-1"></i>근로자 추가
+                근로자 추가
             </button>
             <button onclick="saveData()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2 rounded text-sm">
-                <i class="fa-solid fa-save mr-1"></i>저장
+                저장
             </button>
             <button onclick="exportJSON()" class="bg-slate-600 hover:bg-slate-700 text-white font-bold px-4 py-2 rounded text-sm">
-                <i class="fa-solid fa-download mr-1"></i>JSON 내보내기
+                JSON 내보내기
             </button>
             <label class="bg-slate-600 hover:bg-slate-700 text-white font-bold px-4 py-2 rounded text-sm cursor-pointer">
-                <i class="fa-solid fa-upload mr-1"></i>JSON 불러오기
+                JSON 불러오기
                 <input type="file" accept=".json" onchange="importJSON(event)" class="hidden">
             </label>
             <button onclick="exportExcel()" class="bg-green-700 hover:bg-green-800 text-white font-bold px-4 py-2 rounded text-sm">
-                <i class="fa-solid fa-file-excel mr-1"></i>엑셀 다운로드
+                엑셀 다운로드
             </button>
             <button onclick="clearAll()" class="bg-rose-500 hover:bg-rose-600 text-white font-bold px-4 py-2 rounded text-sm ml-auto">
-                <i class="fa-solid fa-trash mr-1"></i>전체 초기화
+                전체 초기화
             </button>
         </div>
 
@@ -143,9 +140,9 @@
                         <th rowspan="2" style="min-width:110px;">채용일</th>
                         <th colspan="2" style="min-width:200px;">채용시 교육</th>
                         <th colspan="2" style="min-width:200px;">MSDS 교육</th>
-                        <th colspan="2" style="min-width:280px;">특별교육 (16H 분할 가능)</th>
-                        <th colspan="2" style="min-width:200px;">밀폐공간 측정가 교육</th>
-                        <th colspan="2" style="min-width:200px;">특수형태근로종사자 교육 (1H)</th>
+                        <th colspan="2" style="min-width:280px;">특별교육</th>
+                        <th colspan="2" style="min-width:200px;">밀폐공간 관련 교육</th>
+                        <th colspan="2" style="min-width:200px;">특수형태근로종사자 교육</th>
                         <th rowspan="2" style="min-width:80px;">상태</th>
                         <th rowspan="2" style="min-width:60px;">삭제</th>
                     </tr>
@@ -171,7 +168,8 @@
 <script>
 const STORAGE_KEY = 'sgw_safety_education';
 let WORKERS = [];
-let SITE_INFO = { name:'', contractor:'', period:'long', mgr:'' };
+let SITE_INFO = { name:'', contractor:'', period:'long', mgr:'', targets:{hire:null,msds:null,special:null,confined:null,specialWorker:null} };
+function numOrNull(v){const n=Number(v);return String(v).trim()!==''&&Number.isFinite(n)&&n>=0?n:null;}
 
 /* ==================== 초기화 ==================== */
 function init() {
@@ -186,9 +184,15 @@ function init() {
     document.getElementById('siteName').value = SITE_INFO.name || '';
     document.getElementById('siteContractor').value = SITE_INFO.contractor || '';
     document.getElementById('sitePeriod').value = SITE_INFO.period || 'long';
+    SITE_INFO.targets = Object.assign({hire:null,msds:null,special:null,confined:null,specialWorker:null}, SITE_INFO.targets||{});
     document.getElementById('siteMgr').value = SITE_INFO.mgr || '';
+    document.getElementById('targetHire').value = SITE_INFO.targets.hire ?? '';
+    document.getElementById('targetMsds').value = SITE_INFO.targets.msds ?? '';
+    document.getElementById('targetSpecial').value = SITE_INFO.targets.special ?? '';
+    document.getElementById('targetConfined').value = SITE_INFO.targets.confined ?? '';
+    document.getElementById('targetSpecialWorker').value = SITE_INFO.targets.specialWorker ?? '';
 
-    ['siteName','siteContractor','sitePeriod','siteMgr'].forEach(id=>{
+    ['siteName','siteContractor','sitePeriod','siteMgr','targetHire','targetMsds','targetSpecial','targetConfined','targetSpecialWorker'].forEach(id=>{
         document.getElementById(id).addEventListener('change', updateSiteInfo);
     });
 
@@ -201,7 +205,14 @@ function updateSiteInfo() {
     SITE_INFO.contractor = document.getElementById('siteContractor').value;
     SITE_INFO.period = document.getElementById('sitePeriod').value;
     SITE_INFO.mgr = document.getElementById('siteMgr').value;
-    renderTable(); // 기간 변경 시 채용시 교육 기준시간 재계산
+    SITE_INFO.targets={
+      hire:numOrNull(document.getElementById('targetHire').value),
+      msds:numOrNull(document.getElementById('targetMsds').value),
+      special:numOrNull(document.getElementById('targetSpecial').value),
+      confined:numOrNull(document.getElementById('targetConfined').value),
+      specialWorker:numOrNull(document.getElementById('targetSpecialWorker').value)
+    };
+    renderTable();
 }
 
 /* ==================== 데이터 모델 ==================== */
@@ -216,7 +227,7 @@ function newWorker() {
         specialEdu: [ { date:'', startTime:'', endTime:'' } ], // 특별교육 (배열, 분할 가능)
         confinedEdu: { date:'', startTime:'', endTime:'' },// 밀폐공간 측정가
         specialWorker: false,                              // 특수형태근로 대상 여부
-        specialWorkerEdu: { date:'', startTime:'', endTime:'' } // 특수형태근로 1H
+        specialWorkerEdu: { date:'', startTime:'', endTime:'' } // 특수형태근로 교육 기록
     };
 }
 
@@ -254,44 +265,30 @@ function totalSpecialHours(specialEdu) {
     return specialEdu.reduce((s, slot) => s + calcHours(slot.startTime, slot.endTime), 0);
 }
 
-/* 채용시 교육 법정 기준 */
-function hireLegalHour() {
-    return SITE_INFO.period === 'short' ? 4 : 8;
-}
-/* 특별교육 법정 기준 (기본 16H, 2개월 이내 단기는 2H로 별도 판단 가능하나
-   현재는 현장 단위 → 장기 기준으로 16H 검증. 단기 현장은 2H로 계산) */
-function specialLegalHour() {
-    return SITE_INFO.period === 'short' ? 2 : 16;
+/* 관리 목표시간은 최신 법령 확인 후 사용자가 직접 설정합니다. */
+function targetHour(key){ const v=SITE_INFO.targets?.[key]; return Number.isFinite(Number(v)) && v!==null && v!=='' ? Number(v) : null; }
+function targetState(actual,target,hasEntry){
+    if(target===null) return null;
+    if(!hasEntry) return false;
+    return actual>=target;
 }
 
 /* ==================== 검증 ==================== */
 function validateWorker(w) {
-    const result = { hire:true, msds:true, special:true, confined:true, specialWorker:true, allDone:true };
-    // 채용시
-    const hireH = calcHours(w.hireEdu.startTime, w.hireEdu.endTime);
-    result.hireHour = hireH;
-    result.hireNeed = hireLegalHour();
-    result.hire = hireH >= result.hireNeed;
-    // MSDS (1시간 이상 이수 권장)
-    const msdsH = calcHours(w.msdsEdu.startTime, w.msdsEdu.endTime);
-    result.msdsHour = msdsH;
-    result.msds = msdsH >= 1 || (!w.msdsEdu.date && !w.msdsEdu.startTime);
-    // 특별교육
-    const spH = totalSpecialHours(w.specialEdu);
-    result.specialHour = spH;
-    result.specialNeed = specialLegalHour();
-    result.special = spH >= result.specialNeed;
-    // 밀폐공간 (선택, 값 있으면 검증)
-    const cfH = calcHours(w.confinedEdu.startTime, w.confinedEdu.endTime);
-    result.confinedHour = cfH;
-    // 특수형태근로 (대상자만)
-    if (w.specialWorker) {
-        const swH = calcHours(w.specialWorkerEdu.startTime, w.specialWorkerEdu.endTime);
-        result.specialWorkerHour = swH;
-        result.specialWorker = swH >= 1;
-    }
-    // 종합
-    result.allDone = result.hire && result.msds && result.special && (!w.specialWorker || result.specialWorker);
+    const result = {};
+    result.hireHour = calcHours(w.hireEdu.startTime, w.hireEdu.endTime);
+    result.msdsHour = calcHours(w.msdsEdu.startTime, w.msdsEdu.endTime);
+    result.specialHour = totalSpecialHours(w.specialEdu);
+    result.confinedHour = calcHours(w.confinedEdu.startTime, w.confinedEdu.endTime);
+    result.specialWorkerHour = calcHours(w.specialWorkerEdu.startTime, w.specialWorkerEdu.endTime);
+    result.hireNeed=targetHour('hire'); result.msdsNeed=targetHour('msds'); result.specialNeed=targetHour('special'); result.confinedNeed=targetHour('confined'); result.specialWorkerNeed=targetHour('specialWorker');
+    result.hire=targetState(result.hireHour,result.hireNeed,Boolean(w.hireEdu.date||w.hireEdu.startTime||w.hireEdu.endTime));
+    result.msds=targetState(result.msdsHour,result.msdsNeed,Boolean(w.msdsEdu.date||w.msdsEdu.startTime||w.msdsEdu.endTime));
+    result.special=targetState(result.specialHour,result.specialNeed,(w.specialEdu||[]).some(x=>x.date||x.startTime||x.endTime));
+    result.confined=targetState(result.confinedHour,result.confinedNeed,Boolean(w.confinedEdu.date||w.confinedEdu.startTime||w.confinedEdu.endTime));
+    result.specialWorker=w.specialWorker?targetState(result.specialWorkerHour,result.specialWorkerNeed,Boolean(w.specialWorkerEdu.date||w.specialWorkerEdu.startTime||w.specialWorkerEdu.endTime)):true;
+    const applicable=[result.hire,result.msds,result.special,result.confined].concat(w.specialWorker?[result.specialWorker]:[]).filter(x=>x!==null);
+    result.allDone=applicable.length?applicable.every(Boolean):null;
     return result;
 }
 
@@ -303,12 +300,12 @@ function renderTable() {
 
     WORKERS.forEach((w, idx) => {
         const v = validateWorker(w);
-        if (v.allDone) kpi.done++; else kpi.incomplete++;
-        if (v.specialHour > 0 && v.specialHour < v.specialNeed) kpi.partial++;
+        if (v.allDone===true) kpi.done++; else if(v.allDone===false) kpi.incomplete++;
+        if (v.specialNeed!==null && v.specialHour > 0 && v.specialHour < v.specialNeed) kpi.partial++;
         if (w.specialWorker) kpi.special++;
 
         const tr = document.createElement('tr');
-        tr.className = v.allDone ? 'bg-emerald-50/40' : '';
+        tr.className = v.allDone===true ? 'bg-emerald-50/40' : '';
         tr.innerHTML = `
             <td class="font-bold">${idx+1}</td>
             <td><input type="text" value="${esc(w.dept)}" onchange="updField('${w.id}','dept',this.value)" 
@@ -321,14 +318,14 @@ function renderTable() {
             <!-- 채용시 교육 -->
             <td><input type="date" value="${esc(w.hireEdu.date)}" onchange="updNested('${w.id}','hireEdu','date',this.value)" 
                 class="border border-gray-200 rounded px-1 py-0.5"></td>
-            <td class="${v.hire ? 'cell-valid' : 'cell-invalid'}">
+            <td class="${v.hire===true?'cell-valid':v.hire===false?'cell-invalid':''}">
                 <div class="time-slot">
                     <input type="time" value="${esc(w.hireEdu.startTime)}" onchange="updNested('${w.id}','hireEdu','startTime',this.value)" 
                         class="border border-gray-200 rounded">
                     <input type="time" value="${esc(w.hireEdu.endTime)}" onchange="updNested('${w.id}','hireEdu','endTime',this.value)" 
                         class="border border-gray-200 rounded">
-                    <span class="font-bold ${v.hire?'text-emerald-700':'text-rose-700'}">
-                        ${v.hireHour.toFixed(1)}H / ${v.hireNeed}H
+                    <span class="font-bold ${v.hire===true?'text-emerald-700':v.hire===false?'text-rose-700':'text-gray-600'}">
+                        ${v.hireHour.toFixed(1)}H / ${v.hireNeed===null?'기준 미설정':v.hireNeed+'H'}
                     </span>
                 </div>
             </td>
@@ -342,12 +339,12 @@ function renderTable() {
                         class="border border-gray-200 rounded">
                     <input type="time" value="${esc(w.msdsEdu.endTime)}" onchange="updNested('${w.id}','msdsEdu','endTime',this.value)" 
                         class="border border-gray-200 rounded">
-                    <span class="text-gray-600">${v.msdsHour.toFixed(1)}H</span>
+                    <span class="font-bold ${v.msds===true?'text-emerald-700':v.msds===false?'text-rose-700':'text-gray-600'}">${v.msdsHour.toFixed(1)}H / ${v.msdsNeed===null?'기준 미설정':v.msdsNeed+'H'}</span>
                 </div>
             </td>
 
             <!-- 특별교육 (분할) -->
-            <td class="${v.special ? 'cell-valid' : 'cell-invalid'}" style="min-width:230px;">
+            <td class="${v.special===true?'cell-valid':v.special===false?'cell-invalid':''}" style="min-width:230px;">
                 <div class="space-y-1">
                     ${w.specialEdu.map((slot, si) => `
                         <div class="flex items-center gap-1">
@@ -359,23 +356,23 @@ function renderTable() {
                             <input type="time" value="${esc(slot.endTime)}" onchange="updSpecial('${w.id}',${si},'endTime',this.value)" 
                                 class="border border-gray-200 rounded" style="width:70px;">
                             ${w.specialEdu.length > 1 ? 
-                                `<button onclick="removeSpecialSlot('${w.id}',${si})" class="text-rose-500 hover:text-rose-700 text-xs">✕</button>` 
+                                `<button onclick="removeSpecialSlot('${w.id}',${si})" class="text-rose-600 hover:text-rose-800 text-[10px] font-bold">삭제</button>` 
                                 : '<span class="w-3"></span>'}
                         </div>
                     `).join('')}
                     <button onclick="addSpecialSlot('${w.id}')" 
                         class="text-[10px] bg-indigo-100 hover:bg-indigo-200 text-indigo-700 font-bold px-2 py-0.5 rounded mt-1">
-                        <i class="fa-solid fa-plus"></i> 회차 추가
+                        회차 추가
                     </button>
                 </div>
             </td>
-            <td class="${v.special ? 'cell-valid' : 'cell-invalid'}">
-                <span class="font-black text-sm ${v.special?'text-emerald-700':'text-rose-700'}">
+            <td class="${v.special===true?'cell-valid':v.special===false?'cell-invalid':''}">
+                <span class="font-black text-sm ${v.special===true?'text-emerald-700':v.special===false?'text-rose-700':'text-gray-600'}">
                     ${v.specialHour.toFixed(1)}H
                 </span>
                 <br>
-                <span class="text-[10px] text-gray-500">/ ${v.specialNeed}H</span>
-                ${!v.special && v.specialHour > 0 ? '<br><span class="text-[10px] text-rose-600 font-bold">⚠ 미달</span>' : ''}
+                <span class="text-[10px] text-gray-500">/ ${v.specialNeed===null?'기준 미설정':v.specialNeed+'H'}</span>
+                ${v.special===false && v.specialHour > 0 ? '<br><span class="text-[10px] text-rose-600 font-bold">미달</span>' : ''}
             </td>
 
             <!-- 밀폐공간 -->
@@ -387,7 +384,7 @@ function renderTable() {
                         class="border border-gray-200 rounded">
                     <input type="time" value="${esc(w.confinedEdu.endTime)}" onchange="updNested('${w.id}','confinedEdu','endTime',this.value)" 
                         class="border border-gray-200 rounded">
-                    <span class="text-gray-600">${v.confinedHour.toFixed(1)}H</span>
+                    <span class="font-bold ${v.confined===true?'text-emerald-700':v.confined===false?'text-rose-700':'text-gray-600'}">${v.confinedHour.toFixed(1)}H / ${v.confinedNeed===null?'기준 미설정':v.confinedNeed+'H'}</span>
                 </div>
             </td>
 
@@ -405,7 +402,7 @@ function renderTable() {
                         class="border border-gray-200 rounded px-1 py-0.5">
                 </div>
             </td>
-            <td class="${w.specialWorker && !v.specialWorker ? 'cell-invalid' : (w.specialWorker && v.specialWorker ? 'cell-valid' : '')}">
+            <td class="${w.specialWorker&&v.specialWorker===false?'cell-invalid':(w.specialWorker&&v.specialWorker===true?'cell-valid':'')}">
                 <div class="time-slot">
                     <input type="time" value="${esc(w.specialWorkerEdu.startTime)}" 
                         ${!w.specialWorker?'disabled':''}
@@ -415,21 +412,17 @@ function renderTable() {
                         ${!w.specialWorker?'disabled':''}
                         onchange="updNested('${w.id}','specialWorkerEdu','endTime',this.value)" 
                         class="border border-gray-200 rounded">
-                    ${w.specialWorker ? `<span class="font-bold ${v.specialWorker?'text-emerald-700':'text-rose-700'}">${(v.specialWorkerHour||0).toFixed(1)}H / 1H</span>` : '<span class="text-gray-400 text-[10px]">-</span>'}
+                    ${w.specialWorker ? `<span class="font-bold ${v.specialWorker===true?'text-emerald-700':v.specialWorker===false?'text-rose-700':'text-gray-600'}">${(v.specialWorkerHour||0).toFixed(1)}H / ${v.specialWorkerNeed===null?'기준 미설정':v.specialWorkerNeed+'H'}</span>` : '<span class="text-gray-400 text-[10px]">-</span>'}
                 </div>
             </td>
 
             <!-- 상태 -->
             <td>
-                ${v.allDone 
-                    ? '<span class="bg-emerald-500 text-white font-bold px-2 py-1 rounded text-[10px]">✅ 완료</span>' 
-                    : '<span class="bg-rose-500 text-white font-bold px-2 py-1 rounded text-[10px]">❌ 미완료</span>'}
+                ${v.allDone===true?'<span class="bg-emerald-500 text-white font-bold px-2 py-1 rounded text-[10px]">완료</span>':v.allDone===false?'<span class="bg-rose-500 text-white font-bold px-2 py-1 rounded text-[10px]">미완료</span>':'<span class="bg-slate-400 text-white font-bold px-2 py-1 rounded text-[10px]">기준 미설정</span>'}
             </td>
 
             <td>
-                <button onclick="removeWorker('${w.id}')" class="text-rose-500 hover:text-rose-700 text-lg">
-                    <i class="fa-solid fa-trash"></i>
-                </button>
+                <button onclick="removeWorker('${w.id}')" class="text-rose-600 hover:text-rose-800 text-xs font-bold">삭제</button>
             </td>
         `;
         tbody.appendChild(tr);
@@ -462,7 +455,7 @@ function updSpecial(id, idx, field, value) {
 /* ==================== 저장/불러오기 ==================== */
 function saveData() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ site:SITE_INFO, workers:WORKERS, savedAt: new Date().toISOString() }));
-    alert('✅ 저장 완료 (' + WORKERS.length + '명)');
+    alert('저장 완료 (' + WORKERS.length + '명)');
 }
 function exportJSON() {
     const data = { site:SITE_INFO, workers:WORKERS, exportedAt: new Date().toISOString() };
@@ -484,8 +477,8 @@ function importJSON(evt) {
             if (data.workers) WORKERS = data.workers;
             init();
             renderTable();
-            alert('✅ 불러오기 완료');
-        } catch(err) { alert('❌ 실패: '+err.message); }
+            alert('불러오기 완료');
+        } catch(err) { alert('실패: '+err.message); }
     };
     reader.readAsText(file);
 }
@@ -502,9 +495,9 @@ function exportExcel() {
         ['현장명', SITE_INFO.name, '시공사', SITE_INFO.contractor, '기간', SITE_INFO.period==='short'?'1주일~1개월':'1개월 초과'],
         [],
         ['NO','소속','성명','채용일',
-         '채용시교육 일자','채용시교육 시간','채용시 이수(H)','채용시 법정(H)',
+         '채용시교육 일자','채용시교육 시간','채용시 이수(H)','채용시 관리기준(H)',
          'MSDS 일자','MSDS 시간','MSDS 이수(H)',
-         '특별교육 회차수','특별교육 상세','특별교육 누적(H)','특별교육 법정(H)','특별교육 상태',
+         '특별교육 회차수','특별교육 상세','특별교육 누적(H)','특별교육 관리기준(H)','특별교육 상태',
          '밀폐공간 일자','밀폐공간 시간','밀폐공간 이수(H)',
          '특수형태근로 대상','특수형태근로 일자','특수형태근로 시간','특수형태근로 이수(H)',
          '종합상태']
@@ -514,12 +507,12 @@ function exportExcel() {
         const spDetail = w.specialEdu.map((s,i)=>`${i+1}회:${s.date} ${s.startTime}~${s.endTime}`).join(' | ');
         rows.push([
             idx+1, w.dept, w.name, w.hireDate,
-            w.hireEdu.date, `${w.hireEdu.startTime}~${w.hireEdu.endTime}`, v.hireHour.toFixed(1), v.hireNeed,
+            w.hireEdu.date, `${w.hireEdu.startTime}~${w.hireEdu.endTime}`, v.hireHour.toFixed(1), v.hireNeed??'기준 미설정',
             w.msdsEdu.date, `${w.msdsEdu.startTime}~${w.msdsEdu.endTime}`, v.msdsHour.toFixed(1),
             w.specialEdu.length, spDetail, v.specialHour.toFixed(1), v.specialNeed, v.special?'이수':'미이수',
             w.confinedEdu.date, `${w.confinedEdu.startTime}~${w.confinedEdu.endTime}`, v.confinedHour.toFixed(1),
             w.specialWorker?'Y':'N', w.specialWorkerEdu.date, `${w.specialWorkerEdu.startTime}~${w.specialWorkerEdu.endTime}`, (v.specialWorkerHour||0).toFixed(1),
-            v.allDone?'완료':'미완료'
+            v.allDone===true?'완료':v.allDone===false?'미완료':'기준 미설정'
         ]);
     });
     const csv = '\uFEFF' + rows.map(r => r.map(c => `"${String(c||'').replace(/"/g,'""')}"`).join(',')).join('\n');
@@ -536,5 +529,6 @@ function esc(s){ return String(s==null?'':s).replace(/"/g,'&quot;'); }
 
 init();
 </script>
+<script src="../js/mascot-cheer.js"></script>
 </body>
 </html>

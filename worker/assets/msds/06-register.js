@@ -12,7 +12,7 @@ function updateProgress(pct,msg){
     if(msg){
         const log = document.getElementById('progressLog');
         const p = document.createElement('p');
-        p.innerHTML = `<i class="fa-solid fa-check text-emerald-500 mr-1"></i>${msg}`;
+        p.innerHTML = `${msg}`;
         log.appendChild(p);
         log.scrollTop = log.scrollHeight;
     }
@@ -41,6 +41,11 @@ function removeManualCompRow(idx){
 function updateManualCompRow(idx, field, value){
     if(!manualCompRows[idx]) return;
     manualCompRows[idx][field] = value;
+    manualCompRows[idx].confidence = '수동 수정';
+    if(field === 'cas' && typeof isValidCasChecksum === 'function'){
+        const cas=String(value||'').replace(/\s+/g,'');
+        manualCompRows[idx].casChecksumValid = cas && cas!=='-' ? isValidCasChecksum(cas) : null;
+    }
     if(field === 'content'){
         manualCompRows[idx].contentNum = parseContentNum(value);
     }
@@ -56,7 +61,9 @@ function syncManualToParsed(){
         name: r.name || '(미기입)',
         cas: r.cas || '-',
         content: r.content || '-',
-        contentNum: r.contentNum || 0
+        contentNum: r.contentNum || 0,
+        confidence: r.confidence || '수동 확인',
+        casChecksumValid: r.casChecksumValid ?? null
     }));
     m.compositionSum = Math.round(m.composition.reduce((s,c)=>s+(c.contentNum||0),0) * 10) / 10;
     m.compositionValid = (m.compositionSum >= 95 && m.compositionSum <= 105);
@@ -99,7 +106,7 @@ function renderManualCompTable(){
         body.innerHTML = `
             <tr>
                 <td colspan="5" class="text-center py-6 text-gray-400 text-xs bg-white border border-gray-200 border-t-0">
-                    <i class="fa-solid fa-inbox mr-1"></i>
+                    
                     성분이 없습니다. 우측 상단의 <b>+ 성분 추가</b> 버튼을 눌러 시작하세요.
                 </td>
             </tr>`;
@@ -132,9 +139,7 @@ function renderManualCompTable(){
                 </div>
             </td>
             <td class="px-1 py-1 text-center">
-                <button type="button" onclick="removeManualCompRow(${i})" class="text-rose-600 hover:text-rose-800" title="삭제">
-                    <i class="fa-solid fa-trash text-xs"></i>
-                </button>
+                <button type="button" onclick="removeManualCompRow(${i})" class="text-rose-600 hover:text-rose-800 text-[11px] font-bold" title="삭제">삭제</button>
             </td>
         </tr>
     `).join('');
@@ -154,7 +159,7 @@ async function handleMSDSFiles(files){
     if(!files || files.length === 0) return;
 
     if(typeof parseMSDSFile !== 'function'){
-        alert('⚠ MSDS 파서 스크립트가 로드되지 않았습니다.\n\n브라우저 콘솔(F12)에서 오류를 확인하거나\n페이지를 새로고침(Ctrl+F5)해주세요.');
+        alert(' MSDS 파서 스크립트가 로드되지 않았습니다.\n\n브라우저 콘솔(F12)에서 오류를 확인하거나\n페이지를 새로고침(Ctrl+F5)해주세요.');
         return;
     }
 
@@ -173,27 +178,27 @@ async function handleMSDSFiles(files){
         const step = 100 / total;
 
         try{
-            updateProgress(base + step*0.15, `📄 [${f.name}] 수신`); await sleep(150);
-            updateProgress(base + step*0.30, `🔍 [${f.name}] PDF 텍스트 추출 중…`);
-            updateProgress(base + step*0.50, `🧠 [${f.name}] 지식베이스 매칭 중…`);
-            updateProgress(base + step*0.75, `📋 [${f.name}] 3번 구성성분 추출 중…`);
+            updateProgress(base + step*0.15, ` [${f.name}] 수신`); await sleep(150);
+            updateProgress(base + step*0.30, ` [${f.name}] 텍스트·OCR 추출 중…`);
+            updateProgress(base + step*0.50, ` [${f.name}] MSDS 2·3·15항 구조 분석 중…`);
+            updateProgress(base + step*0.75, ` [${f.name}] 구성성분·CAS·함유량 추출 중…`);
 
             const parsed = await parseMSDSFile(f);
             parsedList.push(parsed);
             updateProgress(((i+1) * 100) / total,
-                `✅ [${parsed.name}] → 신뢰도: ${parsed.matchConfidence} · 성분 ${parsed.composition?.length||0}개`);
+                ` [${parsed.name}] → 신뢰도: ${parsed.matchConfidence} · 성분 ${parsed.composition?.length||0}개`);
         } catch(err){
             console.error('[handleMSDSFiles] 파싱 실패:', f.name, err);
             updateProgress(((i+1) * 100) / total,
-                `❌ [${f.name}] 파싱 실패: ${err.message}`);
+                ` [${f.name}] 파싱 실패: ${err.message}`);
         }
     }
 
-    updateProgress(100, '🎉 파싱 완료 — 구성성분을 검수한 후 등록하세요');
+    updateProgress(100, '추출 완료 — 구성성분·유해위험성·법적 규제현황을 원본과 대조한 후 등록하세요');
     await sleep(300);
 
     if(parsedList.length === 0){
-        alert('⚠ 파싱된 파일이 없습니다. PDF 형식과 내용을 확인해주세요.\n\n하단의 「구성성분 수동 입력」 섹션에서 직접 입력하실 수 있습니다.');
+        alert('추출된 내용이 없습니다. 선명한 PDF 또는 이미지인지 확인해주세요.\n\nHWP·DOCX는 PDF로 저장한 뒤 업로드하고, 필요하면 구성성분을 수동 입력하세요.');
         return;
     }
 
@@ -202,7 +207,7 @@ async function handleMSDSFiles(files){
         parsedList.map(p=>`<b>${p.name}</b>`).join(', ');
     document.getElementById('parseDetail').innerHTML = parsedList.map(p=>`
         <div class="border-b border-emerald-100 pb-2 mb-2 last:border-0 last:mb-0 last:pb-0">
-            <p class="font-bold text-emerald-900">📦 ${p.name}</p>
+            <p class="font-bold text-emerald-900">${p.name}</p>
             <p class="text-gray-600 mt-1">
                 <span class="parse-highlight">CAS ${p.cas}</span>
                 <span class="parse-highlight">${p.signalWord}</span>
@@ -210,7 +215,7 @@ async function handleMSDSFiles(files){
                 ${p.isSpecial?'<span class="parse-highlight" style="background:linear-gradient(120deg,#fecaca,#f87171)">특별관리물질</span>':''}
                 <span class="parse-highlight" style="background:linear-gradient(120deg,#bfdbfe,#93c5fd)">성분 ${p.composition?.length||0}개</span>
             </p>
-            <p class="text-gray-500 text-[10px] mt-1">📁 원본: ${p.sourceFile} · 신뢰도: <b class="${p.matched?'text-emerald-700':'text-amber-700'}">${p.matchConfidence}</b></p>
+            <p class="text-gray-500 text-[10px] mt-1">원본: ${p.sourceFile} · 신뢰도: <b class="${p.matched?'text-emerald-700':'text-amber-700'}">${p.matchConfidence}</b></p>
         </div>
     `).join('');
 
@@ -231,7 +236,9 @@ async function handleMSDSFiles(files){
         name: c.name || '',
         cas: c.cas || '',
         content: c.content || '',
-        contentNum: c.contentNum || 0
+        contentNum: c.contentNum || 0,
+        confidence: c.confidence || '검토 필요',
+        casChecksumValid: c.casChecksumValid ?? null
     }));
     if(manualCompRows.length === 0){
         manualCompRows.push({ name:'', cas:'', content:'', contentNum:0 });
@@ -245,50 +252,73 @@ function updateAIPreview(m){
     const box = document.getElementById('aiPreviewBody');
     if(!box) return;
     if(!m){
-        box.innerHTML = '<p class="text-gray-400 text-center py-8"><i class="fa-solid fa-file-arrow-up text-2xl mb-2 block"></i>파일을 업로드하면<br>여기에 결과가 표시됩니다</p>';
+        box.innerHTML = '<p class="text-gray-400 text-center py-8">MSDS 파일을 업로드하면<br>추출 결과가 표시됩니다.</p>';
         return;
     }
-    const ghsBadges = m.pictograms.map(p=>{
-        const g = GHS_PICTOGRAMS[p];
-        return `<span class="bg-rose-100 text-rose-700 px-2 py-0.5 rounded font-semibold">${g?g.name:p}</span>`;
-    }).join(' ');
-
+    const tri = v => v===true
+        ? '<span class="font-bold text-rose-700">대상으로 기재됨</span>'
+        : v===false
+            ? '<span class="font-bold text-emerald-700">해당 없음으로 기재됨</span>'
+            : '<span class="font-bold text-amber-700">자동 확정 안 됨</span>';
+    const rp=m.regulatoryProfile||{};
+    const composition=(m.composition||[]);
+    const ghs=(m.pictograms||[]);
+    const ghsHtml = ghs.length ? makePictogramsHTML(ghs,'w-12 h-12') : '<span class="text-amber-700">원본 MSDS 그림문자 확인 필요</span>';
+    const compHtml=composition.length
+        ? composition.slice(0,6).map(c=>`<li><b>${escHtmlLocal(c.name||'물질명 확인')}</b> · <span class="font-mono">${escHtmlLocal(c.cas||'-')}</span> · ${escHtmlLocal(c.content||'-')} <span class="text-[9px] ${c.casChecksumValid===false?'text-rose-700':'text-gray-400'}">(${escHtmlLocal(c.confidence||'검토 필요')}${c.casChecksumValid===false?' · CAS 체크 필요':''})</span></li>`).join('')
+        : '<li class="text-amber-700">구성성분 자동 인식 실패 · MSDS 3항 확인 필요</li>';
+    const hazards=(m.hazards||[]).slice(0,4);
     box.innerHTML = `
         <div>
-            <p class="font-bold text-gray-600">📄 제품명 / CAS</p>
-            <p class="mt-1 bg-white border border-teal-100 rounded p-2 text-gray-800 text-[11px]">${m.name}<br><span class="font-mono text-gray-500">${m.cas}</span></p>
+            <p class="font-bold text-gray-600">제품명 / 대표 CAS</p>
+            <p class="mt-1 bg-white border border-teal-100 rounded p-2 text-gray-800 text-[11px]">${escHtmlLocal(m.name||'-')}<br><span class="font-mono text-gray-500">${escHtmlLocal(m.cas||'-')}</span></p>
         </div>
         <div>
-            <p class="font-bold text-gray-600">⚠ 신호어 · GHS 픽토그램</p>
+            <p class="font-bold text-gray-600">신호어 · GHS 그림문자</p>
             <div class="mt-1 bg-white border border-teal-100 rounded p-2">
-                <span class="inline-block bg-red-600 text-white text-xs font-black px-2 py-0.5 rounded mr-2">${m.signalWord}</span>
-                <div class="flex flex-wrap gap-1 mt-1">${ghsBadges}</div>
+                <b class="text-rose-700">${escHtmlLocal(m.signalWord||'원본 확인')}</b>
+                <div class="flex flex-wrap gap-1 mt-2">${ghsHtml}</div>
+                <p class="text-[9px] text-gray-500 mt-1">${escHtmlLocal(m.pictogramsSource||'원본 MSDS 2항 기준')}</p>
+                <div class="mt-2 pt-2 border-t border-gray-100"><p class="text-[9px] font-bold text-gray-600 mb-1">원본 MSDS 그림문자 확인·수정</p><div class="flex flex-wrap gap-1">${pictogramVerifyControls(m)}</div><p class="text-[9px] text-amber-700 mt-1">GHS 코드가 원문 텍스트에서 직접 확인되지 않은 경우 H문구 기반 보조 추정일 수 있습니다. 인쇄 전 원본 2항의 그림문자와 반드시 대조하세요.</p></div>
             </div>
         </div>
         <div>
-            <p class="font-bold text-gray-600">🧬 유해위험문구 (상위 3개)</p>
-            <ul class="mt-1 bg-white border border-teal-100 rounded p-2 space-y-1 text-gray-700 text-[11px]">
-                ${m.hazards.slice(0,3).map(h=>`<li>· ${h}</li>`).join('')}
-            </ul>
+            <p class="font-bold text-gray-600">유해·위험문구</p>
+            <ul class="mt-1 bg-white border border-teal-100 rounded p-2 space-y-1 text-gray-700 text-[11px]">${hazards.length?hazards.map(h=>`<li>· ${escHtmlLocal(h)}</li>`).join(''):'<li>원본 MSDS 2항 확인 필요</li>'}</ul>
         </div>
         <div>
-            <p class="font-bold text-gray-600">🛡️ 권장 보호구</p>
-            <p class="mt-1 bg-white border border-teal-100 rounded p-2 text-gray-700 text-[11px]">${m.ppe.join(', ')}</p>
+            <p class="font-bold text-gray-600">구성성분 / CAS / 함유량</p>
+            <ul class="mt-1 bg-white border border-teal-100 rounded p-2 space-y-1 text-gray-700 text-[10px]">${compHtml}</ul>
+            ${(m.compositionWarnings||[]).length?`<p class="text-[9px] text-amber-700 mt-1">${m.compositionWarnings.map(escHtmlLocal).join(' · ')}</p>`:''}
         </div>
         <div>
-            <p class="font-bold text-gray-600">⚖️ 법규 자동매칭 <span class="text-[9px] text-gray-400">(등록 후 공식 API 자동검수)</span></p>
+            <p class="font-bold text-gray-600">업로드 MSDS 15항 자동검토</p>
             <ul class="mt-1 space-y-1 text-gray-700 text-[11px]">
-                ${m.isSpecial?'<li>✓ 산안법 <b>특별관리물질</b></li>':''}
-                ${m.isSpecial?'<li>✓ 작업환경측정 대상 (6개월)</li>':'<li>· 작업환경측정: 등록 후 자동검수</li>'}
-                ${m.isSpecial?'<li>✓ 특수건강진단 대상 (12개월)</li>':''}
-                <li>· 폐기물관리법: 지정폐기물</li>
+                <li>작업환경측정: ${tri(rp.workEnvTarget)}</li>
+                <li>특수건강진단: ${tri(rp.specialHealthTarget)}</li>
+                <li>특별관리물질: ${tri(rp.specialManagement)}</li>
             </ul>
+            <p class="text-[9px] text-gray-500 mt-1">등록 후 구성성분별 CAS를 KOSHA 공공데이터와 추가 대조합니다. 법정 대상·주기는 사업장 조건 및 최신 별표를 확인해야 합니다.</p>
         </div>
-        ${m.isSpecial?'<div class="bg-rose-100 border border-rose-300 rounded p-2 text-rose-700 font-bold text-[11px]"><i class="fa-solid fa-triangle-exclamation mr-1"></i>특별관리물질 감지됨</div>':''}
-        <div class="text-[10px] text-gray-500 pt-2 border-t border-teal-100">
-            📊 매칭 신뢰도: <b class="${m.matched?'text-emerald-700':'text-amber-700'}">${m.matchConfidence}</b>
-        </div>
+        <div class="text-[10px] text-gray-500 pt-2 border-t border-teal-100">추출 신뢰도: <b>${escHtmlLocal(m.matchConfidence||'검토 필요')}</b></div>
     `;
+}
+function setParsedPictogram(code,checked){
+    const m=lastParsedMaterials?.[0]; if(!m) return;
+    const set=new Set(m.pictograms||[]);
+    if(checked)set.add(code); else set.delete(code);
+    m.pictograms=[...set].sort();
+    m.pictogramsVerified=true;
+    m.pictogramsSource='사용자가 원본 MSDS 2항과 대조하여 확인';
+    updateAIPreview(m);
+}
+function pictogramVerifyControls(m){
+    const selected=new Set(m.pictograms||[]);
+    return Object.entries(GHS_PICTOGRAMS||{}).map(([code,g])=>`<label class="inline-flex items-center gap-1.5 border ${selected.has(code)?'border-teal-400 bg-teal-50':'border-gray-200 bg-white'} rounded-lg px-2 py-1 cursor-pointer"><input type="checkbox" ${selected.has(code)?'checked':''} onchange="setParsedPictogram('${code}',this.checked)"><span class="text-[10px] font-bold text-gray-700">${code} ${escHtmlLocal(g.name)}</span></label>`).join('');
+}
+
+function escHtmlLocal(v){
+    return String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 
 /* =========================================================
@@ -311,13 +341,15 @@ function registerMaterial(){
         name: (r.name || '').trim() || '(미기입)',
         cas: (r.cas || '').trim() || '-',
         content: r.content || '-',
-        contentNum: r.contentNum || 0
+        contentNum: r.contentNum || 0,
+        confidence: r.confidence || '수동 확인',
+        casChecksumValid: r.casChecksumValid ?? null
     }));
 
     const manualSum = Math.round(validManualComp.reduce((s,c)=>s+c.contentNum,0) * 10) / 10;
 
     if(validManualComp.length > 0 && (manualSum < 90 || manualSum > 110)){
-        if(!confirm(`⚠️ 구성성분 합계가 ${manualSum}% 입니다.\n\n일반적으로 100% ±5% 여야 합니다.\n그래도 등록하시겠습니까?`)){
+        if(!confirm(`구성성분 입력값의 단순 합계가 ${manualSum}% 입니다.\n\nMSDS에는 함유량 범위·영업비밀·상한/하한 표시가 있을 수 있으므로 단순 합계만으로 오류를 판단할 수 없습니다. 원본 3항과 대조했습니까?\n\n계속 등록하시겠습니까?`)){
             return;
         }
     }
@@ -348,7 +380,7 @@ function registerMaterial(){
             registeredIds.push(m.id);
             if(!firstId) firstId = m.id;
         });
-        showToast(`✅ ${lastParsedMaterials.length}건 등록 완료 → 공식 API 자동검수 시작`);
+        showToast(`${lastParsedMaterials.length}건 등록 완료 · KOSHA 공공데이터 대조를 시작합니다.`);
         lastParsedMaterials = [];
     } else {
         const manual = JSON.parse(JSON.stringify(FALLBACK_TEMPLATE));
@@ -376,7 +408,7 @@ function registerMaterial(){
         MATERIALS.unshift(manual);
         firstId = manual.id;
         registeredIds.push(firstId);
-        showToast(`✅ 수동 등록 완료 (성분 ${validManualComp.length}개) → 공식 API 자동검수 시작`);
+        showToast(`수동 등록 완료 (성분 ${validManualComp.length}개) · KOSHA 공공데이터 대조를 시작합니다.`);
     }
 
     saveMATERIALS();
@@ -392,20 +424,20 @@ function registerMaterial(){
     if(typeof autoInspectMaterial === 'function'){
         (async ()=>{
             let totalCasChecked = 0;
-            let totalRegulated = 0;
+            let totalFound = 0;
             for(const id of registeredIds){
                 try{
                     const results = await autoInspectMaterial(id, false);
                     if(results){
                         totalCasChecked += results.length;
-                        totalRegulated += results.filter(x=>x.status==='REGULATED').length;
+                        totalFound += results.filter(x=>x.status==='FOUND').length;
                     }
                 }catch(e){
                     console.warn('[registerMaterial] 자동검수 실패:', id, e);
                 }
             }
             if(registeredIds.length > 0 && typeof showToast === 'function'){
-                showToast(`🔍 자동검수 완료: ${registeredIds.length}건 등록, ${totalCasChecked}개 CAS 조회, 규제 ${totalRegulated}건`);
+                showToast(`KOSHA 대조 완료: ${registeredIds.length}건 등록 · ${totalCasChecked}개 CAS 조회 · 자료 확인 ${totalFound}건`);
             }
             // ⭐ 자동조회 후 리스트 강제 재렌더 (분석중 → 결과 표시)
             if(typeof renderListTable === 'function') renderListTable();
