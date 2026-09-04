@@ -23,3 +23,11 @@ Workers Static Assets + Worker API 구조입니다. `/api/*`는 `worker-api.js`�
 - 선택 Secret: `KAKAO_REST_API_KEY`, NAVER 검색 API 키
 
 자세한 점검 순서는 `DEPLOY-CHECKLIST.md`, API 연결은 `API-SETUP.md`를 확인하세요.
+
+
+## 보안 및 수익화
+
+- `js/security.js`: 우클릭 제한, 개발자도구 단축키 억제, 비정상 연속 클릭 경고
+- `ads.txt` 및 모든 HTML 페이지에 AdSense `ca-pub-9283463208175336` 코드 적용
+- `ADSENSE-SETUP.md`: 배포/자동광고 확인 절차
+- `AUTH-PAYMENTS-PLAN.md`: 회원가입·소셜로그인·유료결제 도입 설계안

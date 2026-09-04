@@ -14,12 +14,26 @@ export default {
     if (url.pathname === '/api/msds/search') return msdsSearch(request, env);
     if (url.pathname === '/api/news') return safetyNews(request, env);
     if (url.pathname === '/api/laws/search') return lawsSearch(request, env);
-    return env.ASSETS.fetch(request);
+    return secureResponse(await env.ASSETS.fetch(request));
   }
 };
 
+function applySecurityHeaders(headers){
+  const h=new Headers(headers||{});
+  h.set('X-Content-Type-Options','nosniff');
+  h.set('X-Frame-Options','SAMEORIGIN');
+  h.set('Referrer-Policy','strict-origin-when-cross-origin');
+  h.set('Permissions-Policy','camera=(), microphone=(), geolocation=()');
+  h.set('Cross-Origin-Opener-Policy','same-origin-allow-popups');
+  h.set('Content-Security-Policy',"frame-ancestors 'self'; object-src 'none'; base-uri 'self'");
+  h.set('Strict-Transport-Security','max-age=31536000; includeSubDomains');
+  return h;
+}
+function secureResponse(response){
+  return new Response(response.body,{status:response.status,statusText:response.statusText,headers:applySecurityHeaders(response.headers)});
+}
 function json(data, status=200){
-  return new Response(JSON.stringify(data,null,2),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store'}});
+  return new Response(JSON.stringify(data,null,2),{status,headers:applySecurityHeaders({'content-type':'application/json; charset=utf-8','cache-control':'no-store'})});
 }
 function apiHealth(env){
   const msdsConfigured=Boolean(koshaMsdsKey(env));
