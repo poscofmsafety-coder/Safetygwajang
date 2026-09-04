@@ -33,7 +33,7 @@
     <!-- ⭐ 분리된 스타일 -->
     <link rel="stylesheet" href="assets/msds/styles.css">
 <meta name="robots" content="noindex,follow"><meta name="theme-color" content="#153b67"><link rel="stylesheet" href="../css/brand.css"><link rel="stylesheet" href="assets/legacy-brand.css"></head>
-<body class="legacy-tool-page bg-slate-100 min-h-screen text-gray-800"><header class="legacy-brand-nav"><div class="legacy-brand-inner"><a class="legacy-brand-name" href="../index.html?audience=worker"><img src="../assets/jaeili-face.png" alt="안전과장 제일이 로고" data-cheer-mascot><span>안전과장</span></a><nav class="legacy-worker-nav" aria-label="재직자 실무 메뉴"><a href="dashboard.html">현장 대시보드</a><a href="safety-education.html">안전교육</a><a href="risk-assessment.html">위험성평가</a><a href="risk-guide.html">실무가이드</a><a href="laws.html">법령·지침</a><a href="msds-management.html">MSDS</a><a href="confined-space.html">밀폐공간</a><a href="incident-report.html">사고기록</a></nav><a class="legacy-back" href="../index.html?audience=worker">재직자 홈</a></div></header><div class="brand-page-note"><div class="brand-page-note-inner"><img src="../assets/jaeili-full.png" alt="제일이 전체 캐릭터"><span><b>안전과장 실무도구</b> · 회사명·부서·공장 등 특정 사업장 데이터 없이 시작합니다. 필요한 정보만 직접 입력하고 저장·내보내기 기능으로 관리하세요.</span></div></div>
+<body class="legacy-tool-page bg-slate-100 min-h-screen text-gray-800"><header class="legacy-brand-nav"><div class="legacy-brand-inner"><a class="legacy-brand-name" href="../index.html?audience=worker"><img src="../assets/jaeili-face.png" alt="안전과장 제일이 로고" data-cheer-mascot><span>안전과장</span></a><nav class="legacy-worker-nav" aria-label="재직자 실무 메뉴"><a href="dashboard.html">현장 대시보드</a><a href="safety-education.html">안전교육</a><a href="risk-assessment.html">위험성평가</a><a href="risk-guide.html">실무가이드</a><a href="laws.html">법령·지침</a><a href="msds-management.html">MSDS</a><a href="confined-space.html">밀폐공간</a><a href="incident-report.html">사고기록</a></nav><span class="live-clock legacy-live-clock" data-live-clock aria-label="현재 한국 시간"></span><a class="legacy-back" href="../index.html?audience=worker">재직자 홈</a></div></header>
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
 
         <nav class="flex items-center text-xs text-gray-500 gap-2" aria-label="현재 위치">
@@ -397,9 +397,7 @@
                                 <div class="flex items-center gap-1.5"><label class="text-[10px] font-bold text-gray-600">편집모드</label><button id="editModeBtn" onclick="toggleEditMode()" class="border border-gray-300 rounded px-2 py-1 text-xs font-bold bg-white hover:bg-slate-100">잠금</button></div>
                                 <div class="flex-1"></div>
                                 <button onclick="resetToAuto()" class="bg-white border border-gray-300 hover:bg-slate-100 text-xs font-bold px-3 py-1.5 rounded">자동값 복원</button>
-                                <button class="bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold px-3 py-1.5 rounded">PDF</button>
-                                <button onclick="printCurrentMsdsForm()" class="bg-white border border-gray-300 hover:bg-slate-100 text-xs font-bold px-3 py-1.5 rounded">선택 양식 인쇄</button>
-                                <button class="bg-white border border-gray-300 hover:bg-slate-100 text-xs font-bold px-3 py-1.5 rounded">일괄 ZIP</button>
+                                <button onclick="downloadCurrentMsdsFormPdf()" class="bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold px-3 py-1.5 rounded">PDF 저장</button><button onclick="printCurrentMsdsForm()" class="bg-white border border-gray-300 hover:bg-slate-100 text-xs font-bold px-3 py-1.5 rounded">선택 양식 인쇄</button>
                             </div>
                             <div id="form-warning" class="form-panel">
                                 <div class="bg-white border-2 border-gray-800 shadow-md">
@@ -419,21 +417,20 @@
                                 </div>
                             </div>
                             <div id="form-process" class="form-panel hidden">
-                                <div class="bg-white border-2 border-gray-800 shadow-md">
-                                    <div class="grid grid-cols-[140px_1fr] border-b-2 border-gray-800"><div class="bg-slate-100 border-r-2 border-gray-800 flex items-center justify-center py-3"><div class="text-center"><div class="text-[10px] text-gray-500 font-bold mb-0.5">[자사 CI 영역]</div><div class="text-sm font-black text-gray-800">COMPANY<br>LOGO</div></div></div><div class="flex items-center justify-center py-3"><h2 class="text-xl font-black tracking-widest text-gray-900">작업공정별 관리 요령</h2></div></div>
-                                    <table class="w-full text-xs"><tbody class="divide-y-2 divide-gray-800">
-                                        <tr><td class="bg-slate-100 border-r-2 border-gray-800 font-black text-gray-800 px-2 py-2 w-32 text-center">물질명<br>제품명</td><td class="px-3 py-2 font-bold" data-field="product-name">-</td></tr>
-                                        <tr><td class="bg-slate-100 border-r-2 border-gray-800 font-black text-gray-800 px-2 py-2 text-center">CAS No.</td><td class="px-3 py-2" data-field="cas-no">-</td></tr>
-                                        <tr><td class="bg-slate-100 border-r-2 border-gray-800 font-black text-gray-800 px-2 py-2 text-center">그림문자<br>및<br>신호어</td><td class="px-3 py-2"><div class="flex items-center gap-2"><div><div class="flex gap-1.5 flex-wrap" data-field="pictograms"></div><p class="text-[9px] text-gray-500 mt-1" data-field="pictogram-source">원본 MSDS 2항 확인</p></div><div class="bg-red-600 text-white px-4 py-1.5"><p class="text-base font-black" data-field="signal-word">위험</p></div></div></td></tr>
-                                        <tr><td class="bg-slate-100 border-r-2 border-gray-800 font-black text-gray-800 px-2 py-2 text-center">유해성<br>및<br>위험성</td><td class="px-3 py-2"><ul class="space-y-0.5" data-field="hazards-o"></ul></td></tr>
-                                        <tr><td class="bg-slate-100 border-r-2 border-gray-800 font-black text-gray-800 px-2 py-2 text-center">취급상의<br>주의사항</td><td class="px-3 py-2"><ul class="space-y-0.5" data-field="handling"></ul></td></tr>
-                                        <tr><td class="bg-slate-100 border-r-2 border-gray-800 font-black text-gray-800 px-2 py-2 text-center">적절한<br>보호구</td><td class="px-3 py-2"><ul class="space-y-0.5" data-field="ppe"></ul></td></tr>
-                                        <tr><td class="bg-slate-100 border-r-2 border-gray-800 font-black text-gray-800 px-2 py-2 text-center">응급조치<br>요령 및<br>사고시<br>대처방법</td><td class="px-3 py-2"><ul class="space-y-0.5" data-field="first-aid"></ul></td></tr>
+                                <div class="msds-process-sheet bg-white border-2 border-gray-800 shadow-md">
+                                    <div class="msds-process-title border-b-2 border-gray-800"><h2>작업공정별 관리 요령</h2><p>현장 게시·교육용 · 물질안전보건자료(MSDS) 기준</p></div>
+                                    <table class="msds-process-table w-full"><tbody>
+                                        <tr><th>물질명 / 제품명</th><td class="font-bold" data-field="product-name">-</td></tr>
+                                        <tr><th>CAS No.</th><td data-field="cas-no">-</td></tr>
+                                        <tr><th>그림문자 · 신호어</th><td><div class="msds-signal-row"><div><div class="flex gap-1.5 flex-wrap" data-field="pictograms"></div><p class="msds-mini-note" data-field="pictogram-source">원본 MSDS 2항 확인</p></div><div class="msds-signal-word"><p data-field="signal-word">위험</p></div></div></td></tr>
+                                        <tr><th>유해성 · 위험성</th><td><ul data-field="hazards-o"></ul></td></tr>
+                                        <tr><th>취급상의 주의사항</th><td><ul data-field="handling"></ul></td></tr>
+                                        <tr><th>적절한 보호구</th><td><ul data-field="ppe"></ul></td></tr>
+                                        <tr><th>응급조치 및 사고 시 대처</th><td><ul data-field="first-aid"></ul></td></tr>
                                     </tbody></table>
-                                    <div class="border-t-2 border-gray-800 p-3 space-y-1 text-[11px] text-gray-800 bg-slate-50">
-                                        <p>※ 자세한 내용은 해당 MSDS 및 작업표준을 참조하시기 바랍니다.</p>
-                                        <p>※ 제조사 : <span class="bg-yellow-100 px-1 rounded" data-field="manufacturer">-</span></p>
-                                        <p>※ 공급자 : <span class="bg-yellow-100 px-1 rounded" data-field="supplier">-</span></p>
+                                    <div class="msds-process-footer">
+                                        <p>※ 자세한 내용은 해당 제품의 최신 MSDS와 작업표준을 함께 확인하세요.</p>
+                                        <div class="msds-process-supplier"><span>제조사</span><b data-field="manufacturer">-</b><span>공급자</span><b data-field="supplier">-</b></div>
                                     </div>
                                 </div>
                             </div>
@@ -477,7 +474,7 @@
                 <div id="tab-env" class="tab-panel">
                     <div id="envWorkflowRoot"></div>
                     <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-5">
-                        <div class="bg-slate-50 border border-slate-200 rounded-lg p-3 text-center"><p class="text-[11px] font-bold text-gray-500">측정대상 물질</p><p class="text-xl font-black text-gray-800 mt-1" id="k4-total">0<span class="text-xs text-gray-500"> 종</span></p></div>
+                        <div class="bg-slate-50 border border-slate-200 rounded-lg p-3 text-center"><p class="text-[11px] font-bold text-gray-500">측정 장소·물질 관리</p><p class="text-xl font-black text-gray-800 mt-1" id="k4-total">0<span class="text-xs text-gray-500"> 건</span></p></div>
                         <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 text-center"><p class="text-[11px] font-bold text-amber-600">만료임박 (D-30)</p><p class="text-xl font-black text-amber-700 mt-1" id="k4-soon">0<span class="text-xs text-gray-500"> 건</span></p></div>
                         <div class="bg-rose-50 border border-rose-200 rounded-lg p-3 text-center"><p class="text-[11px] font-bold text-rose-600">부적합 이력</p><p class="text-xl font-black text-rose-700 mt-1" id="k4-bad">0<span class="text-xs text-gray-500"> 건</span></p></div>
                         <div class="bg-indigo-50 border border-indigo-200 rounded-lg p-3 text-center"><p class="text-[11px] font-bold text-indigo-600">노출 근로자</p><p class="text-xl font-black text-indigo-700 mt-1" id="k4-worker">0<span class="text-xs text-gray-500"> 명</span></p></div>
@@ -487,9 +484,9 @@
                     <div class="bg-slate-50 border border-slate-200 rounded-lg p-4 mb-4">
                         <div class="grid grid-cols-1 md:grid-cols-5 gap-3">
                             <div><label class="text-[11px] font-bold text-gray-600">사업장</label><input type="text" id="f4-site" placeholder="사업장명 입력" class="mt-1 w-full border border-gray-300 rounded-lg px-2 py-1.5 text-xs focus:ring-1 focus:ring-teal-500"></div>
-                            <div><label class="text-[11px] font-bold text-gray-600">부서명</label><input type="text" id="f4-dept" placeholder="부서명 검색" class="mt-1 w-full border border-gray-300 rounded-lg px-2 py-1.5 text-xs focus:ring-1 focus:ring-teal-500"></div>
+                            <div><label class="text-[11px] font-bold text-gray-600">부서명</label><input type="text" id="f4-dept" placeholder="예: 생산1팀, 설비팀" class="mt-1 w-full border border-gray-300 rounded-lg px-2 py-1.5 text-xs focus:ring-1 focus:ring-teal-500"></div>
                             <div><label class="text-[11px] font-bold text-gray-600">상태</label><select id="f4-status" class="mt-1 w-full border border-gray-300 rounded-lg px-2 py-1.5 text-xs focus:ring-1 focus:ring-teal-500"><option value="">전체</option><option value="ok">적합</option><option value="soon">만료임박</option><option value="bad">부적합</option></select></div>
-                            <div class="md:col-span-2"><label class="text-[11px] font-bold text-gray-600">물질명·CAS 검색</label><input type="text" id="f4-search" placeholder="예: NMP, 872-50-4" class="mt-1 w-full border border-gray-300 rounded-lg px-2 py-1.5 text-xs focus:ring-1 focus:ring-teal-500"></div>
+                            <div class="md:col-span-2"><label class="text-[11px] font-bold text-gray-600">물질명 · CAS · 작업장소 검색</label><input type="text" id="f4-search" placeholder="예: 황산, 7664-93-9, 산세라인" class="mt-1 w-full border border-gray-300 rounded-lg px-2 py-1.5 text-xs focus:ring-1 focus:ring-teal-500"></div>
                         </div>
                         <div class="flex justify-end mt-3 space-x-2">
                             <button onclick="resetMat()" class="text-xs font-semibold text-gray-500 hover:text-gray-700 px-2 py-1">초기화</button>
@@ -498,6 +495,13 @@
                             <button onclick="openMatModal()" class="bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg">물질 등록</button>
                         </div>
                     </div>
+
+                    <section class="bg-white border border-slate-200 rounded-xl p-4 mb-4">
+                        <div class="flex items-start justify-between gap-3 flex-wrap mb-3">
+                            <div><h3 class="text-sm font-black text-slate-900">부서 · 작업장소별 측정계획</h3><p class="text-[10px] text-slate-500 mt-1">같은 화학물질을 여러 장소에서 사용하는 경우 장소별 항목으로 분리해 측정계획과 예상 시료·비용을 관리합니다. 부서를 누르면 해당 물질만 필터링됩니다.</p></div>
+                        </div>
+                        <div id="envDeptSummary" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2"></div>
+                    </section>
 
                     <div id="matGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
                     <p id="matEmpty" class="hidden text-center py-12 text-gray-400 text-sm">등록된 물질이 없습니다. 우측 상단의 <b>물질 등록</b> 버튼을 눌러 시작하세요.</p>
@@ -555,7 +559,7 @@
                             <tbody id="healthBody"></tbody>
                         </table>
                     </div>
-                    <p class="text-[10px] text-gray-500 mt-2">주기는 자동으로 12개월을 넣지 않습니다. 별표 23에는 물질별로 6개월·12개월·24개월 등 서로 다른 주기가 있으므로 확인 후 입력하세요.</p>
+                    <p class="text-[10px] text-gray-500 mt-2">CAS별 기준이 명확한 유해인자는 별표 23 기본 주기를 제안합니다. 그 외 물질은 별표 23을 확인해 입력하고, 단축주기 적용 여부는 최근 작업환경측정·건강진단 결과와 함께 관리하세요.</p>
                 </div>
             </div>
         </div>
@@ -631,6 +635,7 @@
     <script src="assets/msds/07-env.js"></script>
     <script src="assets/msds/08-health.js"></script>
     <script src="assets/msds/09-init.js"></script>
+<script src="../js/site-clock.js"></script>
 <script src="../js/mascot-cheer.js"></script>
 </body>
 </html>

@@ -8,3 +8,6 @@ DATA-FIXES.md
 DEPLOY-CHECKLIST.md
 API-SETUP.md
 *.zip
+node_modules/
+package.json
+package-lock.json

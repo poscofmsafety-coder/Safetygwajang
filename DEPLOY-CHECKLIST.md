@@ -1,29 +1,31 @@
 # 배포 체크리스트
 
 ## 1. GitHub
-- ZIP을 풀고 **내용물 자체**를 `safetygwajang` 저장소 루트에 업로드합니다.
-- 저장소 첫 화면에서 `index.html`, `css`, `data`, `worker` 폴더가 바로 보여야 합니다.
+ZIP을 풀고 내용물 자체를 `safetygwajang` 저장소 루트에 덮어씁니다. 루트에 `index.html`, `worker-api.js`, `wrangler.jsonc`, `package.json`, `css`, `js`, `data`, `worker`가 보여야 합니다.
 
-## 2. Cloudflare
-- 현재 사용 중인 `safetygwajang` Workers Static Assets 프로젝트에 GitHub 저장소를 연결합니다.
-- 배포 완료 후 `https://safetygwajang.com`에서 새 메인 화면이 보이는지 확인합니다.
-- 메인 상단의 **취준생 / 재직자** 탭을 각각 눌러 확인합니다.
+## 2. Cloudflare Workers Builds
+기존 `safetygwajang` Worker의 Git 연결을 유지합니다. Build/Deploy 설정에서 Deploy command가 다음인지 확인합니다.
 
-## 3. 필수 화면 확인
-- 취준생: CBT → 토익스피킹 → 자기소개서 → 면접
-- 재직자: 현장 작업 대시보드 → 안전보건교육 → 위험성평가 → 위험성평가 실무 가이드 → 법령·지침 → MSDS → 밀폐공간·온열질환 → 사고·아차사고
-- 모바일에서 상단 탭과 카드가 한 열로 정렬되는지 확인합니다.
+```bash
+npx wrangler deploy
+```
 
-## 4. 데이터/기능
-- CBT 문제 및 토익 자료는 기존 `data/`를 유지합니다.
-- 자기소개서 AI는 `/api/ai` 프록시가 없으면 개인 키 또는 프롬프트 복사 방식으로 동작할 수 있습니다.
-- MSDS의 구성성분 추출·원본 2/3/15항 분석은 브라우저에서 동작합니다.
-- 구성성분 CAS No.의 KOSHA 공공데이터 대조는 루트의 `worker-api.js`가 `/api/msds/*`를 처리합니다.
-- 공공데이터포털 활용신청 후 Cloudflare Secret `KOSHA_API_KEY`를 반드시 설정하세요. 자세한 방법은 `API-SETUP.md`에 있습니다.
-- 인증키가 없거나 API가 실패하면 법적 대상 여부를 임의 생성하지 않고 `확인 필요`로 남깁니다.
+`wrangler.jsonc`는 정적 Assets와 Worker API를 함께 배포하고 `/api/*` 요청에서 Worker를 먼저 실행하도록 구성되어 있습니다. 기존 Cloudflare Secret은 같은 Worker에 그대로 유지됩니다.
+
+## 3. API 확인
+배포 후 다음을 주소창에서 직접 열어 JSON이 나오는지 확인합니다. HTML 홈페이지가 나오면 Worker API가 배포되지 않은 것입니다.
+- `https://safetygwajang.com/api/health`
+- `https://safetygwajang.com/api/news`
+- `https://safetygwajang.com/api/laws/search?q=난간&limit=1`
+- `https://safetygwajang.com/api/msds/lookup?cas=7664-93-9`
+
+법령 검색만 접근거부가 나면 공공데이터포털의 **안전보건법령 스마트검색(15123696)** 활용신청 상태를 확인합니다. Secret은 `KOSHA_API_KEY` 외에 `KOSHA_LAW_API_KEY` / `KOSHA_SMART_SEARCH_API_KEY`도 자동 인식합니다.
+
+## 4. 화면 확인
+- 메인: 취준생/재직자 전환, 한국시간 시계, 실시간 안전뉴스
+- 재직자: 현장 작업 대시보드 → 안전보건교육 → 위험성평가 → 실무가이드 → 법령·지침 → MSDS → 밀폐공간·온열질환 → 사고·아차사고
+- MSDS: 1항 제품명·공급자, 3항 성분/CAS/함유량, 경고표지, 작업공정별 관리요령, PDF 저장, 작업환경측정, 특수건강진단
+- 모바일: 메뉴/카드/표 가로넘침 확인
 
 ## 5. AdSense 재검토 전
-- 수동 광고 슬롯은 승인 전 추가하지 않습니다.
-- `ads.txt`, 개인정보처리방침, 이용약관, 콘텐츠 운영원칙을 유지합니다.
-- 홈과 설명형 콘텐츠의 텍스트가 정상 노출되는지 확인합니다.
-- Search Console에서 새 도메인 색인 상태와 sitemap을 확인한 뒤 AdSense 검토를 요청합니다.
+수동 광고 슬롯은 승인 전에 추가하지 않습니다. `ads.txt`, 개인정보처리방침, 이용약관, 콘텐츠 운영원칙과 설명형 콘텐츠를 유지하고 Search Console 색인/sitemap 상태를 확인합니다.

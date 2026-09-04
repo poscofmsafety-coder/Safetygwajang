@@ -28,6 +28,12 @@ function normalizeBackendResponse(cas,raw){
   if(!raw||raw.ok===false)return{ok:false,casNo:cas,error:raw?.error||'조회 실패',checkedAt:Date.now()};
   return{...raw,ok:true,casNo:raw.casNo||cas,status:raw.status||'FOUND',checkedAt:Date.now(),sources:{kosha:{ok:true,hit:raw.status==='FOUND',note:'KOSHA 물질안전보건자료 조회 서비스',evidence:raw.legal?.evidence||[]}}};
 }
+function mergeCasLegal(material,cas,apiLegal){
+  const local=(typeof sgwLegalForCas==='function')?sgwLegalForCas(material,cas):{};const api=apiLegal||{};
+  const tri=(a,b)=>a===true||b===true?true:(a===false&&b===false?false:(a===false&&b==null?false:(b===false&&a==null?false:null)));
+  const cmr={};['carcinogenic','mutagenic','reprotoxic'].forEach(k=>{cmr[k]=tri(local.cmr?.[k],api.cmr?.[k])});
+  return {...api,workEnvTarget:tri(local.workEnvTarget,api.workEnvTarget),specialHealthTarget:tri(local.specialHealthTarget,api.specialHealthTarget),specialManagement:tri(local.specialManagement,api.specialManagement),managementTarget:tri(local.managementTarget,api.managementTarget),cmr,evidence:[...(local.evidence||[]),...(api.evidence||[])].filter(Boolean).slice(0,14),source:[local.source,api.source].filter(Boolean).join(' + ')||'CAS 대조'};
+}
 async function inspectByCas(cas,forceRefresh=false){
   cas=String(cas||'').trim();if(!cas)throw new Error('CAS No.를 입력하세요.');
   if(!forceRefresh){const c=InspectCache.get(cas);if(c)return{...c,fromCache:true}}
@@ -78,7 +84,14 @@ async function inspectAllComponents(material,forceRefresh=false){
 
   const results=await Promise.all([...set].map(async cas=>{
     const inspection=await inspectByCas(cas,forceRefresh);
-    if(inspection.ok)applyInspectionToMaterial(material,inspection);
+    if(inspection.ok){
+      inspection.legal=mergeCasLegal(material,cas,inspection.legal||{});applyInspectionToMaterial(material,inspection);
+      const comp=(material.composition||[]).find(c=>c.cas===cas);
+      if(comp&&inspection.status==='FOUND'&&inspection.matchedName){
+        const low=/^(?:\[?(?:OCR\s*)?PAGE|물질명 확인|\(?\s*\)?)/i.test(String(comp.name||''))||String(comp.confidence||'').includes('검토');
+        comp.koshaName=inspection.matchedName; if(low)comp.name=inspection.matchedName;
+      }
+    }
     return {cas,inspection,status:inspection.status||'ERROR',tags:inspection.tags||[]};
   }));
 

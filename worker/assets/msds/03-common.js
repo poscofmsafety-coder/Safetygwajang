@@ -50,6 +50,20 @@ const GHS_PICTOGRAMS = {
     GHS09:{name:'수생환경유해성',src:'https://upload.wikimedia.org/wikipedia/commons/b/b9/GHS-pictogram-pollu.svg'}
 };
 
+
+// CAS 단위 보조판정: 공급자 MSDS 15항/KOSHA API 결과가 불완전할 때만 사용합니다.
+// 황산(7664-93-9)은 시행규칙 별표 21·22 대상 유해인자이며 혼합물은 함유량을 함께 확인합니다.
+const SGW_LEGAL_CAS_HINTS={
+  '7664-93-9':{name:'황산',workEnvTarget:true,workEnvMinPct:1,specialHealthTarget:true,specialHealthMinPct:1,healthFirstMonths:6,healthCycleMonths:12,managementTarget:true,source:'산업안전보건법 시행규칙 별표 21·22·23 CAS 보조표'},
+  '7732-18-5':{name:'증류수',workEnvTarget:false,specialHealthTarget:false,specialManagement:false,managementTarget:false,source:'비규제 보조표'}
+};
+function sgwContentPct(comp){const n=Number(comp?.contentNum);return Number.isFinite(n)?n:null;}
+function sgwLegalForCas(material,cas){
+  const c=(material?.composition||[]).find(x=>x.cas===cas)||{};const pct=sgwContentPct(c);const msds=material?.regulatoryProfile?.byCas?.[cas]||{};const hint=SGW_LEGAL_CAS_HINTS[cas]||{};const out={...hint,...msds};
+  for(const [key,minKey] of [['workEnvTarget','workEnvMinPct'],['specialHealthTarget','specialHealthMinPct'],['specialManagement','specialManagementMinPct'],['managementTarget','managementMinPct']]){const min=Number(out[minKey]);if(out[key]===true&&Number.isFinite(min)&&pct!==null&&pct<min)out[key]=false;}
+  out.evidence=[...(msds.evidence||[]),hint.source||''].filter(Boolean);return out;
+}
+
 // 샘플 데이터 없이 시작합니다.
 let MATERIALS = JSON.parse(localStorage.getItem('sgw_materials') || '[]');
 function saveMATERIALS(){ localStorage.setItem('sgw_materials', JSON.stringify(MATERIALS)); }
@@ -87,28 +101,36 @@ function renderMaterialList(){
 function selectMaterial(id){ selectedMaterialId=id; renderMaterialList(); applyMaterialToForms(MATERIALS.find(m=>m.id===id)); }
 function setField(panelId,name,html){ document.querySelectorAll(`#${panelId} [data-field="${name}"]`).forEach(el=>el.innerHTML=html); }
 function setList(panelId,name,arr,bullet='· '){ setField(panelId,name,(arr&&arr.length)?arr.map(t=>`<li>${bullet}${t}</li>`).join(''):'<li class="text-gray-400">해당 없음</li>'); }
+function safeSupplierDisplay(m){
+    const company=String(m?.supplierCompany||m?.supplierProfile?.company||'').trim();
+    const phone=String(m?.supplierPhone||m?.supplierProfile?.phone||'').trim();
+    const raw=String(m?.supplier||'').trim();
+    if(company){ return [company,phone?`연락처 ${phone}`:''].filter(Boolean).join(' · '); }
+    // 이전 버전의 전역 전화번호 오인식 데이터는 출력하지 않습니다.
+    if(!raw || /^(정보|연락처|전화|tel|phone)\b/i.test(raw) || /02-2278-8080/.test(raw)) return '원본 MSDS 1항 공급자 정보 확인';
+    return raw;
+}
 function applyMaterialToForms(m){
     if(!m) return;
     setField('form-warning','product-name',m.name); setField('form-warning','pictograms',makePictogramsHTML(m.pictograms));
     setField('form-warning','signal-word',m.signalWord); setField('form-warning','pictogram-source',m.pictogramsSource||'원본 MSDS 2항 확인'); setList('form-warning','hazards',m.hazards);
     setList('form-warning','p-prevention',m.pPrevention); setList('form-warning','p-response',m.pResponse);
     setList('form-warning','p-storage',m.pStorage); setList('form-warning','p-disposal',m.pDisposal);
-    setField('form-warning','supplier',m.supplier);
+    setField('form-warning','supplier',safeSupplierDisplay(m));
     setField('form-process','product-name',m.name); setField('form-process','cas-no',m.cas);
     setField('form-process','pictograms',makePictogramsHTML(m.pictograms,'w-12 h-12 text-lg'));
     setField('form-process','signal-word',m.signalWord); setField('form-process','pictogram-source',m.pictogramsSource||'원본 MSDS 2항 확인');
     setList('form-process','hazards-o',m.hazards,'· '); setList('form-process','handling',m.handling,'· ');
     setList('form-process','ppe',m.ppe,'· '); setList('form-process','first-aid',m.firstAid,'· ');
     setField('form-process','manufacturer',m.manufacturer);
-    setField('form-process','supplier',m.supplier);
+    setField('form-process','supplier',safeSupplierDisplay(m));
     applySpecialForm(m); applyEditMode();
 }
 function deriveSpecialRows(m){
-    const fromInspection=(m.compInspections||[]).filter(x=>x.inspection?.ok&&x.inspection?.status==='FOUND'&&x.inspection?.legal?.specialManagement===true).map(x=>{
-        const c=(m.composition||[]).find(v=>v.cas===x.cas)||{}, cmr=x.inspection.legal?.cmr||{};
-        return {name:c.name||x.inspection.matchedName||'물질명 확인 필요',content:c.content||'-',cas:x.cas,carcino:cmr.carcinogenic,mutagen:cmr.mutagenic,repro:cmr.reprotoxic,source:'KOSHA CAS 대조'};
-    });
-    return fromInspection.length?fromInspection:(m.specialMaterials||[]);
+    const rows=[]; const seen=new Set();
+    (m.compInspections||[]).forEach(x=>{const legal=x.inspection?.legal||{};if(x.inspection?.ok&&x.inspection?.status==='FOUND'&&legal.specialManagement===true){const c=(m.composition||[]).find(v=>v.cas===x.cas)||{},cmr=legal.cmr||{};rows.push({name:c.name||x.inspection.matchedName||'물질명 확인 필요',content:c.content||'-',cas:x.cas,carcino:cmr.carcinogenic,mutagen:cmr.mutagenic,repro:cmr.reprotoxic,source:'KOSHA CAS 대조'});seen.add(x.cas)}});
+    (m.composition||[]).forEach(c=>{if(!c.cas||c.cas==='-'||seen.has(c.cas))return;const l=sgwLegalForCas(m,c.cas);if(l.specialManagement===true){rows.push({name:c.name||l.name||'물질명 확인 필요',content:c.content||'-',cas:c.cas,carcino:l.cmr?.carcinogenic??null,mutagen:l.cmr?.mutagenic??null,repro:l.cmr?.reprotoxic??null,source:l.source||'업로드 MSDS 15항'});seen.add(c.cas)}});
+    return rows.length?rows:(m.specialMaterials||[]);
 }
 function applySpecialForm(m){
     const badge=document.getElementById('specialBadge'),banner=document.getElementById('notSpecialBanner'),tbody=document.getElementById('specialTableBody');if(!badge||!banner||!tbody)return;
@@ -116,7 +138,7 @@ function applySpecialForm(m){
     const chk=v=>v===true?'<span class="inline-flex w-6 h-6 border-2 border-gray-800 text-base font-black items-center justify-center">✓</span>':v===false?'<span class="inline-flex w-6 h-6 border-2 border-gray-800 text-[10px] text-gray-500 items-center justify-center">－</span>':'<span class="inline-flex w-6 h-6 border-2 border-amber-500 text-[10px] text-amber-700 items-center justify-center">?</span>';
     const today=new Date().toLocaleDateString('ko-KR',{year:'numeric',month:'2-digit',day:'2-digit'});
     setField('form-special','special-product',escHtml(m.name||'원본 MSDS 1항 확인'));
-    setField('form-special','special-supplier',escHtml(m.supplier||'원본 MSDS 1항 공급자 정보 확인'));
+    setField('form-special','special-supplier',escHtml(safeSupplierDisplay(m)));
     const dept=[m.deptInfo,m.processInfo].filter(Boolean).map(escHtml).join(' / ')||'직접 입력';
     setField('form-special','special-dept-process',dept); setField('form-special','special-date',today);
     if(m.isSpecial===true&&rows.length){
@@ -173,4 +195,56 @@ function printCurrentMsdsForm(){
     const visible=[...document.querySelectorAll('.form-panel')].find(el=>!el.classList.contains('hidden'));
     if(!visible){ showToast('인쇄할 양식을 선택하세요.'); return; }
     printMsdsForm(visible.id);
+}
+
+let _html2pdfLoader=null;
+function loadHtml2Pdf(){
+    if(window.html2pdf) return Promise.resolve(window.html2pdf);
+    if(_html2pdfLoader) return _html2pdfLoader;
+    const urls=[
+      'https://cdn.jsdelivr.net/npm/html2pdf.js@0.14.0/dist/html2pdf.bundle.min.js',
+      'https://unpkg.com/html2pdf.js@0.14.0/dist/html2pdf.bundle.min.js'
+    ];
+    _html2pdfLoader=new Promise((resolve,reject)=>{
+      let i=0;
+      const next=()=>{
+        if(i>=urls.length){reject(new Error('PDF 저장 모듈을 불러오지 못했습니다.'));return;}
+        const tag=document.createElement('script');tag.src=urls[i++];tag.async=true;
+        tag.onload=()=>window.html2pdf?resolve(window.html2pdf):next();
+        tag.onerror=next;document.head.appendChild(tag);
+      };next();
+    });
+    return _html2pdfLoader;
+}
+function pdfSafeName(v){return String(v||'MSDS').replace(/[\\/:*?"<>|]+/g,'_').replace(/\s+/g,' ').trim().slice(0,70)||'MSDS';}
+async function downloadCurrentMsdsFormPdf(){
+    const visible=[...document.querySelectorAll('.form-panel')].find(el=>!el.classList.contains('hidden'));
+    if(!visible){ showToast('PDF로 저장할 양식을 선택하세요.'); return; }
+    const source=visible.firstElementChild||visible;
+    let host=null;
+    try{
+      const html2pdf=await loadHtml2Pdf();
+      const clone=source.cloneNode(true);
+      host=document.createElement('div');
+      host.className='msds-pdf-export-host';
+      host.style.cssText='position:fixed;left:-12000px;top:0;width:194mm;background:#fff;padding:0;margin:0;z-index:-1;';
+      clone.style.width='194mm';clone.style.maxWidth='194mm';clone.style.margin='0 auto';clone.style.boxShadow='none';
+      host.appendChild(clone);document.body.appendChild(host);
+      await new Promise(r=>setTimeout(r,120));
+      const mat=(MATERIALS||[]).find(m=>m.id===selectedMaterialId)||{};
+      const label=visible.id==='form-warning'?'MSDS_경고표지':visible.id==='form-process'?'작업공정별_관리요령':'특별관리물질_고지';
+      const filename=pdfSafeName((mat.name||'MSDS')+'_'+label)+'.pdf';
+      await html2pdf().set({
+        margin:[6,6,6,6],filename,
+        image:{type:'jpeg',quality:0.98},
+        html2canvas:{scale:2,useCORS:true,allowTaint:false,backgroundColor:'#ffffff',logging:false,windowWidth:1200},
+        jsPDF:{unit:'mm',format:'a4',orientation:'portrait',compress:true},
+        pagebreak:{mode:['css','legacy'],avoid:['tr','.msds-process-footer','.msds-process-title']}
+      }).from(clone).save();
+      showToast('PDF 저장을 시작했습니다.');
+    }catch(e){
+      console.warn('[MSDS PDF]',e);
+      showToast('직접 PDF 저장이 어려워 인쇄창을 엽니다. 대상에서 PDF 저장을 선택하세요.');
+      printMsdsForm(visible.id);
+    }finally{ if(host)host.remove(); }
 }

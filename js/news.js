@@ -4,7 +4,7 @@
   const updated=document.getElementById('news-updated');
   const refresh=document.getElementById('news-refresh');
   if(!grid)return;
-  const CACHE_KEY='sgw_safety_news_v1', CACHE_MS=30*60*1000;
+  const CACHE_KEY='sgw_safety_news_v3', CACHE_MS=30*60*1000;
   const esc=s=>String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   function relDate(v){
     const d=new Date(v); if(isNaN(d))return '시간 정보 없음';
@@ -25,12 +25,12 @@
     const cached=cacheGet(); if(!force&&cached&&Date.now()-cached.savedAt<CACHE_MS){render(cached.data);return;}
     grid.classList.add('is-loading'); if(updated)updated.textContent='최신 기사 확인 중';
     try{
-      const r=await fetch('/api/news',{cache:'no-store'}); const j=await r.json();
-      if(!r.ok||!j.items||!j.items.length)throw new Error(j.error||'news unavailable');
+      const r=await fetch('/api/news?ts='+Date.now(),{cache:'no-store',headers:{Accept:'application/json'}}); const text=await r.text(); let j; try{j=JSON.parse(text)}catch(_){throw new Error('Worker API가 JSON이 아닌 응답을 반환했습니다.')}
+      if(!r.ok||!j.items||!j.items.length)throw new Error((j.errors||[]).join(' / ')||j.error||'news unavailable');
       cacheSet(j);render(j,false);
     }catch(e){
-      if(cached)render(cached.data,true); else grid.innerHTML='<div class="news-loading">뉴스 연결을 확인할 수 없습니다. 배포 후 /api/news Worker 경로가 활성화되어 있는지 확인해 주세요.</div>';
-      if(updated&&!cached)updated.textContent='뉴스 연결 확인 필요';
+      if(cached)render(cached.data,true); else grid.innerHTML='<div class="news-loading">최신 안전 뉴스를 불러오지 못했습니다. 새로고침하면 Google 뉴스 RSS · Kakao · 안전보건공단 소스를 다시 확인합니다.</div>';
+      if(updated&&!cached)updated.textContent='뉴스 소스 재연결 필요'; console.warn('Safety news:',e);
     }finally{grid.classList.remove('is-loading')}
   }
   refresh&&refresh.addEventListener('click',()=>load(true)); load(false);

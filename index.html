@@ -35,7 +35,7 @@
 <nav aria-label="재직자 메뉴" data-nav-group="worker" hidden>
 <a href="worker/dashboard.html">대시보드</a><a href="worker/safety-education.html">안전교육</a><a href="worker/risk-assessment.html">위험성평가</a><a href="worker/risk-guide.html">실무가이드</a><a href="worker/laws.html">법령·지침</a><a href="worker/msds-management.html">MSDS</a><a href="worker/confined-space.html">밀폐·온열</a><a href="worker/incident-report.html">사고기록</a>
 </nav>
-<div class="topbar-actions"><button class="btn-sm" data-jobseeker-only id="settings-btn" title="학습 기록 설정" type="button">학습기록 설정</button></div>
+<div class="topbar-actions"><span class="live-clock" data-live-clock aria-label="현재 한국 시간"></span><button class="btn-sm" data-jobseeker-only id="settings-btn" title="학습 기록 설정" type="button">학습기록 설정</button></div>
 </div>
 </header>
 <main class="container" id="main-content">
@@ -217,10 +217,6 @@
 <a class="tool-card" href="worker/confined-space.html"><span class="tool-icon">CS</span><h3>밀폐공간·온열질환 프로그램</h3><p>체적·환기량·환기팬 가동시간·체감온도·유해가스 기준을 계산하고 현장 조치를 확인합니다.</p></a>
 <a class="tool-card" href="worker/incident-report.html"><span class="tool-icon">IR</span><h3>사고·아차사고 기록</h3><p>발생정보, 즉시조치, 4M 원인, 재발방지대책과 위험성평가 연계를 구조화해 기록합니다.</p></a>
 </div>
-<section class="sg-panel">
-<h2>도구는 판단을 대신하지 않습니다</h2>
-<p>현장 안전업무는 공정, 설비, 물질, 작업자, 협력사, 기상조건 등 변수가 많습니다. 본 사이트의 자동 계산·정리 기능은 업무를 빠르게 구조화하기 위한 보조수단이며, 실제 작업허가·위험성평가·교육·보건조치의 법적 적정성을 보증하지 않습니다. 적용 전 최신 법령과 사업장 절차를 확인하세요.</p>
-</section>
 </section>
 
 <section class="safety-news" id="safety-news" aria-labelledby="safety-news-title">
@@ -230,7 +226,7 @@
   </div>
   <p class="news-desc">산업안전·안전보건·중대재해·산업재해 관련 최신 기사를 모아 보여줍니다. 기사 제목을 누르면 원문 언론사로 이동합니다.</p>
   <div class="news-grid" id="news-grid"><div class="news-loading">안전 뉴스를 불러오고 있습니다.</div></div>
-  <p class="news-source-note">Google 뉴스 RSS를 기본으로 사용하며, NAVER API가 설정된 경우 함께 취합합니다. 뉴스는 참고자료이며 법령·공식 지침의 대체자료가 아닙니다.</p>
+  <p class="news-source-note">Google 뉴스 RSS를 기본으로 수집하고, Kakao 검색 API가 설정된 경우 함께 취합합니다.</p>
 </section>
 </main>
 <div class="auth-modal-bg" id="code-modal">
@@ -263,6 +259,7 @@
 <script src="js/storage.js"></script>
 <script src="js/main.js"></script>
 <script src="js/home-tabs.js"></script>
+<script src="js/site-clock.js"></script>
 <script src="js/mascot-cheer.js"></script>
 <script src="js/news.js"></script>
 </body>

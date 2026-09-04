@@ -52,10 +52,45 @@
 .comp-review-table input.error { border-color: #f87171; background: #fef2f2; }
 
 
-/* 선택한 MSDS 양식만 출력 */
+
+
+/* 작업공정별 관리요령: 화면/인쇄 공통 정렬 */
+.msds-process-sheet{
+  font-family:"SeoulNamsan","서울남산체","NanumBarunGothic","나눔바른고딕","Nanum Gothic","함초롬돋움",Arial,sans-serif;
+  color:#0f172a;
+}
+.msds-process-title{padding:14px 18px;text-align:center;background:#f8fafc}
+.msds-process-title h2{margin:0;font-size:21px;line-height:1.25;font-weight:900;letter-spacing:.06em}
+.msds-process-title p{margin:5px 0 0;font-size:10px;color:#64748b;font-weight:700}
+.msds-process-table{border-collapse:collapse;table-layout:fixed;font-size:11px;line-height:1.55}
+.msds-process-table th,.msds-process-table td{border-bottom:2px solid #1f2937;vertical-align:middle}
+.msds-process-table th{width:128px;padding:10px 9px;background:#f1f5f9;border-right:2px solid #1f2937;text-align:center;font-weight:900;color:#0f172a;word-break:keep-all}
+.msds-process-table td{padding:9px 12px;word-break:keep-all;overflow-wrap:anywhere}
+.msds-process-table ul{margin:0;padding:0;list-style:none;display:grid;gap:2px}
+.msds-process-table li{line-height:1.55}
+.msds-signal-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.msds-signal-word{min-width:90px;background:#dc2626;color:#fff;padding:8px 12px;text-align:center}
+.msds-signal-word p{font-size:16px;font-weight:900;line-height:1;margin:0}
+.msds-mini-note{font-size:9px;color:#64748b;margin-top:4px}
+.msds-process-footer{padding:9px 12px;background:#f8fafc;font-size:10px;line-height:1.45;border-top:0}
+.msds-process-footer>p{margin:0 0 6px;color:#475569}
+.msds-process-supplier{display:grid;grid-template-columns:58px minmax(0,1fr) 58px minmax(0,1fr);gap:5px 8px;align-items:center}
+.msds-process-supplier span{font-weight:900;color:#334155}.msds-process-supplier b{font-weight:700;color:#0f172a;overflow-wrap:anywhere}
+
+/* 선택한 MSDS 양식만 A4 인쇄 */
 @media print {
-  body * { visibility: hidden !important; }
-  .msds-print-target, .msds-print-target * { visibility: visible !important; }
-  .msds-print-target { position: absolute !important; left: 0; top: 0; width: 100% !important; margin: 0 !important; padding: 0 !important; box-shadow: none !important; }
-  .msds-print-target img { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  @page { size:A4 portrait; margin:8mm; }
+  body * { visibility:hidden !important; }
+  .msds-print-target,.msds-print-target * { visibility:visible !important; }
+  .msds-print-target { position:absolute !important; inset:0 auto auto 0 !important; width:100% !important; margin:0 !important; padding:0 !important; background:#fff !important; }
+  .msds-print-target>div { width:100% !important; max-width:194mm !important; margin:0 auto !important; box-shadow:none !important; break-inside:auto; }
+  .msds-print-target img { print-color-adjust:exact; -webkit-print-color-adjust:exact; }
+  .msds-process-sheet{font-size:9pt !important;page-break-inside:auto !important;break-inside:auto !important}
+  .msds-process-title{padding:7mm 4mm 4mm !important}.msds-process-title h2{font-size:17pt !important}
+  .msds-process-table{font-size:8.7pt !important;line-height:1.35 !important}
+  .msds-process-table tr{break-inside:avoid;page-break-inside:avoid}
+  .msds-process-table th{width:31mm !important;padding:2.3mm !important}
+  .msds-process-table td{padding:2.3mm 3mm !important}
+  .msds-process-table [data-field="pictograms"]>*{max-width:14mm !important;max-height:14mm !important}
+  .msds-process-footer{font-size:8.2pt !important;padding:2.5mm 3mm !important;break-inside:avoid;page-break-inside:avoid}
 }
