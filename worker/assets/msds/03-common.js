@@ -104,11 +104,10 @@ function setList(panelId,name,arr,bullet='· '){ setField(panelId,name,(arr&&arr
 function safeSupplierDisplay(m){
     const company=String(m?.supplierCompany||m?.supplierProfile?.company||'').trim();
     const phone=String(m?.supplierPhone||m?.supplierProfile?.phone||'').trim();
-    const raw=String(m?.supplier||'').trim();
     if(company){ return [company,phone?`연락처 ${phone}`:''].filter(Boolean).join(' · '); }
-    // 이전 버전의 전역 전화번호 오인식 데이터는 출력하지 않습니다.
-    if(!raw || /^(정보|연락처|전화|tel|phone)\b/i.test(raw) || /02-2278-8080/.test(raw)) return '원본 MSDS 1항 공급자 정보 확인';
-    return raw;
+    const raw=String(m?.supplier||'').trim();
+    if(raw && !/^(정보|연락처|전화|tel|phone|원본)/i.test(raw) && !/02-2278-8080/.test(raw) && /[가-힣A-Za-z]/.test(raw)) return raw;
+    return 'MSDS 1항 공급자 정보 미확인';
 }
 function applyMaterialToForms(m){
     if(!m) return;
@@ -122,7 +121,6 @@ function applyMaterialToForms(m){
     setField('form-process','signal-word',m.signalWord); setField('form-process','pictogram-source',m.pictogramsSource||'원본 MSDS 2항 확인');
     setList('form-process','hazards-o',m.hazards,'· '); setList('form-process','handling',m.handling,'· ');
     setList('form-process','ppe',m.ppe,'· '); setList('form-process','first-aid',m.firstAid,'· ');
-    setField('form-process','manufacturer',m.manufacturer);
     setField('form-process','supplier',safeSupplierDisplay(m));
     applySpecialForm(m); applyEditMode();
 }

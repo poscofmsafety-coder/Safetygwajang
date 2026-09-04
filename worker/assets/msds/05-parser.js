@@ -284,50 +284,65 @@ function labelValueRegex(section,regex){
 }
 function extractSupplierProfile(section){
     const ls=linesOf(section);
-    const cleanLine=x=>String(x||'').replace(/^[○●•▪■□◆◇▶▷※*\-\s]+/,'').replace(/^[가-하]\s*[.)]\s*/,'').trim();
+    const clean=x=>String(x||'').replace(/^[○●•▪■□◆◇▶▷※*\-\s]+/,'').replace(/^[가-하]\s*[.)]\s*/,'').replace(/\s+/g,' ').trim();
     const phoneRe=/(?:\+?82[-\s)]*)?(?:0\d{1,2}[-\s)]*)?\d{3,4}[-\s]?\d{4}|\b\d{2,4}-\d{3,4}-\d{4}\b|\b0\d{8,10}\b/;
     const normalizePhone=v=>{
-        let x=String(v||'').trim(); const hit=x.match(phoneRe); if(!hit)return '';
-        x=hit[0].replace(/^\+?82[\s-]?/,'0').replace(/[^0-9]/g,'');
+        const hit=String(v||'').match(phoneRe); if(!hit)return '';
+        let x=hit[0].replace(/^\+?82[\s-]?/,'0').replace(/[^0-9]/g,'');
         if(!/^0\d{8,10}$/.test(x))return '';
-        if(x.startsWith('02')) return x.length===9?`02-${x.slice(2,5)}-${x.slice(5)}`:`02-${x.slice(2,6)}-${x.slice(6)}`;
+        if(x==='0222788080')return ''; // 공단/도움말 예시번호 오인식 방지
+        if(x.startsWith('02'))return x.length===9?`02-${x.slice(2,5)}-${x.slice(5)}`:`02-${x.slice(2,6)}-${x.slice(6)}`;
         return x.length===10?`${x.slice(0,3)}-${x.slice(3,6)}-${x.slice(6)}`:`${x.slice(0,3)}-${x.slice(3,7)}-${x.slice(7)}`;
     };
-    const headingRe=/(?:제조자\s*\/\s*공급자\s*\/\s*유통업자|제조자\s*및\s*공급자|공급자\s*및\s*제조자|공급자|제조자|유통업자)\s*(?:정보|및\s*긴급전화번호)?/i;
-    const badCompany=/^(?:정보|공급자\s*정보|제조자\s*정보|유통업자\s*정보|연락처|전화|대표전화|긴급전화|고객센터|산업안전보건공단|한국산업안전보건공단|물질안전보건자료|MSDS)$/i;
-    const companyLabel=/^(?:회사명|상호|업체명|공급자명|공급업체명|제조자명|제조업체명|유통업자명|제조사|공급사)\s*(?:\([^)]*\))?\s*(?:[:：|]|\s{2,})?\s*(.*)$/i;
-    const phoneLabel=/^(?:긴급\s*(?:연락)?\s*전화번호|긴급전화번호|전화번호|대표전화|전화|연락처)\s*(?:\([^)]*\))?\s*(?:[:：|]|\s{2,})?\s*(.*)$/i;
-    let start=ls.findIndex(x=>headingRe.test(cleanLine(x)));
-    if(start<0)return {company:'',phone:'',address:'',display:'원본 MSDS 1항 공급자 정보 확인'};
-    let end=Math.min(ls.length,start+35);
-    for(let i=start+1;i<Math.min(ls.length,start+35);i++){
-        const z=cleanLine(ls[i]);
-        if(/^\s*(?:2\.|2항|2\s*[.)]|유해성[·ㆍ\s-]*위험성)/i.test(z)){end=i;break;}
-    }
-    const scope=ls.slice(start,end).map(cleanLine).filter(Boolean);
-    let company='',companyIdx=-1;
-    for(let i=0;i<scope.length;i++){
-        const line=scope[i];const cm=line.match(companyLabel);let candidate=cm?String(cm[1]||'').trim():'';
-        if(cm&&!candidate&&scope[i+1]&&!companyLabel.test(scope[i+1])&&!phoneLabel.test(scope[i+1]))candidate=scope[i+1].split('|')[0].trim();
-        if(!cm && i>0 && i<12 && !company){
-            // 공급자/제조자 제목 바로 뒤의 회사명 표 셀만 보조로 허용
-            if(!/^(?:주소|소재지|전화|연락처|긴급|담당|팩스|FAX|전자메일|이메일|e-?mail)/i.test(line) && !phoneRe.test(line) && /[가-힣A-Za-z]/.test(line) && line.length>=2 && line.length<=100) candidate=line.split('|')[0].trim();
+    const supplierHeading=/(?:제조자\s*\/\s*공급자\s*\/\s*유통업자|제조자\s*및\s*공급자|공급자\s*및\s*제조자|제조자|공급자|유통업자)\s*(?:정보|및\s*긴급전화번호)?/i;
+    const companyLabel=/^(?:회사명|상호|업체명|공급자명|공급업체명|제조자명|제조업체명|유통업자명|제조사명|제조사|공급사)\s*(?:\([^)]*\))?\s*(?:[:：|]|\s{2,})?\s*(.*)$/i;
+    const phoneLabel=/^(?:긴급\s*(?:연락)?\s*전화번호|긴급전화번호|대표\s*전화번호|전화번호|대표전화|전화|연락처)\s*(?:\([^)]*\))?\s*(?:[:：|]|\s{2,})?\s*(.*)$/i;
+    const addressLabel=/^(?:주소|소재지|사업장\s*주소)\s*(?:\([^)]*\))?\s*(?:[:：|]|\s{2,})?\s*(.*)$/i;
+    const rejectCompany=/^(?:정보|제조자\s*정보|공급자\s*정보|유통업자\s*정보|연락처|전화|전화번호|주소|소재지|고객센터|물질안전보건자료|MSDS|해당없음|없음)$/i;
+    const plausibleCompany=v=>{
+        const x=clean(v).replace(/^(?:회사명|상호|업체명)\s*[:：]?\s*/,'').trim();
+        if(!x||rejectCompany.test(x)||phoneRe.test(x)||x.length>120)return '';
+        if(/^(?:제품명|제품의\s*권고|사용상의\s*제한|긴급|담당자|팩스|FAX|전자메일|이메일)/i.test(x))return '';
+        return /[가-힣A-Za-z]/.test(x)?x:'';
+    };
+    let starts=[]; ls.forEach((x,i)=>{if(supplierHeading.test(clean(x)))starts.push(i)});
+    if(!starts.length)starts=[0];
+    let best={company:'',phone:'',address:'',score:-1};
+    for(const st of starts.slice(0,6)){
+        let ed=Math.min(ls.length,st+40);
+        for(let i=st+1;i<ed;i++){if(/^\s*(?:2\.|2항|유해성[·ㆍ\s-]*위험성)/i.test(clean(ls[i]))){ed=i;break;}}
+        const scope=ls.slice(st,ed).map(clean).filter(Boolean);
+        let company='',companyIdx=-1,phone='',address='',score=0;
+        for(let i=0;i<scope.length;i++){
+            const line=scope[i],cm=line.match(companyLabel);
+            if(cm){
+                let c=plausibleCompany(cm[1]);
+                if(!c&&scope[i+1]&&!companyLabel.test(scope[i+1])&&!phoneLabel.test(scope[i+1])&&!addressLabel.test(scope[i+1]))c=plausibleCompany(scope[i+1].split('|')[0]);
+                if(c){company=c;companyIdx=i;score+=5;break;}
+            }
         }
-        candidate=candidate.replace(/^(?:회사명|상호|업체명)\s*[:：]?\s*/,'').trim();
-        if(candidate && !badCompany.test(candidate) && !phoneRe.test(candidate) && !/^(?:제품명|제품의\s*권고|사용상의\s*제한|주소|소재지)/i.test(candidate)){company=candidate;companyIdx=i;break;}
+        // 표 추출이 줄바꿈으로 깨진 경우, '회사명' 바로 다음 셀만 제한적으로 허용
+        if(!company){
+            for(let i=0;i<Math.min(scope.length,18);i++){
+                if(/^(?:회사명|상호|업체명)\s*[:：|]?\s*$/i.test(scope[i])&&scope[i+1]){
+                    const c=plausibleCompany(scope[i+1].split('|')[0]);if(c){company=c;companyIdx=i+1;score+=4;break;}
+                }
+            }
+        }
+        if(company){
+            const from=Math.max(0,companyIdx),to=Math.min(scope.length,companyIdx+14);
+            for(let i=from;i<to;i++){
+                const line=scope[i];
+                if(!phone){const pm=line.match(phoneLabel);if(pm)phone=normalizePhone(pm[1])||normalizePhone(scope[i+1]||'');}
+                if(!address){const am=line.match(addressLabel);if(am)address=clean(am[1]||scope[i+1]||'');}
+            }
+            if(phone)score+=2;if(address)score+=1;
+        }
+        if(score>best.score)best={company,phone,address,score};
     }
-    if(!company)return {company:'',phone:'',address:'',display:'원본 MSDS 1항 공급자 정보 확인'};
-    let phone='',address='';
-    const scanStart=Math.max(0,companyIdx),scanEnd=Math.min(scope.length,companyIdx+10);
-    for(let i=scanStart;i<scanEnd;i++){
-        const line=scope[i];
-        if(!phone){const pm=line.match(phoneLabel);if(pm){phone=normalizePhone(pm[1])||normalizePhone(scope[i+1]);}}
-        if(!address){const am=line.match(/^(?:주소|소재지)\s*(?:\([^)]*\))?\s*(?:[:：|]|\s{2,})?\s*(.*)$/i);if(am)address=String(am[1]||scope[i+1]||'').trim();}
-    }
-    // 공단/도움말 대표번호 등 공급자 블록과 무관한 번호는 출력하지 않습니다.
-    if(phone==='02-2278-8080')phone='';
-    const display=[company,phone?`연락처 ${phone}`:''].filter(Boolean).join(' · ');
-    return {company,phone,address,display:display||'원본 MSDS 1항 공급자 정보 확인'};
+    const company=best.company||'',phone=best.phone||'',address=best.address||'';
+    const display=company?[company,phone?`연락처 ${phone}`:''].filter(Boolean).join(' · '):'';
+    return {company,phone,address,display:display||'MSDS 1항 공급자 정보 미확인'};
 }
 function cleanProductValue(v){
     let x=String(v||'').replace(/^[\-|:：\s]+/,'').trim();
@@ -369,7 +384,7 @@ function extractProductProfile(text,fileName){
         const mm=line.match(/^(?:제조자명|제조업체명|제조사명|제조사)\s*(?:\([^)]*\))?\s*(?:[:：|]|\s{2,})?\s*(.*)$/i);
         if(mm&&String(mm[1]||'').trim()){manufacturer=String(mm[1]).trim().split('|')[0].trim();break;}
     }
-    if(!manufacturer)manufacturer=supplier.company||'원본 MSDS 1항 확인';
+    if(!manufacturer)manufacturer=supplier.company||'MSDS 1항 제조자 정보 미확인';
     return {name,manufacturer,supplier:supplier.display,supplierCompany:supplier.company,supplierPhone:supplier.phone,supplierAddress:supplier.address,raw:s1};
 }
 function inferPictogramsFromHCodes(codes){

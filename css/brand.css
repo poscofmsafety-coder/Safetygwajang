@@ -104,7 +104,7 @@ a{text-underline-offset:3px;}
   height:38px;
   flex:0 0 38px;
   border-radius:12px;
-  background:#fff url("../assets/jaeili-face.png") center/contain no-repeat;
+  background:#fff url("../assets/jaeili-face-v2.png") center/contain no-repeat;
   border:1px solid #eadc9a;
   box-shadow:0 3px 10px rgba(121,92,13,.10);
 }
@@ -250,7 +250,7 @@ a{text-underline-offset:3px;}
 }
 .content-hero::after,.study-head::after,.page-interview .iv-hero::after{
   content:"";position:absolute;right:28px;top:50%;transform:translateY(-50%);
-  width:108px;height:108px;border-radius:26px;background:#fff8d8 url("../assets/jaeili-face.png") center/contain no-repeat;
+  width:108px;height:108px;border-radius:26px;background:#fff8d8 url("../assets/jaeili-face-v2.png") center/contain no-repeat;
   border:1px solid #eadb98;box-shadow:0 6px 18px rgba(96,75,19,.10);
 }
 .content-hero::before,.study-head::before,.page-interview .iv-hero::before{
@@ -283,7 +283,7 @@ a{text-underline-offset:3px;}
 .exam-header{background:rgba(255,255,255,.98)!important;border-bottom:1px solid var(--sg-line)!important;box-shadow:0 5px 18px rgba(21,59,103,.055)!important;}
 .exam-header-inner{max-width:1440px!important;margin:0 auto!important;padding:11px 18px!important;}
 .exam-title{display:flex!important;align-items:center!important;gap:10px!important;color:var(--sg-navy)!important;font-size:1.03rem!important;}
-.exam-title::before{content:"";width:36px;height:36px;flex:0 0 36px;border-radius:11px;background:#fff8d8 url("../assets/jaeili-face.png") center/contain no-repeat;border:1px solid #eadb98;}
+.exam-title::before{content:"";width:36px;height:36px;flex:0 0 36px;border-radius:11px;background:#fff8d8 url("../assets/jaeili-face-v2.png") center/contain no-repeat;border:1px solid #eadb98;}
 .progress-fill{background:linear-gradient(90deg,var(--sg-teal),#69a44d)!important;}
 .question-card,.review-card{border-color:#dbe3e8!important;border-radius:17px!important;box-shadow:0 4px 16px rgba(21,59,103,.035)!important;}
 .option-item:hover{border-color:#9eb8bf!important;background:#f5faf9!important;}

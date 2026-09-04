@@ -74,7 +74,7 @@
 .msds-mini-note{font-size:9px;color:#64748b;margin-top:4px}
 .msds-process-footer{padding:9px 12px;background:#f8fafc;font-size:10px;line-height:1.45;border-top:0}
 .msds-process-footer>p{margin:0 0 6px;color:#475569}
-.msds-process-supplier{display:grid;grid-template-columns:58px minmax(0,1fr) 58px minmax(0,1fr);gap:5px 8px;align-items:center}
+.msds-process-supplier{display:grid;grid-template-columns:84px minmax(0,1fr);gap:6px 10px;align-items:center;border-top:1px solid #cbd5e1;padding-top:7px}
 .msds-process-supplier span{font-weight:900;color:#334155}.msds-process-supplier b{font-weight:700;color:#0f172a;overflow-wrap:anywhere}
 
 /* 선택한 MSDS 양식만 A4 인쇄 */
@@ -94,3 +94,6 @@
   .msds-process-table [data-field="pictograms"]>*{max-width:14mm !important;max-height:14mm !important}
   .msds-process-footer{font-size:8.2pt !important;padding:2.5mm 3mm !important;break-inside:avoid;page-break-inside:avoid}
 }
+
+/* v10: 작업공정별 관리요령 정렬/인쇄 안정화 */
+.msds-process-table tr{height:auto}.msds-process-table th,.msds-process-table td{box-sizing:border-box}.msds-process-sheet{max-width:100%;overflow:hidden}.msds-process-supplier span,.msds-process-supplier b{line-height:1.45}

@@ -18,7 +18,7 @@
 .risk-mark,.risk-title-mark,.section-mark{display:inline-flex;align-items:center;justify-content:center;font-family:"SeoulNamsan","NanumBarunGothic","Malgun Gothic",sans-serif;font-weight:900;line-height:1;vertical-align:middle}.risk-mark{width:24px;height:24px;border-radius:8px;margin:0 auto}.risk-fire{background:#ffe4e6;color:#be123c}.risk-explode{background:#ffedd5;color:#c2410c}.risk-suffocate{background:#f3e8ff;color:#7e22ce}.risk-leak{background:#ccfbf1;color:#0f766e}.risk-etc{background:#e2e8f0;color:#334155}.risk-title-mark{width:20px;height:20px;border-radius:50%;background:#fee2e2;color:#b91c1c;margin-right:6px}.section-mark{color:#0f766e;margin-right:7px}
 </style>
 <meta name="robots" content="noindex,follow"><meta name="theme-color" content="#153b67"><link rel="stylesheet" href="../css/brand.css"><link rel="stylesheet" href="assets/legacy-brand.css"></head>
-<body class="legacy-tool-page bg-slate-100 min-h-screen text-gray-800"><header class="legacy-brand-nav"><div class="legacy-brand-inner"><a class="legacy-brand-name" href="../index.html?audience=worker"><img src="../assets/jaeili-face.png" alt="안전과장 제일이 로고" data-cheer-mascot><span>안전과장</span></a><nav class="legacy-worker-nav" aria-label="재직자 실무 메뉴"><a href="dashboard.html">현장 대시보드</a><a href="safety-education.html">안전교육</a><a href="risk-assessment.html">위험성평가</a><a href="risk-guide.html">실무가이드</a><a href="laws.html">법령·지침</a><a href="msds-management.html">MSDS</a><a href="confined-space.html">밀폐공간</a><a href="incident-report.html">사고기록</a></nav><span class="live-clock legacy-live-clock" data-live-clock aria-label="현재 한국 시간"></span><a class="legacy-back" href="../index.html?audience=worker">재직자 홈</a></div></header><div class="legacy-actionbar"><button type="button" onclick="toggleAdminMode()"><span class="emoji-icon" aria-hidden="true">⚙️</span> 작업 데이터 관리</button><span>엑셀 붙여넣기 · JSON 백업/복원 · 무재해 기준 설정은 여기에서 관리합니다.</span></div>
+<body class="legacy-tool-page bg-slate-100 min-h-screen text-gray-800"><header class="legacy-brand-nav"><div class="legacy-brand-inner"><a class="legacy-brand-name" href="../index.html?audience=worker"><img src="../assets/jaeili-face-v2.png" alt="안전과장 제일이 로고" data-cheer-mascot><span>안전과장</span></a><nav class="legacy-worker-nav" aria-label="재직자 실무 메뉴"><a href="dashboard.html">현장 대시보드</a><a href="safety-education.html">안전교육</a><a href="risk-assessment.html">위험성평가</a><a href="risk-guide.html">실무가이드</a><a href="laws.html">법령·지침</a><a href="msds-management.html">MSDS</a><a href="confined-space.html">밀폐공간</a><a href="incident-report.html">사고기록</a></nav><span class="live-clock legacy-live-clock" data-live-clock aria-label="현재 한국 시간"></span><a class="legacy-back" href="../index.html?audience=worker">재직자 홈</a></div></header><div class="legacy-actionbar"><button type="button" onclick="toggleAdminMode()"><span class="emoji-icon" aria-hidden="true">⚙️</span> 작업 데이터 관리</button><span>엑셀 붙여넣기 · JSON 백업/복원 · 무재해 기준 설정은 여기에서 관리합니다.</span></div>
 
     <nav class="legacy-old-header bg-[#00529C] text-white shadow-lg sticky top-0 z-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -152,14 +152,14 @@
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
                 <h3 class="text-sm font-black text-gray-800 mb-3 flex items-center gap-2">
-                    <span class="risk-title-mark" aria-hidden="true">!</span>잠재위험 요약
+                    잠재위험 요약
                 </h3>
                 <div class="grid grid-cols-5 gap-2">
-                    <div class="text-center p-2 bg-rose-50 rounded"><span class="risk-mark risk-fire" aria-hidden="true">화</span><p class="text-[10px] text-gray-600 mt-1">화재</p><p class="font-black text-rose-600" id="riskFire">0</p></div>
-                    <div class="text-center p-2 bg-orange-50 rounded"><span class="risk-mark risk-explode" aria-hidden="true">폭</span><p class="text-[10px] text-gray-600 mt-1">폭발</p><p class="font-black text-orange-600" id="riskExplode">0</p></div>
-                    <div class="text-center p-2 bg-purple-50 rounded"><span class="risk-mark risk-suffocate" aria-hidden="true">질</span><p class="text-[10px] text-gray-600 mt-1">질식</p><p class="font-black text-purple-600" id="riskSuffocate">0</p></div>
-                    <div class="text-center p-2 bg-teal-50 rounded"><span class="risk-mark risk-leak" aria-hidden="true">누</span><p class="text-[10px] text-gray-600 mt-1">누출</p><p class="font-black text-teal-600" id="riskLeak">0</p></div>
-                    <div class="text-center p-2 bg-slate-50 rounded"><span class="risk-mark risk-etc" aria-hidden="true">기</span><p class="text-[10px] text-gray-600 mt-1">기타</p><p class="font-black text-slate-600" id="riskEtc">0</p></div>
+                    <div class="text-center p-2 bg-rose-50 rounded"><p class="text-[11px] font-black text-gray-700">화재</p><p class="font-black text-rose-600" id="riskFire">0</p></div>
+                    <div class="text-center p-2 bg-orange-50 rounded"><p class="text-[11px] font-black text-gray-700">폭발</p><p class="font-black text-orange-600" id="riskExplode">0</p></div>
+                    <div class="text-center p-2 bg-purple-50 rounded"><p class="text-[11px] font-black text-gray-700">질식</p><p class="font-black text-purple-600" id="riskSuffocate">0</p></div>
+                    <div class="text-center p-2 bg-teal-50 rounded"><p class="text-[11px] font-black text-gray-700">누출</p><p class="font-black text-teal-600" id="riskLeak">0</p></div>
+                    <div class="text-center p-2 bg-slate-50 rounded"><p class="text-[11px] font-black text-gray-700">기타</p><p class="font-black text-slate-600" id="riskEtc">0</p></div>
                 </div>
             </div>
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
@@ -175,7 +175,7 @@
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
             <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
                 <h3 class="text-base font-black text-gray-800 flex items-center gap-2">
-                    <span class="section-mark" aria-hidden="true">▣</span>금일 작업 상세 현황
+                    금일 작업 상세 현황
                 </h3>
                 <div class="flex items-center gap-2 flex-wrap">
                     <button onclick="downloadAllBoards()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-1.5 rounded transition flex items-center gap-1">
@@ -199,7 +199,7 @@
         </div>
 
         <div class="legacy-solution-section">
-            <h2 class="legacy-section-heading"><span class="section-mark" aria-hidden="true">▣</span><span>안전관리 실무 기능</span></h2>
+            <h2 class="legacy-section-heading"><span>안전관리 실무 기능</span></h2>
             <div class="legacy-solution-grid">
                 <a href="dashboard.html"><span>DB</span><b>현장 작업 대시보드</b><small>작업·인원·잠재위험·고위험작업을 한 화면에서 확인합니다.</small></a>
                 <a href="safety-education.html"><span>ED</span><b>안전보건교육 관리</b><small>채용시·특별·MSDS·밀폐공간 등 교육 이수기록을 관리합니다.</small></a>
@@ -642,7 +642,7 @@
                 </summary>
                 <div class="border-t border-gray-200 p-4 bg-slate-50 space-y-3">
                     ${w.hazard?`<div>
-                        <p class="text-[11px] font-black text-rose-700 mb-1"><span class="risk-title-mark mr-1" aria-hidden="true">!</span>잠재위험</p>
+                        <p class="text-[11px] font-black text-rose-700 mb-1">잠재위험</p>
                         <pre class="text-[11px] text-gray-700 whitespace-pre-wrap font-sans bg-white p-2 rounded border border-gray-200">${esc(w.hazard)}</pre>
                     </div>`:''}
                     ${w.action?`<div>

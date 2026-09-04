@@ -1,7 +1,10 @@
 const KOSHA_BASE = 'https://apis.data.go.kr/B552468/msdschem';
-function koshaMsdsKey(env){return env.KOSHA_MSDS_API_KEY||env.KOSHA_API_KEY||env.PUBLIC_DATA_API_KEY||'';}
-function koshaLawKey(env){return env.KOSHA_LAW_API_KEY||env.KOSHA_SMART_SEARCH_API_KEY||env.KOSHA_API_KEY||env.PUBLIC_DATA_API_KEY||'';}
-function koshaGeneralKey(env){return env.KOSHA_API_KEY||env.PUBLIC_DATA_API_KEY||env.KOSHA_MSDS_API_KEY||env.KOSHA_LAW_API_KEY||'';}
+function firstSecret(env,names){for(const n of names){if(env&&env[n])return {name:n,value:env[n]};}return {name:'',value:''};}
+function koshaMsdsSecret(env){return firstSecret(env,['KOSHA_MSDS_API_KEY','KOSHA_API_KEY','PUBLIC_DATA_API_KEY','DATA_GO_KR_API_KEY','DATA_GO_KR_SERVICE_KEY','SERVICE_KEY','OPENAPI_SERVICE_KEY']);}
+function koshaLawSecret(env){return firstSecret(env,['KOSHA_LAW_API_KEY','KOSHA_SMART_SEARCH_API_KEY','KOSHA_API_KEY','PUBLIC_DATA_API_KEY','DATA_GO_KR_API_KEY','DATA_GO_KR_SERVICE_KEY','SERVICE_KEY','OPENAPI_SERVICE_KEY']);}
+function koshaMsdsKey(env){return koshaMsdsSecret(env).value;}
+function koshaLawKey(env){return koshaLawSecret(env).value;}
+function koshaGeneralKey(env){return firstSecret(env,['KOSHA_API_KEY','PUBLIC_DATA_API_KEY','DATA_GO_KR_API_KEY','DATA_GO_KR_SERVICE_KEY','KOSHA_MSDS_API_KEY','KOSHA_LAW_API_KEY','SERVICE_KEY','OPENAPI_SERVICE_KEY']).value;}
 
 export default {
   async fetch(request, env, ctx) {
@@ -28,9 +31,11 @@ function apiHealth(env){
   return json({
     ok:true, configured:generalConfigured, koshaConfigured:generalConfigured,
     msdsConfigured, lawSearchConfigured:lawConfigured,
+    msdsSecretName:koshaMsdsSecret(env).name||null,
+    lawSecretName:koshaLawSecret(env).name||null,
     kakaoNewsConfigured:kakaoConfigured,
     naverNewsConfigured:naverHubConfigured||naverLegacyConfigured,
-    message:generalConfigured?'KOSHA/공공데이터 인증키 설정됨':'Cloudflare Secret KOSHA_API_KEY(또는 서비스별 Key)가 아직 설정되지 않았습니다.'
+    message:generalConfigured?'KOSHA/공공데이터 인증키 Secret 감지됨':'Cloudflare Secret KOSHA_API_KEY(또는 서비스별 Key)가 아직 설정되지 않았습니다.'
   });
 }
 function decodeXml(s){return String(s||'').replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g,'$1').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&amp;/g,'&').replace(/&quot;/g,'"').replace(/&#39;/g,"'");}
@@ -321,12 +326,12 @@ async function lawsSearch(request,env){
   if(!key)return json({ok:false,error:'KOSHA_LAW_API_KEY 또는 KOSHA_API_KEY Secret이 필요합니다.',items:[]},503);
   const u0=new URL(request.url),q=(u0.searchParams.get('q')||u0.searchParams.get('searchValue')||'').trim();const limit=Math.max(1,Math.min(100,Number(u0.searchParams.get('limit'))||100));
   if(!q)return json({ok:false,error:'검색어를 입력하세요.',items:[]},400);
-  const u=new URL(KOSHA_SMART_SEARCH);u.searchParams.set('serviceKey',normalizeServiceKey(key));u.searchParams.set('searchValue',q);u.searchParams.set('pageNo','1');u.searchParams.set('numOfRows',String(limit));u.searchParams.set('category','0');u.searchParams.set('dataType','JSON');u.searchParams.set('_type','json');
+  const u=new URL(KOSHA_SMART_SEARCH);u.searchParams.set('serviceKey',normalizeServiceKey(key));u.searchParams.set('searchValue',q);u.searchParams.set('pageNo','1');u.searchParams.set('numOfRows',String(limit));u.searchParams.set('category','0');u.searchParams.set('dataType','JSON');
   try{
     const r=await fetch(u,{headers:{Accept:'application/json,text/plain,*/*'},cf:{cacheTtl:300,cacheEverything:true}});const text=await r.text();if(!r.ok)throw new Error(`KOSHA Smart Search HTTP ${r.status}`);
-    if(/SERVICE_ACCESS_DENIED|SERVICE_KEY_IS_NOT_REGISTERED|APPLICATION_ERROR|LIMITED_NUMBER_OF_SERVICE_REQUESTS_EXCEEDS/i.test(text))throw new Error(cleanHtmlText(text).slice(0,180)+' · 안전보건법령 스마트검색(15123696) 활용신청을 확인하세요.');let data;try{data=JSON.parse(text)}catch(e){throw new Error('KOSHA Smart Search JSON 응답을 해석하지 못했습니다: '+cleanHtmlText(text).slice(0,140))}
+    if(/SERVICE_ACCESS_DENIED|PERMISSION_DENIED|SERVICE_KEY_IS_NOT_REGISTERED|SERVICE_KEY_IS_NULL|APPLICATION_ERROR|LIMITED_NUMBER_OF_SERVICE_REQUESTS_EXCEEDS/i.test(text))throw new Error(cleanHtmlText(text).slice(0,220)+' · 공공데이터포털 안전보건법령 스마트검색(15123696) 활용신청과 Cloudflare Secret을 확인하세요.');let data;try{data=JSON.parse(text)}catch(e){throw new Error('KOSHA Smart Search JSON 응답을 해석하지 못했습니다: '+cleanHtmlText(text).slice(0,140))}
     const resultCode=data?.response?.header?.resultCode||data?.header?.resultCode; if(resultCode&&String(resultCode)!=='00')throw new Error((data?.response?.header?.resultMsg||data?.header?.resultMsg||`KOSHA resultCode ${resultCode}`)+' · 안전보건법령 스마트검색(15123696) 활용신청 상태를 확인하세요.');
     const items=flattenSearchItems(data).map(normalizeLawItem).filter(x=>x.title||x.content);
     return json({ok:true,query:q,total:items.length,items,updatedAt:new Date().toISOString()});
-  }catch(e){return json({ok:false,error:e.message,items:[]},502)}
+  }catch(e){return json({ok:false,error:e.message,hint:'Secret 이름은 KOSHA_LAW_API_KEY 또는 KOSHA_API_KEY를 권장합니다. 공공데이터포털의 안전보건법령 스마트검색(15123696) 활용신청 승인 상태도 확인하세요.',secretName:koshaLawSecret(env).name||null,items:[]},502)}
 }
