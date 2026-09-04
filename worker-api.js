@@ -216,7 +216,7 @@ async function googleNewsQuery(query){
 }
 async function googleSafetyNews(){
   const queries=['산업안전 중대재해 when:14d','산업재해 안전보건 when:14d','건설 안전사고 산업안전 when:14d'];
-  const settled=await Promise.all(queries.map(q=>googleNewsQuery(q).catch(e=>({error:e.message,items:[]})));
+  const settled=await Promise.all(queries.map(q=>googleNewsQuery(q).catch(e=>({error:e.message,items:[]}))));
   let items=[],errors=[];
   for(const x of settled){if(Array.isArray(x))items.push(...x);else if(x?.error)errors.push(x.error)}
   return {items:dedupeNews(items).slice(0,25),errors};
