@@ -1,0 +1,92 @@
+{
+  "group": "G-HMG",
+  "companies": [
+    {
+      "id": "hmg-1",
+      "name": "현대차그룹 ①",
+      "tier": "T1",
+      "jobFields": ["안전"],
+      "interviews": [
+        {
+          "stage": "1차 직무면접",
+          "stageType": "job",
+          "format": "약 1시간 / 면접관 3 : 지원자 1 / 자기소개 PT + 사전과제 PT(ISO 45001)",
+          "questions": [
+            { "qid": "HMG1-J-01", "q": "[PT] 자기소개 발표 및 사전과제(ISO 45001) 발표", "type": "pt", "tags": ["안전보건경영시스템"] },
+            { "qid": "HMG1-J-02", "q": "안전관리자가 된 계기는 무엇인가", "type": "common", "tags": ["지원동기"] },
+            { "qid": "HMG1-J-03", "q": "PSM 운영 중 배관을 교체해야 할 때 어떤 절차로 진행하는가", "type": "job", "tags": ["PSM"] },
+            { "qid": "HMG1-J-04", "q": "유해위험방지계획서와 PSM의 차이는 무엇인가", "type": "job", "tags": ["PSM", "법규해석"] },
+            { "qid": "HMG1-J-05", "q": "중대재해를 경험한 적이 있는가", "type": "job", "tags": ["산재처리"] },
+            { "qid": "HMG1-J-06", "q": "우리 사업장에서 밀폐공간 대상은 어떤 곳일 것 같은가", "type": "job", "tags": ["밀폐공간"] },
+            { "qid": "HMG1-J-07", "q": "천장크레인의 안전조치를 설명하시오", "type": "job", "tags": ["크레인"] },
+            { "qid": "HMG1-J-08", "q": "동종 완성차 업계의 중대재해 사례를 알고 있는가, 본인이라면 어떻게 조치할 것인가", "type": "job", "tags": ["산재처리"] },
+            { "qid": "HMG1-J-09", "q": "직원들에게 효과적인 안전교육 방법은 무엇이라 생각하는가", "type": "job", "tags": ["교육"] },
+            { "qid": "HMG1-J-10", "q": "이직 사유는 무엇인가", "type": "common", "tags": ["이직사유"] },
+            { "qid": "HMG1-J-11", "q": "취미나 특기가 있는가", "type": "common", "tags": [] },
+            { "qid": "HMG1-J-12", "q": "마지막으로 하고 싶은 말", "type": "common", "tags": ["마지막할말"] }
+          ]
+        },
+        {
+          "stage": "최종면접",
+          "stageType": "exec",
+          "format": "인사 임원 + 생산 임원 2 : 지원자 1",
+          "note": "기술 심화보다 태도·일관성·조직 적합성 중심",
+          "questions": [
+            { "qid": "HMG1-E-01", "q": "왜 우리 회사에 지원했는가", "type": "common", "tags": ["지원동기"] },
+            { "qid": "HMG1-E-02", "q": "지금까지 어떤 안전 업무를 수행했는가", "type": "job", "tags": [] },
+            { "qid": "HMG1-E-03", "q": "직장 상사들은 본인을 어떻게 평가하는가", "type": "common", "tags": ["레퍼런스"] },
+            { "qid": "HMG1-E-04", "q": "직장 생활에서의 단점과 본인의 장점은 무엇인가", "type": "common", "tags": ["강점단점"] },
+            { "qid": "HMG1-E-05", "q": "본인의 실무 경력은 몇 년차인가", "type": "common", "tags": [] },
+            { "qid": "HMG1-E-06", "q": "여러 안전 분야 중 가장 자신 있는 영역은 무엇인가", "type": "job", "tags": [] },
+            { "qid": "HMG1-E-07", "q": "직장 생활에서 가장 기뻤던 경험은 무엇인가", "type": "common", "tags": [] },
+            { "qid": "HMG1-E-08", "q": "가장 회의감이 들었던 경험은 무엇인가", "type": "situation", "tags": ["압박"] },
+            { "qid": "HMG1-E-09", "q": "주변에서 본인을 부르던 별명이나 이미지가 있는가", "type": "common", "tags": [] },
+            { "qid": "HMG1-E-10", "q": "우리 조직 문화에 적응할 수 있다고 보는가", "type": "situation", "tags": ["조직적합"] },
+            { "qid": "HMG1-E-11", "q": "해외 체류나 어학 관련 경험이 있는가", "type": "common", "tags": [] },
+            { "qid": "HMG1-E-12", "q": "주요 생산거점에서 근무 가능한가, 그 지역을 선택할 수 있는 이유는 무엇인가", "type": "situation", "tags": ["근무지"] },
+            { "qid": "HMG1-E-13", "q": "마지막으로 하고 싶은 말", "type": "common", "tags": ["마지막할말"] }
+          ]
+        }
+      ]
+    },
+
+    {
+      "id": "hmg-2",
+      "name": "현대차그룹 ②",
+      "tier": "T1",
+      "jobFields": ["안전", "환경", "화학물질"],
+      "interviews": [
+        {
+          "stage": "실무면접",
+          "stageType": "job",
+          "format": "면접관 2 : 지원자 1 / 경력기술서 기반 사실 확인 중심",
+          "questions": [
+            { "qid": "HMG2-J-01", "q": "자기소개", "type": "common", "tags": ["자기소개"] },
+            { "qid": "HMG2-J-02", "q": "이직 사유는 무엇인가", "type": "common", "tags": ["이직사유"] },
+            { "qid": "HMG2-J-03", "q": "지금까지의 경력사항을 설명하시오", "type": "job", "tags": [] },
+            { "qid": "HMG2-J-04", "q": "어떤 물질로 인해 규제(PSM 등) 대상이 되었으며, 해당 공정을 설명하시오", "type": "job", "tags": ["PSM"] },
+            { "qid": "HMG2-J-05", "q": "저장탱크를 교체할 때 준수해야 할 법적 사항은 무엇인가", "type": "job", "tags": ["위험물", "법규해석"] },
+            { "qid": "HMG2-J-06", "q": "화학물질관리법 관련 업무 경험을 설명하시오", "type": "job", "tags": ["화관법"] },
+            { "qid": "HMG2-J-07", "q": "현재 선임 사항과 담당 업무 Scope은 어떻게 되는가", "type": "job", "tags": [] },
+            { "qid": "HMG2-J-08", "q": "환경 업무는 어떤 것을 수행해봤는가", "type": "job", "tags": ["환경"] },
+            { "qid": "HMG2-J-09", "q": "입사 가능 시점은 언제인가", "type": "common", "tags": ["조직적합"] }
+          ]
+        },
+        {
+          "stage": "임원면접",
+          "stageType": "exec",
+          "format": "면접관 3 : 지원자 2",
+          "questions": [
+            { "qid": "HMG2-E-01", "q": "자기소개", "type": "common", "tags": ["자기소개"] },
+            { "qid": "HMG2-E-02", "q": "이직 사유와 지원동기를 함께 말해보시오", "type": "common", "tags": ["이직사유", "지원동기"] },
+            { "qid": "HMG2-E-03", "q": "우리 회사에 기여할 수 있는 점은 무엇인가", "type": "common", "tags": ["포부"] },
+            { "qid": "HMG2-E-04", "q": "현장 사람들과 소통은 어떤 방식으로 하는가", "type": "situation", "tags": ["현장소통"] },
+            { "qid": "HMG2-E-05", "q": "회사 생활에서 가장 힘들었던 경험은 무엇인가", "type": "common", "tags": [] },
+            { "qid": "HMG2-E-06", "q": "스트레스는 어떻게 해소하는가", "type": "common", "tags": [] },
+            { "qid": "HMG2-E-07", "q": "마지막으로 하고 싶은 말", "type": "common", "tags": ["마지막할말"] }
+          ]
+        }
+      ]
+    }
+  ]
+}

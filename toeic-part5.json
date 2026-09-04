@@ -1,0 +1,172 @@
+{
+  "examId": "toeic-part5",
+  "type": "study",
+  "badge": "TOEIC SPEAKING · PART 5",
+  "title": "PART 5 · 의견 제시하기 (Express an opinion)",
+  "subtitle": "Q11 · 준비 30초 / 답변 60초 · 평가요소: 논리 전개, 문법, 어휘, 발음, 내용의 완성도",
+  "meta": [
+    { "k": "문항", "v": "1문항" },
+    { "k": "준비", "v": "30초" },
+    { "k": "답변", "v": "60초" },
+    { "k": "핵심", "v": "템플릿 + 이유 2개" }
+  ],
+  "sections": [
+    {
+      "title": "1. 파트 개요 — 60초를 채우는 것이 관건",
+      "note": "찬성/반대 또는 선택형 질문에 대해 자신의 의견을 논리적으로 말하는 파트입니다. 내용의 참신함이 아니라 구조와 분량이 점수를 결정합니다.",
+      "bullets": [
+        "정답이 없으므로 말하기 쉬운 쪽을 고르는 것이 전략입니다. 실제 생각과 달라도 무방합니다",
+        "60초 중 45초 이상을 채워야 안정권입니다. 침묵이 길면 큰 감점",
+        "이유는 반드시 2개 — 이유 1개로 60초를 채우기는 거의 불가능합니다",
+        "준비 30초 활용: 입장 결정(5초) → 이유 2개 키워드 메모(15초) → 결론 문장 확인(10초)"
+      ],
+      "tip": "빈출 주제: 재택근무 / 온라인 강의 / SNS / 학생 아르바이트 / 대중교통 vs 자동차 / 좋은 상사의 자질 / 팀워크 / 신입사원 교육 / 환경보호 / 재활용"
+    },
+    {
+      "title": "2. 60초 골든 템플릿 (4단 구성)",
+      "table": {
+        "head": ["구성", "내용", "시간", "문장 수"],
+        "rows": [
+          ["서론", "입장 표명 + 이유가 있다는 예고", "약 8초", "2문장"],
+          ["본론 1", "이유 1 + 부연설명(경험/예시)", "약 20초", "3문장"],
+          ["본론 2", "이유 2 + 부연설명(통계/일반론)", "약 20초", "3문장"],
+          ["결론", "서론 문장 반복 + 마무리", "약 10초", "1~2문장"]
+        ]
+      },
+      "tip": "실전 흐름 — I agree with the statement. Let me explain why. / Most of all, ~. For example, ~. / Also, ~. According to a recent news report, ~. / Therefore, I agree that ~."
+    },
+    {
+      "title": "3. 서론 · 입장 표명 문장",
+      "phrases": [
+        { "en": "I agree with the statement. / I disagree with the statement.", "ko": "저는 이 주장에 찬성합니다. / 반대합니다." },
+        { "en": "There are some advantages of working from home. / There are some disadvantages of using social media.", "ko": "재택근무의 장점이 몇 가지 있습니다. / 소셜미디어의 단점이 몇 가지 있습니다." },
+        { "en": "I think communication skill is the most important.", "ko": "저는 소통 능력이 가장 중요하다고 생각합니다." },
+        { "en": "I think that students should have part-time jobs. / I do not think that students should have part-time jobs.", "ko": "저는 학생들이 아르바이트를 해야 한다고 생각합니다. / 생각하지 않습니다." },
+        { "en": "I prefer working alone to working in a group. / I prefer working alone rather than in a group.", "ko": "저는 그룹으로 일하는 것보다 혼자 일하는 것을 선호합니다." },
+        { "en": "Let me explain why I think so.", "ko": "제가 그렇게 생각하는 이유를 설명해볼게요.", "tip": "서론의 마지막 문장으로 고정해서 쓰세요." }
+      ]
+    },
+    {
+      "title": "4. 연결어 · 근거 도입 문장",
+      "phrases": [
+        { "en": "Most of all, ~", "ko": "무엇보다도 ~ 입니다.", "tip": "이유 1 도입" },
+        { "en": "From my experience, ~", "ko": "제 경험에 따르면 ~ 입니다.", "tip": "부연설명 — 개인 경험은 만들어내도 무방합니다." },
+        { "en": "Also, ~ / In addition, ~ / Second of all, ~", "ko": "또한 / 게다가 / 두 번째로 ~ 입니다.", "tip": "이유 2 도입" },
+        { "en": "According to a recent news report, the majority of workers in Korea said that they are more productive at home.", "ko": "최근 뉴스 보도에 따르면 한국 근로자 대다수가 집에서 더 생산적이라고 말했습니다.", "tip": "출처를 만들어 붙이는 고급 전략. 통계는 실제가 아니어도 감점되지 않습니다." },
+        { "en": "For example, when I was a university student, I had a similar experience.", "ko": "예를 들어 대학생이었을 때 저는 비슷한 경험이 있었습니다." },
+        { "en": "Therefore, I agree that companies should allow employees to work from home.", "ko": "그러므로 저는 회사가 직원들의 재택근무를 허용해야 한다고 생각합니다.", "tip": "결론 = 서론 문장을 그대로 반복. 새로운 내용을 넣지 마세요." }
+      ]
+    },
+    {
+      "title": "5. 이유 만능문장 ① 학습 · 성장 · 경험",
+      "phrases": [
+        { "en": "They can learn new things.", "ko": "그들은 새로운 것들을 배울 수 있어요." },
+        { "en": "They can meet new people and expand their network.", "ko": "그들은 새로운 사람들을 만나고 인맥을 넓힐 수 있어요." },
+        { "en": "They can have a lot of new experiences and broaden their perspective.", "ko": "그들은 많은 새로운 것을 경험하고 견문을 넓힐 수 있어요." },
+        { "en": "They can develop practical skills that they cannot learn at school.", "ko": "그들은 학교에서 배울 수 없는 실무 능력을 기를 수 있어요.", "tip": "보완 표현 — 아르바이트·인턴십 주제에 강력합니다." }
+      ]
+    },
+    {
+      "title": "6. 이유 만능문장 ② 집중력 · 학업 · 업무 효율 (반대 근거)",
+      "phrases": [
+        { "en": "They cannot make good decisions because they are not mature enough.", "ko": "그들은 아직 충분히 성숙하지 못해서 올바른 결정을 하지 못해요." },
+        { "en": "They will be distracted.", "ko": "그들은 집중력이 분산될 거예요." },
+        { "en": "They cannot focus on their studies or work.", "ko": "그들은 공부나 일에 집중할 수가 없어요." },
+        { "en": "They cannot get good grades at school.", "ko": "그들은 학교에서 좋은 성적을 받을 수 없어요." },
+        { "en": "They will fall behind in class.", "ko": "그들은 학급에서 뒤처질 거예요." },
+        { "en": "They cannot work efficiently.", "ko": "그들은 효율적으로 일할 수 없어요." }
+      ]
+    },
+    {
+      "title": "7. 이유 만능문장 ③ 비용 · 급여 · 투자",
+      "phrases": [
+        { "en": "They can save money.", "ko": "그들은 돈을 절약할 수 있어요." },
+        { "en": "The cost of living is too high.", "ko": "생활비가 너무 비싸요." },
+        { "en": "They cannot make a living.", "ko": "그들은 생계를 유지할 수 없어요." },
+        { "en": "I can get a higher salary.", "ko": "저는 더 높은 급여를 받을 수 있어요." },
+        { "en": "That is a good investment because it makes lives better.", "ko": "그것은 삶을 더 낫게 만들어주기 때문에 좋은 투자예요." }
+      ]
+    },
+    {
+      "title": "8. 이유 만능문장 ④ 자유 · 유연성 · 재택근무",
+      "phrases": [
+        { "en": "They can focus better.", "ko": "그들은 더 잘 집중할 수 있어요." },
+        { "en": "They will not be distracted by others.", "ko": "그들은 다른 사람들 때문에 방해받지 않을 거예요." },
+        { "en": "They can set their own schedule.", "ko": "그들은 그들만의 일정을 짤 수 있어요." },
+        { "en": "They can have more freedom.", "ko": "그들은 더 많은 자유를 가질 수 있어요." },
+        { "en": "They can save commuting time and use it more productively.", "ko": "그들은 통근 시간을 절약해 더 생산적으로 쓸 수 있어요.", "tip": "보완 표현 — 재택근무 주제 필수 문장." }
+      ]
+    },
+    {
+      "title": "9. 이유 만능문장 ⑤ 인터넷 · 정보 · 소셜미디어",
+      "phrases": [
+        { "en": "They can get information and share it with other people.", "ko": "그들은 정보를 얻고 그것을 다른 사람들과 공유할 수 있어요." },
+        { "en": "They can get a lot of useful information and the latest information on the internet.", "ko": "그들은 인터넷상에서 많은 유용한 정보와 최신 정보를 얻을 수 있어요." },
+        { "en": "It is faster and more convenient.", "ko": "그것은 더 빠르고 더 편리해요." },
+        { "en": "There is a lot of inaccurate information on the internet, so it is not reliable.", "ko": "인터넷에는 부정확한 정보가 많아서 믿을 만하지가 않아요." },
+        { "en": "It is very distracting for students, so students cannot focus on their studies.", "ko": "그것은 학생들의 집중을 분산시켜서 학생들은 공부에 집중할 수 없어요." },
+        { "en": "People frequently use social media, so it will be very effective.", "ko": "사람들은 소셜미디어를 자주 이용해서 그것은 매우 효과적일 거예요." }
+      ]
+    },
+    {
+      "title": "10. 이유 만능문장 ⑥ 소통 · 관계 · 팀워크",
+      "phrases": [
+        { "en": "I can get responses right away.", "ko": "저는 즉시 답변을 받을 수 있어요." },
+        { "en": "I can understand the speaker's feeling more accurately.", "ko": "저는 화자의 감정을 더 정확하게 이해할 수 있어요." },
+        { "en": "It feels more like a family.", "ko": "그것은 더 가족처럼 느껴져요." },
+        { "en": "They can create a friendly work atmosphere.", "ko": "그들은 친근한 업무 분위기를 만들 수 있어요." },
+        { "en": "They can communicate with others better.", "ko": "그들은 다른 사람들과 더 잘 소통할 수 있어요." },
+        { "en": "They can be good team players and make good relationships with others.", "ko": "그들은 훌륭한 팀원이 될 수 있고 다른 사람들과 좋은 관계를 맺을 수 있어요." }
+      ]
+    },
+    {
+      "title": "11. 이유 만능문장 ⑦ 리더십 · 자신감 · 경쟁 사회",
+      "phrases": [
+        { "en": "They can have a good reputation.", "ko": "그들은 좋은 평판을 받을 수 있어요." },
+        { "en": "They can be very influential.", "ko": "그들은 매우 영향력이 있을 수 있어요." },
+        { "en": "They can motivate others.", "ko": "그들은 다른 사람들을 동기부여 할 수 있어요." },
+        { "en": "Everything is always changing and there is a lot of competition.", "ko": "모든 것이 항상 변화하고 경쟁이 치열해요.", "tip": "서론 배경 설명으로 쓰면 자연스럽게 시간을 벌 수 있습니다." },
+        { "en": "They face a lot of challenges and difficulties.", "ko": "그들은 많은 도전과 어려움에 직면해요." },
+        { "en": "He is able to handle a variety of situations due to his confidence.", "ko": "그는 자신감 덕분에 다양한 상황을 처리할 수 있어요." },
+        { "en": "They have a lot of experience and knowledge.", "ko": "그들은 많은 경험과 지식을 가지고 있어요." }
+      ]
+    },
+    {
+      "title": "12. 이유 만능문장 ⑧ 직원 만족 · 근무환경 · 고객 · 사업",
+      "phrases": [
+        { "en": "Employees can work more efficiently and productively.", "ko": "직원들은 더 효율적이고 더 생산적으로 일할 수 있어요." },
+        { "en": "Employees can be more satisfied with their jobs.", "ko": "직원들은 그들의 직업에 더 만족할 수 있어요." },
+        { "en": "It can make a better work environment.", "ko": "그것은 더 나은 업무 환경을 만들 수 있어요." },
+        { "en": "They might appear less professional.", "ko": "그들은 덜 전문적으로 보일 수 있어요.", "tip": "복장 자유·캐주얼 근무 주제의 반대 근거." },
+        { "en": "Customers will feel satisfied and remain loyal.", "ko": "고객들은 만족감을 느낄 것이고 계속 충성할 거예요." },
+        { "en": "It will attract more customers.", "ko": "그것은 더 많은 고객을 유치할 거예요." },
+        { "en": "The business will be more successful.", "ko": "그 사업은 더 성공할 거예요." }
+      ]
+    },
+    {
+      "title": "13. 이유 만능문장 ⑨ 건강 · 습관 · 환경",
+      "phrases": [
+        { "en": "It relieves their stress and they can relax.", "ko": "그것은 그들의 스트레스를 풀어주고 그들은 편히 쉴 수 있어요." },
+        { "en": "It is good for their physical and mental health.", "ko": "그것은 그들의 신체적, 정신적 건강에 좋아요." },
+        { "en": "It is not good for their health.", "ko": "그것은 그들의 건강에 좋지 않아요." },
+        { "en": "It can develop healthy habits. / It can develop unhealthy habits.", "ko": "그것은 건강한 습관을 기를 수 있어요. / 건강하지 않은 습관을 기를 수 있어요." },
+        { "en": "It is good for the environment.", "ko": "그것은 환경에 좋아요." },
+        { "en": "Pollution is a serious issue these days.", "ko": "환경오염은 요즘 심각한 문제예요." },
+        { "en": "It can make a cleaner environment.", "ko": "그것은 더 깨끗한 환경을 만들 수 있어요." },
+        { "en": "We will be able to protect the environment.", "ko": "우리는 환경을 보호할 수 있을 거예요." }
+      ]
+    },
+    {
+      "title": "14. 실전 모범답변 (재택근무 주제 · 60초)",
+      "note": "아래 답변을 통째로 소리 내어 외우면, 주제만 바꿔 끼우는 방식으로 어떤 문제든 대응할 수 있습니다.",
+      "phrases": [
+        { "en": "Q. Do you agree or disagree that companies should allow employees to work from home?", "ko": "회사가 직원의 재택근무를 허용해야 한다는 데 찬성하십니까?" },
+        { "en": "I agree with the statement. Let me explain why.", "ko": "저는 이 주장에 찬성합니다. 이유를 설명해볼게요.", "tip": "서론 · 약 8초" },
+        { "en": "Most of all, employees can work more efficiently and productively. They can set their own schedule and they will not be distracted by others. From my experience, when I worked from home, I could focus better and finish my work faster.", "ko": "무엇보다도 직원들은 더 효율적이고 생산적으로 일할 수 있습니다. 자신의 일정을 짤 수 있고 다른 사람들에게 방해받지 않습니다. 제 경험으로는 재택근무를 할 때 더 잘 집중하고 일을 더 빨리 끝낼 수 있었습니다.", "tip": "본론 1 · 약 20초" },
+        { "en": "Also, they can save commuting time and money. According to a recent news report, the majority of workers in Korea said that they are more satisfied with their jobs when they can work from home. It can make a better work environment.", "ko": "또한 통근 시간과 비용을 절약할 수 있습니다. 최근 뉴스 보도에 따르면 한국 근로자 대다수가 재택근무를 할 수 있을 때 직업에 더 만족한다고 말했습니다. 그것은 더 나은 업무 환경을 만들 수 있습니다.", "tip": "본론 2 · 약 20초" },
+        { "en": "Therefore, I agree that companies should allow employees to work from home. That is all. Thank you.", "ko": "그러므로 저는 회사가 직원들의 재택근무를 허용해야 한다고 생각합니다. 이상입니다. 감사합니다.", "tip": "결론 · 약 10초" }
+      ],
+      "warn": "감점 3대 실수: ① 입장을 밝히지 않고 장단점만 나열 ② 이유 1개로 끝내 30초 만에 답변 종료 ③ 결론에서 갑자기 반대 입장 언급. 처음 정한 입장을 끝까지 유지하세요. 시간이 남으면 본론 1의 부연설명을 다른 표현으로 한 번 더 말해 채우면 됩니다."
+    }
+  ]
+}
