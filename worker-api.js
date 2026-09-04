@@ -14,6 +14,7 @@ export default {
     if (url.pathname === '/api/msds/search') return msdsSearch(request, env);
     if (url.pathname === '/api/news') return safetyNews(request, env);
     if (url.pathname === '/api/laws/search') return lawsSearch(request, env);
+    if (url.pathname === '/api/safety-law/search') return safetyLawSearch(request, env);
     return secureResponse(await env.ASSETS.fetch(request));
   }
 };
@@ -23,7 +24,7 @@ function applySecurityHeaders(headers){
   h.set('X-Content-Type-Options','nosniff');
   h.set('X-Frame-Options','SAMEORIGIN');
   h.set('Referrer-Policy','strict-origin-when-cross-origin');
-  h.set('Permissions-Policy','camera=(), microphone=(), geolocation=()');
+  h.set('Permissions-Policy','camera=(), microphone=(), geolocation=(), display-capture=()');
   h.set('Cross-Origin-Opener-Policy','same-origin-allow-popups');
   h.set('Content-Security-Policy',"frame-ancestors 'self'; object-src 'none'; base-uri 'self'");
   h.set('Strict-Transport-Security','max-age=31536000; includeSubDomains');
@@ -328,12 +329,36 @@ function flattenSearchItems(data){
   function walk(v,depth=0){if(depth>6||v==null)return null;if(Array.isArray(v)&&v.length&&v.every(x=>x&&typeof x==='object'))return v;if(typeof v!=='object')return null;if(seen.has(v))return null;seen.add(v);for(const [k,x] of Object.entries(v)){if(/^(?:item|items|data|result|results|list)$/i.test(k)){const got=walk(x,depth+1);if(got?.length)return got}}for(const x of Object.values(v)){const got=walk(x,depth+1);if(got?.length)return got}return null}
   return walk(data)||[];
 }
-function normalizeLawItem(x){
+function lawOfficialLink(item,query){
+  const raw=String(item?.url||item?.link||'').trim();
+  if(/^https?:\/\//i.test(raw))return raw;
+  const cat=String(item?.category||'');
+  if(cat==='6'||cat==='7')return 'https://smartsearch.kosha.or.kr/?searchValue='+encodeURIComponent(query||item?.title||'');
+  return 'https://www.law.go.kr/lsSc.do?query='+encodeURIComponent(item?.title||query||'');
+}
+function normalizeMatchText(v){return cleanHtmlText(String(v||'')).replace(/\s+/g,' ').trim().toLowerCase();}
+function lawMatchType(item,query){
+  const q=normalizeMatchText(query); if(!q)return 'related';
+  const title=normalizeMatchText(item?.title),content=normalizeMatchText(item?.content);
+  if(title.includes(q))return 'title-phrase';
+  if(content.includes(q))return 'content-phrase';
+  const terms=q.split(/\s+/).filter(Boolean);
+  if(terms.length&&terms.every(t=>title.includes(t)))return 'title-all-terms';
+  if(terms.length&&terms.every(t=>content.includes(t)))return 'content-all-terms';
+  return 'related';
+}
+function normalizeLawItem(x,query=''){
   const cat=pickAny(x,['category','categoryCode','categoryCd','cate','cateCd','category_no']);
   const title=cleanHtmlText(pickAny(x,['title','subject','lawName','lawNm','guideName','guideNm','docTitle','filename','fileName','name']));
-  const content=cleanHtmlText(pickAny(x,['highlight_content','highlightContent','contents','content','summary','articleContent','sectionContent','detail','description']));
+  const content=cleanHtmlText(pickAny(x,['highlight_content','highlightContent','contents','content','summary','articleContent','sectionContent','detail','description','lawContent','guideContent','text']));
   const rawUrl=pickAny(x,['url','link','href','fileUrl','filepath','filePath','downloadUrl']);
-  return {category:String(cat||''),categoryName:LAW_CATEGORY[String(cat||'')]||cleanHtmlText(pickAny(x,['categoryName','cateName']))||'안전보건 자료',title:title||content.slice(0,80)||'검색 결과',content:content||title,url:rawUrl,raw:x};
+  const category=String(cat||'');
+  const categoryName=LAW_CATEGORY[category]||cleanHtmlText(pickAny(x,['categoryName','cateName']))||'안전보건 자료';
+  const item={category,categoryName,title:title||content.slice(0,80)||'검색 결과',content:content||title,url:rawUrl,raw:x};
+  item.link=lawOfficialLink(item,query);
+  item.source=(category==='6'||category==='7')?'한국산업안전보건공단':'국가법령정보센터';
+  item.matchType=lawMatchType(item,query);
+  return item;
 }
 async function lawsSearch(request,env){
   const key=koshaLawKey(env);
@@ -344,8 +369,24 @@ async function lawsSearch(request,env){
   try{
     const r=await fetch(u,{headers:{Accept:'application/json,text/plain,*/*'},cf:{cacheTtl:300,cacheEverything:true}});const text=await r.text();if(!r.ok)throw new Error(`KOSHA Smart Search HTTP ${r.status}`);
     if(/SERVICE_ACCESS_DENIED|PERMISSION_DENIED|SERVICE_KEY_IS_NOT_REGISTERED|SERVICE_KEY_IS_NULL|APPLICATION_ERROR|LIMITED_NUMBER_OF_SERVICE_REQUESTS_EXCEEDS/i.test(text))throw new Error(cleanHtmlText(text).slice(0,220)+' · 공공데이터포털 안전보건법령 스마트검색(15123696) 활용신청과 Cloudflare Secret을 확인하세요.');let data;try{data=JSON.parse(text)}catch(e){throw new Error('KOSHA Smart Search JSON 응답을 해석하지 못했습니다: '+cleanHtmlText(text).slice(0,140))}
-    const resultCode=data?.response?.header?.resultCode||data?.header?.resultCode; if(resultCode&&String(resultCode)!=='00')throw new Error((data?.response?.header?.resultMsg||data?.header?.resultMsg||`KOSHA resultCode ${resultCode}`)+' · 안전보건법령 스마트검색(15123696) 활용신청 상태를 확인하세요.');
-    const items=flattenSearchItems(data).map(normalizeLawItem).filter(x=>x.title||x.content);
-    return json({ok:true,query:q,total:items.length,items,updatedAt:new Date().toISOString()});
+    const resultCode=data?.response?.header?.resultCode||data?.header?.resultCode; if(resultCode&&!['00','0'].includes(String(resultCode)))throw new Error((data?.response?.header?.resultMsg||data?.header?.resultMsg||`KOSHA resultCode ${resultCode}`)+' · 안전보건법령 스마트검색(15123696) 활용신청 상태를 확인하세요.');
+    const items=flattenSearchItems(data).map(x=>normalizeLawItem(x,q)).filter(x=>x.title||x.content);
+    return json({ok:true,query:q,total:items.length,items,updatedAt:new Date().toISOString(),searchedAtLabel:new Date().toLocaleTimeString('ko-KR',{timeZone:'Asia/Seoul',hour:'2-digit',minute:'2-digit'})});
   }catch(e){return json({ok:false,error:e.message,hint:'Secret 이름은 KOSHA_LAW_API_KEY 또는 KOSHA_API_KEY를 권장합니다. 공공데이터포털의 안전보건법령 스마트검색(15123696) 활용신청 승인 상태도 확인하세요.',secretName:koshaLawSecret(env).name||null,items:[]},502)}
+}
+
+async function safetyLawSearch(request,env){
+  const legacy=await lawsSearch(request,env);
+  let data;
+  try{data=await legacy.clone().json()}catch(e){return legacy}
+  if(!legacy.ok||!data?.ok)return legacy;
+  const items=Array.isArray(data.items)?data.items:[];
+  const law=items.filter(x=>!['6','7'].includes(String(x.category)));
+  const guide=items.filter(x=>String(x.category)==='7');
+  const media=items.filter(x=>String(x.category)==='6');
+  return json({
+    ok:true,query:data.query,total:items.length,law,guide,media,
+    searchedAt:data.updatedAt,
+    searchedAtLabel:data.searchedAtLabel||new Date().toLocaleTimeString('ko-KR',{timeZone:'Asia/Seoul',hour:'2-digit',minute:'2-digit'})
+  });
 }

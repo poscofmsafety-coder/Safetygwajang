@@ -33,8 +33,18 @@ npx wrangler deploy
 - `https://safetygwajang.com/api/health`
   - `lawSearchConfigured: true`
   - `lawSecretName: "KOSHA_LAW_API_KEY"` 또는 `"KOSHA_API_KEY"`
-- `https://safetygwajang.com/api/laws/search?q=밀폐공간&limit=3`
+- `https://safetygwajang.com/api/safety-law/search?q=밀폐공간&limit=3` (권장, `law`/`guide`/`media` 분리 응답)
+- `https://safetygwajang.com/api/laws/search?q=밀폐공간&limit=3` (기존 호환용 `items` 응답)
 - `https://safetygwajang.com/api/msds/lookup?cas=7664-93-9`
+
+
+## 4-1. 법령 탭 연동 호환
+
+기존 운영 사이트 코드가 `/api/safety-law/search`를 호출하고, 구버전 페이지가 `/api/laws/search`를 호출하는 경우가 있어 **두 경로를 모두 지원**합니다. 두 경로 모두 Cloudflare Secret의 `KOSHA_API_KEY`를 자동 인식합니다.
+
+- `/api/safety-law/search`: `law`, `guide`, `media` 배열로 분리하여 반환
+- `/api/laws/search`: 기존처럼 `items` 배열 반환
+- 검색어 강조는 브라우저에서 `<mark>`로 처리하며, 긴 본문은 결과 카드 내부 세로 스크롤로 확인합니다.
 
 `SERVICE_ACCESS_DENIED_ERROR`가 나오면 해당 데이터셋의 활용신청/승인 상태를 확인합니다. `SERVICE_KEY_IS_NOT_REGISTERED_ERROR`가 나오면 인증키 또는 해당 서비스 활용신청을 확인합니다.
 

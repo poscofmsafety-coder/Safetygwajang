@@ -1,0 +1,182 @@
+/* ==========================================================
+   안전과장 공통 반응형 보완
+   iPhone / Galaxy / iPad / Galaxy Tab / PC
+   기존 디자인을 덮어쓰지 않고 레이아웃·터치 사용성만 보완합니다.
+   ========================================================== */
+
+html{
+  -webkit-text-size-adjust:100%;
+  text-size-adjust:100%;
+  width:100%;
+  overflow-x:hidden;
+}
+body{
+  width:100%;
+  min-width:0;
+  overflow-x:hidden;
+  padding-left:env(safe-area-inset-left);
+  padding-right:env(safe-area-inset-right);
+}
+img,video,canvas,svg,iframe{max-width:100%;}
+img,video{height:auto;}
+main,section,article,aside,header,footer,nav,div{min-width:0;}
+input,textarea,select,button{max-width:100%;}
+button,a,input,select,textarea{touch-action:manipulation;}
+
+/* 가로폭이 긴 요소는 화면 밖으로 밀어내지 않도록 함 */
+.worker-table-wrap,.table-wrap,.content-table-wrap,.iv-table-wrap,[class*="table-wrap"]{
+  max-width:100%;
+  overflow-x:auto;
+  -webkit-overflow-scrolling:touch;
+}
+pre,code{max-width:100%;overflow-wrap:anywhere;}
+
+/* 태블릿 */
+@media (max-width:1024px){
+  .container,.content-wrap,.law-page,.worker-shell,.legacy-tool-page main{
+    width:100%!important;
+    max-width:100%!important;
+  }
+
+  .site-nav .nav-inner,.topbar .container,.legacy-brand-inner{
+    width:100%!important;
+  }
+
+  .legacy-brand-inner{
+    flex-wrap:wrap;
+    align-items:center;
+  }
+  .legacy-worker-nav{
+    order:3;
+    flex:1 0 100%;
+    width:100%;
+    margin-left:0!important;
+    padding-bottom:3px;
+    overflow-x:auto;
+    overscroll-behavior-x:contain;
+    scroll-snap-type:x proximity;
+    -webkit-overflow-scrolling:touch;
+  }
+  .legacy-worker-nav a{flex:0 0 auto;scroll-snap-align:start;}
+
+  .home-hero,.home-hero-v4,.worker-hero,.worker-intro{
+    grid-template-columns:1fr!important;
+  }
+  .audience-overview{grid-template-columns:1fr!important;}
+  .career-roadmap,.worker-tools-grid,.worker-grid,.worker-kpis,.risk-step-grid,.worker-grid-ordered{
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  }
+  .part-grid,.quick-grid-4{grid-template-columns:repeat(2,minmax(0,1fr))!important;}
+  .risk-guide-grid,.worker-checklist{grid-template-columns:1fr 1fr!important;}
+}
+
+/* 휴대폰 + 작은 태블릿 */
+@media (max-width:760px){
+  body{font-size:15px;}
+
+  .container{
+    padding-left:14px!important;
+    padding-right:14px!important;
+  }
+  .site-nav .nav-inner,.topbar .container{
+    padding-left:12px!important;
+    padding-right:12px!important;
+  }
+
+  .site-brand,.topbar .logo{min-width:0;}
+  .site-brand span,.topbar .logo span{
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+  .topbar-actions{gap:5px!important;}
+  .topbar-actions .btn-sm{padding:7px 9px!important;font-size:.76rem!important;}
+
+  .legacy-brand-inner{padding:8px 10px!important;gap:8px!important;}
+  .legacy-brand-name img{width:36px!important;height:36px!important;}
+  .legacy-live-clock{display:none!important;}
+  .legacy-worker-nav{
+    margin-left:-2px!important;
+    margin-right:-2px!important;
+    padding:3px 2px 5px;
+  }
+  .legacy-worker-nav a{
+    min-height:38px;
+    display:inline-flex;
+    align-items:center;
+    padding:7px 10px!important;
+    font-size:.73rem!important;
+  }
+
+  .home-hero,.home-hero-v4{
+    margin-top:14px!important;
+    padding:26px 18px!important;
+    gap:20px!important;
+    border-radius:20px!important;
+  }
+  .home-hero h1,.home-hero-v4 h1{font-size:clamp(1.8rem,8.2vw,2.45rem)!important;}
+  .hero-visual,.hero-visual-full{min-height:285px!important;}
+  .hero-visual img,.hero-visual-full img{max-height:300px!important;}
+  .hero-cta-row{display:grid!important;grid-template-columns:1fr 1fr;gap:9px!important;}
+  .hero-cta-row .home-cta{width:100%;min-width:0!important;padding:12px 10px!important;}
+
+  .section-head,.safety-news-head,.news-head{
+    align-items:flex-start!important;
+    flex-direction:column!important;
+    gap:8px!important;
+  }
+
+  .career-roadmap,.worker-tools-grid,.worker-grid,.worker-kpis,.risk-step-grid,.worker-grid-ordered,
+  .risk-guide-grid,.worker-checklist,.part-grid,.quick-grid-4,.social-link-grid,.news-grid,.safety-news-list{
+    grid-template-columns:1fr!important;
+  }
+  .part-grid .part-link:last-child{grid-column:auto!important;}
+
+  .audience-overview-card,.sg-panel,.content-section,.study-sec,.worker-card{
+    padding-left:16px!important;
+    padding-right:16px!important;
+  }
+  .content-hero,.study-head,.page-interview .iv-hero{
+    padding:22px 18px!important;
+    border-radius:17px!important;
+  }
+  .content-hero::after,.study-head::after,.page-interview .iv-hero::after{display:none!important;}
+
+  /* iOS 입력창 포커스 자동 확대 방지 */
+  input:not([type="checkbox"]):not([type="radio"]),textarea,select{
+    font-size:16px!important;
+  }
+
+  button,.btn,.btn-sm,.btn-primary,.btn-outline,.worker-btn,.home-cta{
+    min-height:42px;
+  }
+
+  /* 긴 표는 가로 스크롤 */
+  .worker-table{min-width:720px!important;}
+  .content-table,.iv-table{min-width:640px;}
+
+  /* 광고가 모바일 화면 밖으로 나가지 않도록 크기만 제한 */
+  .ad-zone,.ad-inline,.adsbygoogle{
+    max-width:100%!important;
+  }
+}
+
+/* 작은 휴대폰 */
+@media (max-width:430px){
+  .container{padding-left:11px!important;padding-right:11px!important;}
+  .site-nav .nav-inner,.topbar .container{padding-left:10px!important;padding-right:10px!important;}
+  .audience-switch button,.audience-switch a{padding:7px 9px!important;font-size:.75rem!important;}
+  .topbar-actions .btn-sm{padding:7px 8px!important;}
+  .hero-cta-row{grid-template-columns:1fr!important;}
+  .home-hero,.home-hero-v4{padding:23px 15px!important;}
+  .hero-visual,.hero-visual-full{min-height:255px!important;}
+  .hero-visual img,.hero-visual-full img{max-height:270px!important;}
+  .law-page{padding-left:11px!important;padding-right:11px!important;}
+}
+
+/* 가로모드 휴대폰: 세로 공간 낭비 방지 */
+@media (max-height:520px) and (orientation:landscape){
+  .site-nav,.topbar,.legacy-brand-nav{position:relative!important;}
+  .home-hero,.home-hero-v4{margin-top:10px!important;}
+  .hero-visual,.hero-visual-full{min-height:220px!important;}
+}
