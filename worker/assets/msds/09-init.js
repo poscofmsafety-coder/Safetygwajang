@@ -69,10 +69,9 @@ document.addEventListener('DOMContentLoaded', ()=>{
     renderMat(materials);
     renderHealth();
 
-    // ② 초기 렌더 + API 연결 확인 + 헤더 갱신
+    // ② 초기 렌더 + 헤더 갱신 (외부 자료 연결은 실제 조회 시점에 확인)
     renderListTable();
     updateAllKPI();
-    checkApiHealth();
 
     // 상단 헤더 KPI (작업환경측정 만료임박)
     const hdrEnvSoon = document.getElementById('hdr-envSoon');

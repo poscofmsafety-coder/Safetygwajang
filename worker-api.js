@@ -10,6 +10,8 @@ export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     if (url.pathname === '/api/health') return apiHealth(env);
+    if (url.pathname === '/api/ai') return aiGateway(request, env);
+    if (url.pathname === '/api/ai/inspection') return aiInspection(request, env);
     if (url.pathname === '/api/msds/lookup') return msdsLookup(request, env);
     if (url.pathname === '/api/msds/search') return msdsSearch(request, env);
     if (url.pathname === '/api/news') return safetyNews(request, env);
@@ -24,7 +26,7 @@ function applySecurityHeaders(headers){
   h.set('X-Content-Type-Options','nosniff');
   h.set('X-Frame-Options','SAMEORIGIN');
   h.set('Referrer-Policy','strict-origin-when-cross-origin');
-  h.set('Permissions-Policy','camera=(), microphone=(), geolocation=(), display-capture=()');
+  h.set('Permissions-Policy','camera=(self), microphone=(), geolocation=(), display-capture=()');
   h.set('Cross-Origin-Opener-Policy','same-origin-allow-popups');
   h.set('Content-Security-Policy',"frame-ancestors 'self'; object-src 'none'; base-uri 'self'");
   h.set('Strict-Transport-Security','max-age=31536000; includeSubDomains');
@@ -37,20 +39,13 @@ function json(data, status=200){
   return new Response(JSON.stringify(data,null,2),{status,headers:applySecurityHeaders({'content-type':'application/json; charset=utf-8','cache-control':'no-store'})});
 }
 function apiHealth(env){
-  const msdsConfigured=Boolean(koshaMsdsKey(env));
-  const lawConfigured=Boolean(koshaLawKey(env));
-  const generalConfigured=Boolean(koshaGeneralKey(env));
-  const kakaoConfigured=Boolean(env.KAKAO_REST_API_KEY||env.KAKAO_API_KEY||env.KAKAO_REST_KEY);
-  const naverHubConfigured=Boolean(env.NAVER_API_HUB_CLIENT_ID&&env.NAVER_API_HUB_CLIENT_SECRET);
-  const naverLegacyConfigured=Boolean(env.NAVER_CLIENT_ID&&env.NAVER_CLIENT_SECRET);
+  // 공개 화면에서는 연동 방식/Secret 이름을 노출하지 않습니다.
   return json({
-    ok:true, configured:generalConfigured, koshaConfigured:generalConfigured,
-    msdsConfigured, lawSearchConfigured:lawConfigured,
-    msdsSecretName:koshaMsdsSecret(env).name||null,
-    lawSecretName:koshaLawSecret(env).name||null,
-    kakaoNewsConfigured:kakaoConfigured,
-    naverNewsConfigured:naverHubConfigured||naverLegacyConfigured,
-    message:generalConfigured?'KOSHA/공공데이터 인증키 Secret 감지됨':'Cloudflare Secret KOSHA_API_KEY(또는 서비스별 Key)가 아직 설정되지 않았습니다.'
+    ok:true,
+    configured:Boolean(koshaGeneralKey(env)),
+    msdsConfigured:Boolean(koshaMsdsKey(env)),
+    lawSearchConfigured:Boolean(koshaLawKey(env)),
+    aiConfigured:Boolean(env&&env.GROQ_API_KEY)
   });
 }
 function decodeXml(s){return String(s||'').replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g,'$1').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&amp;/g,'&').replace(/&quot;/g,'"').replace(/&#39;/g,"'");}
@@ -158,7 +153,7 @@ async function getDetail15(key,chemId){
 }
 async function msdsLookup(request,env){
   const key=koshaMsdsKey(env);
-  if(!key)return json({ok:false,error:'KOSHA_MSDS_API_KEY 또는 KOSHA_API_KEY Secret이 필요합니다.'},503);
+  if(!key)return json({ok:false,error:'외부 자료 조회 기능을 준비 중입니다.'},503);
   const url=new URL(request.url);const cas=normalizeCas(url.searchParams.get('cas')||'');if(!validateCas(cas))return json({ok:false,error:'올바른 CAS No. 형식이 아닙니다.'},400);
   try{
     const list=await searchChem(key,cas,1);
@@ -174,7 +169,7 @@ async function msdsLookup(request,env){
 }
 async function msdsSearch(request,env){
   const key=koshaMsdsKey(env);
-  if(!key)return json({ok:false,error:'KOSHA_MSDS_API_KEY 또는 KOSHA_API_KEY Secret이 필요합니다.'},503);
+  if(!key)return json({ok:false,error:'외부 자료 조회 기능을 준비 중입니다.'},503);
   const u=new URL(request.url);const q=(u.searchParams.get('q')||'').trim();if(!q)return json({ok:false,error:'검색어가 필요합니다.'},400);
   const isCas=validateCas(q);try{const r=await searchChem(key,q,isCas?1:0);return json({ok:true,items:r.items.slice(0,20)});}catch(e){return json({ok:false,error:e.message},502);}
 }
@@ -362,7 +357,7 @@ function normalizeLawItem(x,query=''){
 }
 async function lawsSearch(request,env){
   const key=koshaLawKey(env);
-  if(!key)return json({ok:false,error:'KOSHA_LAW_API_KEY 또는 KOSHA_API_KEY Secret이 필요합니다.',items:[]},503);
+  if(!key)return json({ok:false,error:'검색 기능을 준비 중입니다.',items:[]},503);
   const u0=new URL(request.url),q=(u0.searchParams.get('q')||u0.searchParams.get('searchValue')||'').trim();const limit=Math.max(1,Math.min(100,Number(u0.searchParams.get('limit'))||100));
   if(!q)return json({ok:false,error:'검색어를 입력하세요.',items:[]},400);
   const u=new URL(KOSHA_SMART_SEARCH);u.searchParams.set('serviceKey',normalizeServiceKey(key));u.searchParams.set('searchValue',q);u.searchParams.set('pageNo','1');u.searchParams.set('numOfRows',String(limit));u.searchParams.set('category','0');u.searchParams.set('dataType','JSON');
@@ -372,7 +367,7 @@ async function lawsSearch(request,env){
     const resultCode=data?.response?.header?.resultCode||data?.header?.resultCode; if(resultCode&&!['00','0'].includes(String(resultCode)))throw new Error((data?.response?.header?.resultMsg||data?.header?.resultMsg||`KOSHA resultCode ${resultCode}`)+' · 안전보건법령 스마트검색(15123696) 활용신청 상태를 확인하세요.');
     const items=flattenSearchItems(data).map(x=>normalizeLawItem(x,q)).filter(x=>x.title||x.content);
     return json({ok:true,query:q,total:items.length,items,updatedAt:new Date().toISOString(),searchedAtLabel:new Date().toLocaleTimeString('ko-KR',{timeZone:'Asia/Seoul',hour:'2-digit',minute:'2-digit'})});
-  }catch(e){return json({ok:false,error:e.message,hint:'Secret 이름은 KOSHA_LAW_API_KEY 또는 KOSHA_API_KEY를 권장합니다. 공공데이터포털의 안전보건법령 스마트검색(15123696) 활용신청 승인 상태도 확인하세요.',secretName:koshaLawSecret(env).name||null,items:[]},502)}
+  }catch(e){console.error('law-search',e);return json({ok:false,error:'검색 연결이 지연되고 있습니다. 잠시 후 다시 시도해 주세요.',items:[]},502)}
 }
 
 async function safetyLawSearch(request,env){
@@ -389,4 +384,123 @@ async function safetyLawSearch(request,env){
     searchedAt:data.updatedAt,
     searchedAtLabel:data.searchedAtLabel||new Date().toLocaleTimeString('ko-KR',{timeZone:'Asia/Seoul',hour:'2-digit',minute:'2-digit'})
   });
+}
+
+
+/* =========================================================
+   AI gateway — Cloudflare Secret의 GROQ_API_KEY를 서버에서만 사용
+   ========================================================= */
+function sameOriginRequest(request){
+  try{
+    const origin=request.headers.get('Origin');
+    if(!origin)return true;
+    return origin===new URL(request.url).origin;
+  }catch(e){return false}
+}
+function totalMessageChars(messages){
+  let n=0;
+  for(const m of messages||[]){
+    if(typeof m?.content==='string')n+=m.content.length;
+    else if(Array.isArray(m?.content))for(const part of m.content){if(typeof part?.text==='string')n+=part.text.length}
+  }
+  return n;
+}
+function genericAiError(status=502){return json({ok:false,error:'AI 처리 중 연결이 지연되었습니다. 잠시 후 다시 시도해 주세요.'},status)}
+async function aiGateway(request,env){
+  const ready=Boolean(env&&env.GROQ_API_KEY);
+  if(request.method==='GET')return json({ok:true,ready});
+  if(request.method!=='POST')return json({ok:false,error:'허용되지 않은 요청입니다.'},405);
+  if(!sameOriginRequest(request))return json({ok:false,error:'허용되지 않은 요청입니다.'},403);
+  if(!ready)return json({ok:false,error:'AI 기능을 준비 중입니다.'},503);
+  let body;
+  try{body=await request.json()}catch(e){return json({ok:false,error:'요청 형식을 확인해 주세요.'},400)}
+  const messages=Array.isArray(body?.messages)?body.messages:[];
+  if(!messages.length||messages.length>8||totalMessageChars(messages)>36000)return json({ok:false,error:'입력 내용이 너무 깁니다. 핵심 내용만 줄여서 다시 시도해 주세요.'},413);
+  const requested=String(body?.model||'');
+  const research=requested==='groq/compound';
+  const model=research?'groq/compound':String(env.GROQ_TEXT_MODEL||'openai/gpt-oss-120b');
+  const payload={
+    model,
+    messages,
+    temperature:Math.max(0,Math.min(1.2,Number(body?.temperature??0.55))),
+    max_completion_tokens:Math.max(800,Math.min(8000,Number(body?.max_tokens||body?.max_completion_tokens||5000)))
+  };
+  if(research)payload.citation_options='enabled';
+  try{
+    const r=await fetchTimed('https://api.groq.com/openai/v1/chat/completions',{
+      method:'POST',
+      headers:{'content-type':'application/json','authorization':'Bearer '+env.GROQ_API_KEY},
+      body:JSON.stringify(payload)
+    },55000);
+    const text=await r.text();
+    if(!r.ok)return genericAiError(r.status===429?429:502);
+    let data;try{data=JSON.parse(text)}catch(e){return genericAiError()}
+    return json(data,200);
+  }catch(e){return genericAiError(e?.name==='AbortError'?504:502)}
+}
+
+function safeInspectionJson(text){
+  const raw=String(text||'').trim().replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,'');
+  try{return JSON.parse(raw)}catch(e){
+    const a=raw.indexOf('{'),b=raw.lastIndexOf('}');
+    if(a>=0&&b>a){try{return JSON.parse(raw.slice(a,b+1))}catch(_){}}
+  }
+  return null;
+}
+function normalizeAccidentType(v){
+  const allowed=['추락','넘어짐','끼임','맞음','부딪힘','깔림·뒤집힘','무너짐','감전','화재·폭발','질식·중독','절단·베임·찔림','교통·운반','화학물질 노출','기타'];
+  const t=String(v||'').trim();
+  return allowed.includes(t)?t:'기타';
+}
+function normalizeInspectionResult(x){
+  x=x&&typeof x==='object'?x:{};
+  const urgency=['즉시 조치','당일 개선','계획 개선','관찰 유지'].includes(x.urgency)?x.urgency:'계획 개선';
+  const risk=typeof x.riskAssessmentRecommended==='boolean'?x.riskAssessmentRecommended:Boolean(x.riskAssessmentRecommended);
+  return {
+    inspectionItem:String(x.inspectionItem||'').slice(0,700),
+    observation:String(x.observation||'').slice(0,1200),
+    improvement:String(x.improvement||'').slice(0,1400),
+    accidentType:normalizeAccidentType(x.accidentType),
+    hazardScenario:String(x.hazardScenario||'').slice(0,1200),
+    riskAssessmentRecommended:risk,
+    urgency,
+    reason:String(x.reason||'').slice(0,900),
+    confidence:Math.max(0,Math.min(100,Number(x.confidence)||0))
+  };
+}
+async function aiInspection(request,env){
+  if(request.method!=='POST')return json({ok:false,error:'허용되지 않은 요청입니다.'},405);
+  if(!sameOriginRequest(request))return json({ok:false,error:'허용되지 않은 요청입니다.'},403);
+  if(!env?.GROQ_API_KEY)return json({ok:false,error:'AI 분석 기능을 준비 중입니다.'},503);
+  let body;try{body=await request.json()}catch(e){return json({ok:false,error:'이미지 요청 형식을 확인해 주세요.'},400)}
+  const image=String(body?.image||'');
+  const context=String(body?.context||'').slice(0,2500);
+  if(!/^data:image\/(?:jpeg|jpg|png|webp);base64,/i.test(image))return json({ok:false,error:'JPG, PNG 또는 WEBP 이미지를 선택해 주세요.'},400);
+  if(image.length>12_000_000)return json({ok:false,error:'이미지가 너무 큽니다. 더 작은 사진으로 다시 시도해 주세요.'},413);
+  const prompt=`당신은 대한민국 제조·건설 현장을 점검하는 숙련된 안전관리자입니다. 사진에 실제로 보이는 사실만 근거로 순회점검일지 초안을 만드세요. 보이지 않는 설비나 행동을 추측해 사실처럼 쓰지 마세요.\n\n추가 현장정보:\n${context||'(없음)'}\n\n다음 JSON 객체만 반환하세요.\n{\n  "inspectionItem":"점검 사항. 사진에서 확인되는 상태를 구체적으로 1~3문장",\n  "observation":"근거가 되는 관찰 사실",\n  "improvement":"개선조치 필요사항. 제거·대체→공학적→관리적→보호구 순으로 실현 가능한 조치",\n  "accidentType":"추락|넘어짐|끼임|맞음|부딪힘|깔림·뒤집힘|무너짐|감전|화재·폭발|질식·중독|절단·베임·찔림|교통·운반|화학물질 노출|기타 중 하나",\n  "hazardScenario":"누가 어떤 상황에서 어떤 재해를 당할 수 있는지 한 문장",\n  "riskAssessmentRecommended":true 또는 false,\n  "urgency":"즉시 조치|당일 개선|계획 개선|관찰 유지 중 하나",\n  "reason":"위험성평가 연계 여부의 근거",\n  "confidence":0부터100 숫자\n}\n\n중대한 위험이 명확하지 않으면 위험성평가 권고를 과도하게 true로 두지 말고, 사진만으로 판단이 어려우면 confidence를 낮추세요.`;
+  const models=[String(env.GROQ_VISION_MODEL||'qwen/qwen3.6-27b'),'meta-llama/llama-4-scout-17b-16e-instruct'];
+  let lastStatus=502;
+  for(const model of [...new Set(models)]){
+    const payload={
+      model,
+      messages:[{role:'user',content:[{type:'text',text:prompt},{type:'image_url',image_url:{url:image}}]}],
+      temperature:0.15,
+      max_completion_tokens:1800,
+      response_format:{type:'json_object'}
+    };
+    try{
+      const r=await fetchTimed('https://api.groq.com/openai/v1/chat/completions',{
+        method:'POST',headers:{'content-type':'application/json','authorization':'Bearer '+env.GROQ_API_KEY},body:JSON.stringify(payload)
+      },45000);
+      lastStatus=r.status;
+      const text=await r.text();
+      if(!r.ok)continue;
+      let data;try{data=JSON.parse(text)}catch(e){continue}
+      const content=data?.choices?.[0]?.message?.content;
+      const parsed=safeInspectionJson(content);
+      if(!parsed)continue;
+      return json({ok:true,result:normalizeInspectionResult(parsed)});
+    }catch(e){lastStatus=e?.name==='AbortError'?504:502}
+  }
+  return genericAiError(lastStatus===429?429:lastStatus);
 }

@@ -20,8 +20,8 @@ async function checkApiHealth(){
 }
 function updateApiStatusPill(){
   const el=document.getElementById('apiStatusPill');if(!el)return;
-  if(apiConnected){el.textContent='KOSHA 공공데이터 API 연결됨';el.className='inline-flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 text-emerald-700 text-[11px] font-bold px-2.5 py-1 rounded-full';}
-  else{el.textContent='KOSHA API 미설정 · 업로드 MSDS 15항 우선';el.className='inline-flex items-center gap-1.5 bg-amber-50 border border-amber-200 text-amber-800 text-[11px] font-bold px-2.5 py-1 rounded-full';}
+  if(apiConnected){el.textContent='자료 확인 준비됨';el.className='inline-flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 text-emerald-700 text-[11px] font-bold px-2.5 py-1 rounded-full';}
+  else{el.textContent='업로드 문서 우선 분석';el.className='inline-flex items-center gap-1.5 bg-amber-50 border border-amber-200 text-amber-800 text-[11px] font-bold px-2.5 py-1 rounded-full';}
 }
 function triText(v){return v===true?'해당으로 기재':v===false?'해당 없음으로 기재':'자동 확정 안 됨';}
 function normalizeBackendResponse(cas,raw){
@@ -42,7 +42,7 @@ async function inspectByCas(cas,forceRefresh=false){
   }
   if(!apiConnected){
     // API 설정 직후에도 즉시 다시 시도할 수 있도록 '미연결' 상태는 장기 캐시하지 않습니다.
-    return {ok:false,unavailable:true,casNo:cas,error:'KOSHA API가 아직 연결되지 않았습니다. 업로드한 MSDS 15항을 확인하고 API 설정 후 재조회하세요.',checkedAt:Date.now()};
+    return {ok:false,unavailable:true,casNo:cas,error:'외부 자료 조회가 준비되지 않았습니다. 업로드한 MSDS 15항을 우선 확인해 주세요.',checkedAt:Date.now()};
   }
   try{const ctrl=new AbortController();setTimeout(()=>ctrl.abort(),INSPECT_CONFIG.timeout);const u=INSPECT_CONFIG.lookup+'?cas='+encodeURIComponent(cas)+(forceRefresh?'&refresh=1':'');const r=await fetch(u,{signal:ctrl.signal});const raw=await r.json();const out=normalizeBackendResponse(cas,raw);InspectCache.set(cas,out);return out;}catch(e){const out={ok:false,casNo:cas,error:e.message,checkedAt:Date.now()};InspectCache.set(cas,out);return out;}
 }

@@ -5,11 +5,11 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>안전관리자 자기소개서 작성·검토 | 안전과장</title>
-<meta content="회사명과 담당업무, 내 경험만 적으면 AI가 회사 정보를 찾아 자기소개서 전략과 초안을 만들고, 완성한 글을 빨간펜으로 검토해 줍니다." name="description"/>
+<meta content="회사·직무·채용공고·경력을 실시간 기업조사와 교차분석해 자기소개서 전략, 초안, 빨간펜 검토를 제공합니다." name="description"/>
 <link href="resume.html" rel="canonical"/>
 <meta content="article" property="og:type"/>
 <meta content="자기소개서 AI 작성기 · 빨간펜 검토" property="og:title"/>
-<meta content="회사명·담당업무·내 경험만 적으면 끝. AI가 회사 정보를 찾아 써 줍니다." property="og:description"/>
+<meta content="회사·공고·경력을 교차분석해 실제 문항별 자기소개서를 작성하고 검토합니다." property="og:description"/>
 <script src="/js/adsense-guard.js"></script>
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9283463208175336" crossorigin="anonymous"></script>
 <link href="css/style.css" rel="stylesheet"/>
@@ -149,12 +149,12 @@
 <div class="study-head">
 <div class="study-badge">CAREER · 자기소개서</div>
 <h2 class="study-title">자기소개서 AI 작성기 &amp; 빨간펜 검토</h2>
-<p class="study-sub">회사명 · 담당업무 · 내 경험만 적으면 끝. 회사 정보는 AI가 찾아서 넣어 줍니다.</p>
+<p class="study-sub">회사·직무·채용공고·경력을 교차분석해 기업 맞춤형 전략, 초안, 빨간펜 검토까지 한 번에 제공합니다.</p>
 <div class="study-meta">
-<span><b>1분</b> 입력</span>
-<span><b>자동</b> 회사 조사</span>
+<span><b>실시간</b> 기업 조사</span>
+<span><b>공고</b> 역량 매칭</span>
+<span><b>두괄식</b> 초안</span>
 <span><b>빨간펜</b> 첨삭</span>
-<span><b>엔진</b> Groq</span>
 </div>
 <div class="study-toc">
 <b>목차</b>
@@ -172,9 +172,8 @@
 <h3>🤖 AI 자기소개서 작성기</h3>
 <div class="step-box">
 <b>사용법</b><br/>
-        ① 회사명 · 담당업무 · 내 경험 3칸만 채우기 →
-        ② <b>전략 만들기</b> 또는 <b>초안 쓰기</b> →
-        ③ 직접 다듬은 뒤 아래 <b>🖍️ 빨간펜 검토</b>로 점검
+        ① 회사명 · 직무 · 내 경험 입력 → ② 채용공고와 실제 자기소개서 문항을 붙여넣기 →
+        ③ <b>전략 만들기</b> 또는 <b>초안 쓰기</b> → ④ <b>🖍️ 빨간펜 검토</b>로 최종 점검
       </div>
 <!-- AI 접속 설정 -->
 <details class="ai-key-box">
@@ -215,12 +214,20 @@
 위험성평가와 협력사 안전관리를 담당했고 재해율을 0.42%에서 0.11%로 낮췄습니다.
 PSM 공정안전보고서를 작성해 제출하고 심사도 통과했습니다.
 산업안전기사, 위험물기능장 자격증이 있습니다." rows="10"></textarea>
-<p class="mode-hint">💡 회사 사업 내용·최근 이슈는 AI가 자동으로 찾아 반영합니다.</p>
+<p class="mode-hint">💡 회사 공식자료·전자공시·최근 뉴스와 채용공고를 함께 비교해 회사별로 다른 근거를 반영합니다.</p>
 <details style="margin-top:12px;">
 <summary style="cursor:pointer;color:#64748b;font-size:.88rem;">
             ➕ 채용공고가 있다면 붙여넣기 (선택 · 정확도 상승)
           </summary>
 <textarea class="ai-textarea allow-select" id="jd" placeholder="담당업무 / 필수요건 / 우대사항만 붙여넣으면 충분합니다." rows="6" style="margin-top:8px;"></textarea>
+</details>
+<details style="margin-top:12px;" open>
+<summary style="cursor:pointer;color:#475569;font-size:.9rem;font-weight:800;">④ 실제 자기소개서 문항 붙여넣기 <span style="font-weight:500;color:#94a3b8;">(권장)</span></summary>
+<textarea class="ai-textarea allow-select" id="items" placeholder="예)
+1. 지원동기와 입사 후 포부를 작성해 주세요. (700자)
+2. 지원 직무에 필요한 역량과 이를 갖추기 위해 노력한 경험을 작성해 주세요. (1000자)
+3. 어려운 상황에서도 포기하지 않고 과업을 완수한 경험을 작성해 주세요." rows="7" style="margin-top:8px;"></textarea>
+<p class="mode-hint">문항을 넣으면 고정된 지원동기/역량/포부가 아니라 <b>실제 지원서 질문별로</b> 답변합니다.</p>
 </details>
 <div class="ai-row" style="margin-top:14px;">
 <select class="ai-input" id="len">
@@ -394,9 +401,9 @@ PSM 공정안전보고서를 작성해 제출하고 심사도 통과했습니다
         .then(function (r) { return r.json(); })
         .then(function (j) {
           return finish({
-            proxy: !!(j && j.ok && j.keyConfigured),
-            keyConfigured: !!(j && j.keyConfigured),
-            msg: (j && j.ok && !j.keyConfigured) ? '서버에 GROQ_API_KEY 가 없습니다.' : ''
+            proxy: !!(j && j.ok && (j.ready || j.keyConfigured)),
+            keyConfigured: !!(j && (j.ready || j.keyConfigured)),
+            msg: (j && j.ok && !(j.ready || j.keyConfigured)) ? '자동 생성 기능을 준비 중입니다.' : ''
           });
         })
         .catch(function (e) {
@@ -421,7 +428,7 @@ PSM 공정안전보고서를 작성해 제출하고 심사도 통과했습니다
     var LS_CNT   = 'cbt_ai_count';
     var DAILY    = 15;
     var M_SEARCH = 'groq/compound';
-    var M_PLAIN  = 'llama-3.3-70b-versatile';
+    var M_PLAIN  = 'openai/gpt-oss-120b';
 
     var SYS =
       '당신은 대한민국 대기업 인사담당자 경력 15년의 채용 컨설턴트입니다.\n' +
@@ -435,7 +442,10 @@ PSM 공정안전보고서를 작성해 제출하고 심사도 통과했습니다
       '뼈를 묻겠습니다, 시켜만 주신다면, 귀사, 저희 회사, 부족하지만, 미흡하지만\n' +
       '[작성 원칙]\n' +
       '지원자가 적은 사실만 사용하고 창작하지 않습니다.\n' +
-      '회사 정보는 검색으로 확인된 내용만 쓰고, 불확실하면 확인 필요로 표기합니다.\n' +
+      '회사 정보는 회사 공식 홈페이지, 전자공시, 공식 보도자료, 신뢰 가능한 최근 기사 순으로 확인합니다.\n' +
+      '공고의 필수요건과 우대사항을 지원자의 경험과 1대1로 연결하고, 연결 근거가 없으면 만들지 않습니다.\n' +
+      '지원동기는 그 회사가 아니면 성립하지 않도록 사업 방향 또는 최근 변화와 지원자 경험의 접점을 구체적으로 씁니다.\n' +
+      '첫 문장은 결론부터 시작하고, 행동과 결과를 수치·횟수·기간·규모로 증명합니다.\n' +
       '결과는 마크다운으로 정리합니다.';
 
     function today() { return new Date().toISOString().slice(0, 10); }
@@ -741,40 +751,40 @@ PSM 공정안전보고서를 작성해 제출하고 심사도 통과했습니다
         '- 회사명 : ' + (v.company || '(미입력)') + '\n' +
         '- 담당 업무 : ' + (v.job || '(미입력)') + '\n\n' +
         '## 지원자가 적은 경험 (원문)\n"""\n' + v.career + '\n"""\n\n' +
-        (v.jd ? ('## 채용공고\n"""\n' + v.jd + '\n"""\n\n') : '');
+        (v.jd ? ('## 채용공고\n"""\n' + v.jd + '\n"""\n\n') : '') +
+        (v.items ? ('## 실제 자기소개서 문항\n"""\n' + v.items + '\n"""\n\n') : '');
     }
 
     var RESEARCH =
-      '[회사 조사 방법]\n' +
-      '웹검색으로 아래를 확인하십시오.\n' +
-      '1. 나무위키(namu.wiki) 해당 회사 문서 - 사업 영역, 연혁, 특징, 이슈\n' +
-      '2. 회사 공식 홈페이지 - 사업 소개, 인재상\n' +
-      '3. 최근 1년 뉴스 - 투자, 신사업, 수주, 조직 변화\n' +
-      '검색으로 확인되지 않은 내용은 쓰지 말고 확인 필요로 표기하십시오.\n\n';
+      '[기업 조사 우선순위]\n' +
+      '웹검색을 사용해 아래 순서로 확인하십시오.\n' +
+      '1. 회사 공식 홈페이지·채용페이지·공식 보도자료: 사업, 제품, 직무, 인재상\n' +
+      '2. 전자공시(DART) 또는 회사 IR 자료: 매출 구조, 투자, 주요 사업 방향, 위험요인\n' +
+      '3. 최근 12개월 신뢰 가능한 뉴스: 투자, 수주, 신사업, 생산능력, 조직·사업 변화\n' +
+      '4. 사용자가 붙여넣은 채용공고: 실제 담당업무, 필수요건, 우대사항\n' +
+      '출처가 확인되지 않는 사실과 숫자는 만들지 말고 확인 필요로 표시하십시오.\n\n';
 
         var prompts = {
       strategy: function (v) {
         return head(v) + RESEARCH +
           '위 정보로 자기소개서 작성 전략을 세워 주십시오.\n\n' +
-          '## 1. 회사 분석\n' +
-          '주요 사업과 제품, 최근 1년 이슈 3가지, 이 직무가 회사에서 하는 역할\n\n' +
-          '## 2. 이 직무에 필요한 역량 5가지\n' +
-          '역량별로 왜 필요한지 한 줄 설명\n\n' +
-          '## 3. 경험 매칭표\n' +
-          '역량마다 지원자의 어떤 경험을 근거로 쓸지, 부족한 부분은 무엇인지\n\n' +
-          '## 4. 항목별 전략\n' +
-          '지원동기 / 직무역량 / 입사 후 포부 세 항목에 대해\n' +
-          '핵심 메시지 1줄, 사용할 경험, 소제목 후보 2개, 반드시 넣을 수치\n\n' +
-          '## 5. 감점 위험 3가지와 보완 방법\n';
+          '## 1. 회사·직무 분석\n' +
+          '회사만의 최근 사업 방향 3가지와 이 채용 직무가 그 사업에서 맡는 역할을 구체적으로 설명하십시오.\n\n' +
+          '## 2. 채용공고 역량 매트릭스\n' +
+          '필수요건·우대사항·담당업무에서 핵심 요구사항을 뽑고, 각 요구사항에 지원자 근거를 연결하십시오. 근거가 없으면 부족이라고 표시하십시오.\n\n' +
+          '## 3. 지원자 차별화 포인트\n' +
+          '다른 지원자와 구분되는 경험 3개를 근거와 함께 고르고, 어떤 문항에 써야 가장 강한지 정하십시오.\n\n' +
+          '## 4. 문항별 설계\n' +
+          (v.items ? '사용자가 제공한 실제 문항 각각에 대해' : '지원동기 / 직무역량 / 입사 후 포부 각각에 대해') + ' 핵심 답변 1줄, 사용할 경험, 두괄식 첫 문장, 소제목 후보 2개, 넣어야 할 수치·키워드를 제안하십시오.\n\n' +
+          '## 5. 기업 맞춤도 점검\n' +
+          '회사명만 바꾸면 다른 회사에도 통하는 문장을 찾아 어떻게 회사 전용 문장으로 바꿀지 제안하십시오.\n\n' +
+          '## 6. 감점 위험과 추가로 필요한 정보\n';
       },
 
       draft: function (v) {
         return head(v) + RESEARCH +
           '위 정보로 자기소개서 초안을 작성해 주십시오.\n\n' +
-          '작성 항목은 아래 세 가지입니다.\n' +
-          '1. 지원동기\n' +
-          '2. 직무역량 및 강점\n' +
-          '3. 입사 후 포부\n\n' +
+          '작성 항목은 ' + (v.items ? '사용자가 제공한 실제 자기소개서 문항을 그대로 따르십시오.\n' : '1. 지원동기\n2. 직무역량 및 강점\n3. 입사 후 포부\n') + '\n' +
           '작성 규칙\n' +
           '- 분량 : 항목당 ' + v.len + '자 내외\n' +
           '- 각 항목은 "## N. 항목명" 으로 시작하고 다음 줄에 15자 이내 소제목을 [ ] 안에 넣습니다.\n' +
@@ -782,6 +792,10 @@ PSM 공정안전보고서를 작성해 제출하고 심사도 통과했습니다
           '- 한 문장은 60자 이내, 상황-과제-행동-결과 순서를 지킵니다.\n' +
           '- 지원자가 적지 않은 사실은 만들지 않습니다. 수치가 없으면 [수치 입력] 으로 표시합니다.\n' +
           '- 회사명은 정확히 쓰고 귀사라는 단어는 쓰지 않습니다.\n' +
+          '- 각 문항의 질문 의도를 첫 문단에서 바로 답하고, 문항끼리 같은 경험을 반복하지 않습니다.\n' +
+          '- 회사 사업·공고 키워드는 억지로 나열하지 말고 지원자의 행동과 연결되는 경우만 사용합니다.\n' +
+          '- 회사명만 다른 회사명으로 바꿔도 성립하는 문장은 다시 써서 회사 전용 문장으로 만듭니다.\n' +
+          '- AI 특유의 추상적 마무리 대신 입사 후 실제 수행할 업무와 연결합니다.\n' +
           '- 각 항목 끝에 "> 보완 필요 : ..." 한 줄을 넣습니다.\n';
       },
 
@@ -789,7 +803,7 @@ PSM 공정안전보고서를 작성해 제출하고 심사도 통과했습니다
         return head(v) +
           '## 검토 대상 자기소개서\n"""\n' + v.essay + '\n"""\n\n' +
           '위 자기소개서를 인사담당자 관점에서 빨간펜으로 첨삭해 주십시오.\n' +
-          '회사와 직무 정보가 필요하면 웹검색(나무위키, 공식 홈페이지, 뉴스)으로 확인하십시오.\n\n' +
+          '회사와 직무 정보가 필요하면 회사 공식 홈페이지, 전자공시(DART), 공식 보도자료, 최근 뉴스 순으로 확인하십시오.\n\n' +
           '[출력 형식을 반드시 지키십시오]\n\n' +
           '## 총평\n' +
           '- 점수 : 00점 / 100점\n' +
@@ -804,8 +818,10 @@ PSM 공정안전보고서를 작성해 제출하고 심사도 통과했습니다
           '[이유] 이렇게 고치면 무엇이 좋아지는지\n\n' +
           '## 빠진 내용\n' +
           '[추가] 반드시 넣어야 할 내용과 넣을 위치\n\n' +
-          '## 표현 점검\n' +
-          '- 금지 표현 사용 여부, 60자 초과 문장 개수, 수치 없는 주장 개수\n\n' +
+          '## 기업·공고 적합도 점검\n' +
+          '- 회사명만 바꿔도 통하는 문장, 공고 요구사항과 연결되지 않는 문장, 근거 없는 회사정보를 각각 지적하십시오.\n\n' +
+          '## 표현·AI 티 점검\n' +
+          '- 금지 표현 사용 여부, 60자 초과 문장 개수, 수치 없는 주장 개수, 과도하게 매끈하고 추상적인 AI 문장 여부를 점검하십시오.\n\n' +
           '## 최종 수정본\n' +
           '첨삭을 모두 반영한 전체 글 (그대로 제출할 수 있는 상태)\n';
       }
@@ -927,7 +943,7 @@ PSM 공정안전보고서를 작성해 제출하고 심사도 통과했습니다
 
     /* ---------- 자동 저장 / 글자수 ---------- */
     var FORM_LS = 'cbt_resume_simple';
-    var FIELDS  = ['company', 'job', 'career', 'jd', 'essay', 'len'];
+    var FIELDS  = ['company', 'job', 'career', 'jd', 'items', 'essay', 'len'];
     var saveTimer = null;
 
     function saveForm() {
@@ -962,7 +978,7 @@ PSM 공정안전보고서를 작성해 제출하고 심사도 통과했습니다
       setCount('#essayCount', $('#essay') ? $('#essay').value.length : 0, 200);
     }
 
-    ['#company', '#job', '#career', '#jd', '#essay'].forEach(function (sel) {
+    ['#company', '#job', '#career', '#jd', '#items', '#essay'].forEach(function (sel) {
       on(sel, 'input', function () { updateCounts(); saveLater(); });
     });
     on('#len', 'change', saveLater);
@@ -987,6 +1003,7 @@ PSM 공정안전보고서를 작성해 제출하고 심사도 통과했습니다
         career: (($('#career') && $('#career').value) || '').trim(),
         jd: (($('#jd') && $('#jd').value) || '').trim(),
         essay: (($('#essay') && $('#essay').value) || '').trim(),
+        items: (($('#items') && $('#items').value) || '').trim(),
         len: ($('#len') && $('#len').value) || '700'
       };
     }
@@ -1117,7 +1134,7 @@ PSM 공정안전보고서를 작성해 제출하고 심사도 통과했습니다
       $('#aiSources').innerHTML = '';
 
       var startLabel = '경력을 분석하는 중';
-      if (kind === 'strategy') startLabel = '회사 정보를 검색하는 중';
+      if (kind === 'strategy') startLabel = '회사·공고·공시를 교차분석하는 중';
       if (kind === 'review') startLabel = '자기소개서를 읽는 중';
 
       prog.start(startLabel);
@@ -1125,15 +1142,15 @@ PSM 공정안전보고서를 작성해 제출하고 심사도 통과했습니다
       if (pEl && pEl.scrollIntoView) pEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
       try {
-        var stage = '내용을 작성하는 중';
-        if (kind === 'strategy') stage = '검색 결과로 전략을 구성하는 중';
+        var stage = '기업 맞춤형 초안을 작성하는 중';
+        if (kind === 'strategy') stage = '기업·공고·경력을 매칭해 전략을 구성하는 중';
         if (kind === 'review') stage = '문단별로 첨삭하는 중';
 
         var expect = 40000;
         if (kind === 'review') expect = Math.min(90000, 20000 + v.essay.length * 8);
 
         var r = await ResumeAI.call(promptOf(kind, v), {
-          search: (kind !== 'draft'),
+          search: true,
           temp: (kind === 'review') ? 0.4 : (kind === 'strategy' ? 0.6 : 0.8),
           expectMs: expect,
           stageLabel: stage,

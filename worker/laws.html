@@ -13,9 +13,9 @@
 <link rel="stylesheet" href="../css/responsive.css">
 </head>
 <body class="legacy-tool-page">
-<header class="legacy-brand-nav"><div class="legacy-brand-inner"><a class="legacy-brand-name" href="../index.html?audience=worker"><img src="../assets/jaeili-face-v2.png" alt="안전과장 제일이 로고" data-cheer-mascot><span>안전과장</span></a><nav class="legacy-worker-nav" aria-label="재직자 실무 메뉴"><a href="dashboard.html">현장 대시보드</a><a href="safety-education.html">안전교육</a><a href="risk-assessment.html">위험성평가</a><a href="risk-guide.html">실무가이드</a><a href="laws.html" aria-current="page">법령·지침</a><a href="msds-management.html">MSDS</a><a href="confined-space.html">밀폐공간</a><a href="incident-report.html">사고기록</a></nav><span class="live-clock legacy-live-clock" data-live-clock></span><a class="legacy-back" href="../index.html?audience=worker">재직자 홈</a></div></header>
+<header class="legacy-brand-nav"><div class="legacy-brand-inner"><a class="legacy-brand-name" href="../index.html?audience=worker"><img src="../assets/jaeili-face-v2.png" alt="안전과장 제일이 로고" data-cheer-mascot><span>안전과장</span></a><nav class="legacy-worker-nav" aria-label="재직자 실무 메뉴"><a href="dashboard.html">현장 대시보드</a><a href="patrol-inspection.html">순회점검</a><a href="safety-education.html">안전교육</a><a href="risk-assessment.html">위험성평가</a><a href="risk-guide.html">실무가이드</a><a href="laws.html" aria-current="page">법령·지침</a><a href="msds-management.html">MSDS</a><a href="confined-space.html">밀폐공간</a><a href="incident-report.html">사고기록</a></nav><span class="live-clock legacy-live-clock" data-live-clock></span><a class="legacy-back" href="../index.html?audience=worker">재직자 홈</a></div></header>
 <main class="law-page">
-<section class="law-hero"><span class="eyebrow">SMART SAFETY LAW SEARCH</span><h1>스마트 안전보건법령 검색</h1><p>현장에서 바로 찾고 싶은 안전보건 법령·고시·KOSHA GUIDE를 공식 데이터에서 키워드로 검색합니다.</p><div class="law-examples" aria-label="예시 검색어"><button type="button" data-law-example="밀폐공간">밀폐공간</button><button type="button" data-law-example="적정공기">적정공기</button><button type="button" data-law-example="하역운반기계">하역운반기계</button><button type="button" data-law-example="접지">접지</button><button type="button" data-law-example="화재감시자">화재감시자</button></div><div class="law-search"><input id="searchInput" autocomplete="off" maxlength="80" placeholder="예: 밀폐공간, 적정공기, 하역운반기계"><button id="searchBtn" type="button">법령 검색</button></div><div id="dbStatus" class="law-status">공단 스마트검색 API 연결 상태 확인 중…</div><div id="apiHelp" class="api-help" hidden>Cloudflare의 <b>Variables and Secrets</b>에 기존 <code>KOSHA_API_KEY</code>가 저장되어 있는지 확인하고 Worker를 다시 배포해 주세요. 이 페이지는 <code>/api/safety-law/search</code>를 사용하며 기존 <code>/api/laws/search</code>도 호환합니다.</div></section>
+<section class="law-hero"><span class="eyebrow">SMART SAFETY LAW SEARCH</span><h1>스마트 안전보건법령 검색</h1><p>현장에서 바로 찾고 싶은 안전보건 법령·고시·KOSHA GUIDE를 공식 데이터에서 키워드로 검색합니다.</p><div class="law-examples" aria-label="예시 검색어"><button type="button" data-law-example="밀폐공간">밀폐공간</button><button type="button" data-law-example="적정공기">적정공기</button><button type="button" data-law-example="하역운반기계">하역운반기계</button><button type="button" data-law-example="접지">접지</button><button type="button" data-law-example="화재감시자">화재감시자</button></div><div class="law-search"><input id="searchInput" autocomplete="off" maxlength="80" placeholder="예: 밀폐공간, 적정공기, 하역운반기계"><button id="searchBtn" type="button">법령 검색</button></div><div id="dbStatus" class="law-status" hidden aria-live="polite"></div></section>
 <div id="lawSummary" class="law-summary" aria-live="polite"></div>
 <section id="resultArea" class="law-results" aria-live="polite"><div class="law-group" data-law-group="law"><div class="law-group-head"><h2>산업안전보건법 및 관계 법령</h2><span id="cntLaw" class="law-count">0</span></div><div id="lawContent" class="law-grid"></div></div><div class="law-group" data-law-group="guide"><div class="law-group-head"><h2>KOSHA GUIDE</h2><span id="cntGuide" class="law-count">0</span></div><div id="guideContent" class="law-grid"></div></div><div class="law-group" data-law-group="media"><div class="law-group-head"><h2>안전보건 자료</h2><span id="cntMedia" class="law-count">0</span></div><div id="mediaContent" class="law-grid"></div></div><div id="fallback" class="law-fallback" hidden></div></section>
 </main>
@@ -67,24 +67,32 @@ function renderResults(data,q){
   renderGroup('lawContent',law,'law',q);renderGroup('guideContent',guide,'guide',q);renderGroup('mediaContent',media,'media',q);document.getElementById('resultArea').classList.add('show');updateScrollHints();
   return total;
 }
-function showHelp(on){document.getElementById('apiHelp').hidden=!on}
+const LAW_CACHE_KEY='sgw_law_cache_v2';
+function cacheGet(q){
+  try{const box=JSON.parse(sessionStorage.getItem(LAW_CACHE_KEY)||'{}');const hit=box[q];if(hit&&Date.now()-hit.t<5*60*1000)return hit.data}catch(e){}return null;
+}
+function cacheSet(q,data){
+  try{const box=JSON.parse(sessionStorage.getItem(LAW_CACHE_KEY)||'{}');box[q]={t:Date.now(),data};const keys=Object.keys(box).sort((a,b)=>box[b].t-box[a].t).slice(0,8);const out={};keys.forEach(k=>out[k]=box[k]);sessionStorage.setItem(LAW_CACHE_KEY,JSON.stringify(out))}catch(e){}
+}
 async function fetchLaw(q,limit=100){
+  const cached=cacheGet(q);if(cached)return {...cached,_cached:true};
   const urls=['/api/safety-law/search?q='+encodeURIComponent(q)+'&limit='+limit,'/api/laws/search?q='+encodeURIComponent(q)+'&limit='+limit];
-  let lastError=new Error('법령 검색 API 연결 실패');
+  let lastError=new Error('검색 연결이 지연되고 있습니다.');
   for(const url of urls){
-    try{const r=await fetch(url,{cache:'no-store'}),j=await r.json();if(r.ok&&j.ok)return j;lastError=new Error(j.error||j.hint||('HTTP '+r.status));if(r.status!==404)break}catch(e){lastError=e}
+    const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),16000);
+    try{const r=await fetch(url,{cache:'no-store',signal:ctrl.signal}),j=await r.json();clearTimeout(timer);if(r.ok&&j.ok){cacheSet(q,j);return j}lastError=new Error('검색 결과를 불러오지 못했습니다.');if(r.status!==404)break}catch(e){clearTimeout(timer);lastError=e?.name==='AbortError'?new Error('검색 시간이 길어지고 있습니다. 잠시 후 다시 시도해 주세요.'):new Error('검색 연결이 지연되고 있습니다. 잠시 후 다시 시도해 주세요.')}
   }
   throw lastError;
 }
-async function health(){
-  const el=document.getElementById('dbStatus');
-  try{const h=await fetch('/api/health',{cache:'no-store'}),hj=await h.json();if(!h.ok)throw new Error('Worker 상태 확인 실패');if(!hj.lawSearchConfigured)throw new Error('Cloudflare에 KOSHA_API_KEY가 감지되지 않습니다.');const j=await fetchLaw('밀폐공간',1);if(!j.ok)throw new Error(j.error||'스마트검색 승인 상태를 확인해 주세요.');el.textContent='공단 스마트검색 API 연결 완료';el.className='law-status ok';showHelp(false)}catch(e){el.textContent='API 연결 확인 필요 · '+String(e.message||e);el.className='law-status bad';showHelp(true)}
-}
 async function doSearch(){
   const input=document.getElementById('searchInput'),q=input.value.trim();if(!q){input.focus();return}
-  const btn=document.getElementById('searchBtn'),status=document.getElementById('dbStatus');btn.disabled=true;btn.textContent='검색 중';status.textContent='공식자료 검색 중 · '+q;status.className='law-status';document.getElementById('resultArea').classList.add('show');document.getElementById('fallback').hidden=true;
-  try{const data=await fetchLaw(q,100),total=renderResults(data,q);status.textContent='검색 완료 · 공식 데이터 '+total+'건 · '+(data.searchedAtLabel||'방금');status.className='law-status ok';showHelp(false)}catch(e){document.getElementById('lawSummary').classList.remove('show');document.querySelectorAll('[data-law-group]').forEach(x=>x.hidden=true);const f=document.getElementById('fallback');f.hidden=false;f.innerHTML=`API 오류: ${esc(e.message)}<br><a target="_blank" rel="noopener" href="https://www.law.go.kr/lsSc.do?query=${encodeURIComponent(q)}">국가법령정보센터에서 직접 검색</a> · <a target="_blank" rel="noopener" href="https://smartsearch.kosha.or.kr/">KOSHA 스마트검색 열기</a>`;status.textContent='공단 API 연결 확인 필요';status.className='law-status bad';showHelp(true)}finally{btn.disabled=false;btn.textContent='법령 검색'}
+  const btn=document.getElementById('searchBtn'),status=document.getElementById('dbStatus');
+  btn.disabled=true;btn.textContent='검색 중';status.hidden=false;status.textContent='공식자료 검색 중 · '+q;status.className='law-status';document.getElementById('resultArea').classList.add('show');document.getElementById('fallback').hidden=true;
+  try{const data=await fetchLaw(q,100),total=renderResults(data,q);status.textContent=(data._cached?'빠른 검색 완료':'검색 완료')+' · '+total+'건 · '+(data.searchedAtLabel||'방금');status.className='law-status ok'}catch(e){document.getElementById('lawSummary').classList.remove('show');document.querySelectorAll('[data-law-group]').forEach(x=>x.hidden=true);const f=document.getElementById('fallback');f.hidden=false;f.innerHTML=`검색 연결이 원활하지 않습니다. 잠시 후 다시 시도해 주세요.<br><a target="_blank" rel="noopener" href="https://www.law.go.kr/lsSc.do?query=${encodeURIComponent(q)}">국가법령정보센터에서 직접 검색</a> · <a target="_blank" rel="noopener" href="https://smartsearch.kosha.or.kr/">안전보건 자료 직접 검색</a>`;status.textContent=String(e.message||'검색 연결이 지연되고 있습니다.');status.className='law-status bad'}finally{btn.disabled=false;btn.textContent='법령 검색'}
 }
-document.querySelectorAll('[data-law-example]').forEach(b=>b.addEventListener('click',()=>{document.getElementById('searchInput').value=b.dataset.lawExample;doSearch()}));document.getElementById('searchBtn').addEventListener('click',doSearch);document.getElementById('searchInput').addEventListener('keydown',e=>{if(e.key==='Enter')doSearch()});window.addEventListener('resize',updateScrollHints,{passive:true});health();
+document.querySelectorAll('[data-law-example]').forEach(b=>b.addEventListener('click',()=>{document.getElementById('searchInput').value=b.dataset.lawExample;doSearch()}));
+document.getElementById('searchBtn').addEventListener('click',doSearch);
+document.getElementById('searchInput').addEventListener('keydown',e=>{if(e.key==='Enter')doSearch()});
+window.addEventListener('resize',updateScrollHints,{passive:true});
 </script><script src="../js/site-clock.js"></script><script src="../js/mascot-cheer.js"></script><script defer src="/js/security.js"></script>
 </body></html>

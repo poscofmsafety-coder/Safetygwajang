@@ -6,7 +6,7 @@
   var LS_CNT   = 'cbt_ai_count';
   var DAILY    = 15;                       /* 공용 1일 한도 */
   var M_SEARCH = 'groq/compound';          /* 웹검색 가능 모델 */
-  var M_PLAIN  = 'llama-3.3-70b-versatile';
+  var M_PLAIN  = 'openai/gpt-oss-120b';
 
   var SYS = '당신은 대한민국 대기업 인사담당자 경력 15년의 채용 컨설턴트입니다. ' +
             '한국어로만 답합니다. 과장·거짓 없이, 제공된 경력 사실만 사용합니다. ' +

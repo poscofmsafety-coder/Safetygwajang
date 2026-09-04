@@ -30,10 +30,10 @@
       .then(function (r) { return r.json(); })
       .then(function (j) {
         return finish({
-          proxy: !!(j && j.ok && j.keyConfigured),
-          keyConfigured: !!(j && j.keyConfigured),
+          proxy: !!(j && j.ok && (j.ready || j.keyConfigured)),
+          keyConfigured: !!(j && (j.ready || j.keyConfigured)),
           models: (j && j.models) || [],
-          msg: (j && j.ok && !j.keyConfigured)
+          msg: (j && j.ok && !(j.ready || j.keyConfigured))
             ? '서버에 GROQ_API_KEY 환경변수가 적용되지 않았습니다.'
             : ''
         });
