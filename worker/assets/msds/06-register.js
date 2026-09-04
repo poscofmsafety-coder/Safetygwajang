@@ -215,7 +215,9 @@ async function handleMSDSFiles(files){
                 ${p.isSpecial?'<span class="parse-highlight" style="background:linear-gradient(120deg,#fecaca,#f87171)">특별관리물질</span>':''}
                 <span class="parse-highlight" style="background:linear-gradient(120deg,#bfdbfe,#93c5fd)">성분 ${p.composition?.length||0}개</span>
             </p>
-            <p class="text-gray-500 text-[10px] mt-1">원본: ${p.sourceFile} · 신뢰도: <b class="${p.matched?'text-emerald-700':'text-amber-700'}">${p.matchConfidence}</b></p>
+            <p class="text-gray-500 text-[10px] mt-1">MSDS 1항 제품명: <b>${escHtmlLocal(p.name||'확인 필요')}</b></p>
+            <p class="text-gray-500 text-[10px] mt-1">공급자(연락처): <b>${escHtmlLocal(p.supplier||'원본 1항 확인')}</b></p>
+            <p class="text-gray-500 text-[10px] mt-1">원본: ${escHtmlLocal(p.sourceFile)} · 신뢰도: <b class="${p.matched?'text-emerald-700':'text-amber-700'}">${escHtmlLocal(p.matchConfidence)}</b></p>
         </div>
     `).join('');
 

@@ -33,7 +33,7 @@
   }
 
   function prepareMascots(){
-    document.querySelectorAll('img[data-cheer-mascot],img[src*="jaeili-head"]').forEach(img=>{
+    document.querySelectorAll('img[data-cheer-mascot],img[src*="jaeili-face"]').forEach(img=>{
       img.setAttribute('title','제일이를 눌러 오늘의 안전 응원을 받아보세요');
       img.setAttribute('role','button'); img.setAttribute('tabindex','0');
       img.setAttribute('aria-label','제일이 안전 응원 메시지 보기');
@@ -46,7 +46,7 @@
     const img=e.target.closest('img');
     if(!img) return;
     const src=img.getAttribute('src')||'';
-    if(!src.includes('jaeili-head') && !img.matches('[data-cheer-mascot]')) return;
+    if(!src.includes('jaeili-face') && !img.matches('[data-cheer-mascot]')) return;
     e.preventDefault(); e.stopPropagation();
     show(img);
   }, true);

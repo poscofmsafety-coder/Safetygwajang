@@ -77,42 +77,36 @@ function toggleCasExpand(id, ev){
 /* =========================================================
    ⭐ 다중 CAS 셀 HTML 생성
    ========================================================= */
+function componentInspectionFor(m,cas){
+    return (m.compInspections||[]).find(x=>String(x.cas||x.inspection?.casNo||'')===String(cas||''))?.inspection||null;
+}
+function componentLawBadges(ins){
+    if(!ins?.ok||ins.status!=='FOUND')return '<span class="text-[9px] text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">조회 확인 필요</span>';
+    const l=ins.legal||{}, tags=[];
+    if(l.workEnvTarget===true)tags.push('<span class="bg-sky-100 text-sky-700">작측</span>');
+    if(l.specialHealthTarget===true)tags.push('<span class="bg-violet-100 text-violet-700">특검</span>');
+    if(l.specialManagement===true)tags.push('<span class="bg-rose-100 text-rose-700">특별</span>');
+    const c=l.cmr||{}; if([c.carcinogenic,c.mutagenic,c.reprotoxic].includes(true))tags.push('<span class="bg-orange-100 text-orange-700">CMR</span>');
+    if(!tags.length)tags.push('<span class="bg-slate-100 text-slate-600">대상 표기 없음</span>');
+    return tags.map(x=>x.replace('>',' class="inline-flex text-[9px] font-bold px-1.5 py-0.5 rounded">')).join(' ');
+}
 function renderCasCell(m){
-    const mainCas = m.cas || '-';
-    const compCasList = (m.composition||[])
-        .map(c=>c.cas)
-        .filter(c=>c && c!=='-' && c!==mainCas);
-    const uniqCompCas = [...new Set(compCasList)];
-    const hasMore = uniqCompCas.length > 0;
-    const isExpanded = list2State.expandedCasIds.has(m.id);
-
-    // 메인 CAS (편집 가능)
-    let html = `<div class="flex items-center gap-1 flex-wrap">`;
-    html += `<span contenteditable="true" onblur="editListCell('${m.id}','cas',this)" onclick="event.stopPropagation()" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}" class="font-mono text-[11px] px-1 rounded hover:bg-yellow-50 focus:bg-yellow-100 focus:outline-none focus:ring-1 focus:ring-teal-400" title="클릭하여 CAS 수정">${escHtml(mainCas)}</span>`;
-
-    if(hasMore){
-        html += `<button onclick="toggleCasExpand('${m.id}', event)" class="ml-1 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded px-1.5 py-0.5 text-[9px] font-bold text-slate-700" title="구성성분 CAS 보기">+${uniqCompCas.length}${isExpanded?' ▲':' ▼'}</button>`;
-    }
-    html += `</div>`;
-
-    // 펼침 영역 (성분 CAS 목록 + 각 상태 배지)
-    if(hasMore && isExpanded){
-        html += `<div class="mt-1.5 pl-2 border-l-2 border-teal-300 space-y-0.5" onclick="event.stopPropagation()">`;
-        uniqCompCas.forEach(cas=>{
-            const cache = InspectCache.get(cas);
-            let badge = '';
-            if(!cache){
-                badge = '<span class="text-[9px] text-gray-400">(대기)</span>';
-            } else if(cache.status === 'FOUND'){
-                badge = `<span class="text-[9px] bg-rose-100 text-rose-700 px-1 rounded font-bold">KOSHA확인</span>`;
-            } else {
-                badge = '<span class="text-[9px] bg-emerald-50 text-emerald-700 px-1 rounded">-</span>';
-            }
-            html += `<div class="flex items-center gap-1 text-[10px]"><span class="text-gray-400">└</span><span class="font-mono">${escHtml(cas)}</span>${badge}</div>`;
-        });
-        html += `</div>`;
-    }
-    return html;
+    const comps=(m.composition||[]).filter(c=>c.cas&&c.cas!=='-');
+    const rows=[]; const seen=new Set();
+    for(const c of comps){if(seen.has(c.cas))continue;seen.add(c.cas);rows.push({name:c.name||'구성성분',cas:c.cas,content:c.content||'-'});}
+    if(m.cas&&m.cas!=='-'&&!seen.has(m.cas))rows.unshift({name:m.name||'대표 CAS',cas:m.cas,content:'-'});
+    if(!rows.length)return `<span contenteditable="true" onblur="editListCell('${m.id}','cas',this)" onclick="event.stopPropagation()" class="font-mono text-[11px] text-gray-500">${escHtml(m.cas||'-')}</span>`;
+    const expanded=list2State.expandedCasIds.has(m.id), visible=expanded?rows:rows.slice(0,3);
+    let html='<div class="space-y-1.5 min-w-[250px]" onclick="event.stopPropagation()">';
+    visible.forEach((r,idx)=>{
+        const ins=componentInspectionFor(m,r.cas);
+        html+=`<div class="rounded-lg border ${ins?.legal?.workEnvTarget===true||ins?.legal?.specialHealthTarget===true||ins?.legal?.specialManagement===true?'border-teal-200 bg-teal-50/50':'border-slate-200 bg-white'} px-2 py-1.5">
+          <div class="flex items-start justify-between gap-2"><span class="text-[10px] font-bold text-slate-800 leading-4">${escHtml(r.name)}</span><span class="font-mono text-[10px] whitespace-nowrap">${escHtml(r.cas)}</span></div>
+          <div class="flex items-center justify-between gap-2 mt-1"><span class="text-[9px] text-gray-500">함유량 ${escHtml(r.content)}</span><span class="flex gap-1 flex-wrap justify-end">${componentLawBadges(ins)}</span></div>
+        </div>`;
+    });
+    if(rows.length>3)html+=`<button onclick="toggleCasExpand('${m.id}',event)" class="text-[10px] font-bold text-teal-700 hover:underline">${expanded?'접기':'구성성분 '+(rows.length-3)+'개 더 보기'}</button>`;
+    html+='</div>'; return html;
 }
 
 /* =========================================================

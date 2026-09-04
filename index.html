@@ -24,7 +24,7 @@
 <a class="skip-link" href="#main-content">본문으로 바로가기</a>
 <header class="site-nav">
 <div class="nav-inner">
-<a class="site-brand" href="index.html"><img src="assets/jaeili-head.png" data-cheer-mascot alt="제일이"><span>안전과장</span></a>
+<a class="site-brand" href="index.html"><img src="assets/jaeili-face.png" data-cheer-mascot alt="제일이"><span>안전과장</span></a>
 <div aria-label="이용자 유형 선택" class="audience-switch" role="tablist">
 <button aria-selected="true" data-audience-target="jobseeker" role="tab" type="button">취준생</button>
 <button aria-selected="false" data-audience-target="worker" role="tab" type="button">재직자</button>
@@ -55,7 +55,7 @@
 </section>
 <section class="audience-overview" aria-label="취준생과 재직자 빠른 메뉴">
 <article class="audience-overview-card job">
-<div class="audience-title-row"><div><span class="mini-label">CAREER</span><h2>취준생</h2><p>자격증부터 면접까지, 합격을 위한 준비를 한 흐름으로.</p></div><img src="assets/jaeili-head.png" alt="제일이" data-cheer-mascot></div>
+<div class="audience-title-row"><div><span class="mini-label">CAREER</span><h2>취준생</h2><p>자격증부터 면접까지, 합격을 위한 준비를 한 흐름으로.</p></div><img src="assets/jaeili-face.png" alt="제일이" data-cheer-mascot></div>
 <div class="quick-grid quick-grid-4">
 <a href="#certificates" data-open-audience="jobseeker"><span class="quick-icon">📘</span><b>자격증</b><small>CBT · 기출 · 오답</small></a>
 <a href="#english" data-open-audience="jobseeker"><span class="quick-icon">🎧</span><b>영어</b><small>토익스피킹</small></a>
@@ -64,7 +64,7 @@
 </div>
 </article>
 <article class="audience-overview-card worker">
-<div class="audience-title-row"><div><span class="mini-label">WORK</span><h2>재직자</h2><p>현장에서 바로 쓰는 안전관리 기록·계산·관리 도구.</p></div><img src="assets/jaeili-head.png" alt="제일이" data-cheer-mascot></div>
+<div class="audience-title-row"><div><span class="mini-label">WORK</span><h2>재직자</h2><p>현장에서 바로 쓰는 안전관리 기록·계산·관리 도구.</p></div><img src="assets/jaeili-face.png" alt="제일이" data-cheer-mascot></div>
 <div class="quick-grid quick-grid-4">
 <a href="worker/dashboard.html"><span class="quick-icon">📊</span><b>현장 대시보드</b><small>작업현황 · 위험작업</small></a>
 <a href="worker/safety-education.html"><span class="quick-icon">🎓</span><b>안전보건교육</b><small>대상 · 시간 · 이수</small></a>
@@ -222,6 +222,16 @@
 <p>현장 안전업무는 공정, 설비, 물질, 작업자, 협력사, 기상조건 등 변수가 많습니다. 본 사이트의 자동 계산·정리 기능은 업무를 빠르게 구조화하기 위한 보조수단이며, 실제 작업허가·위험성평가·교육·보건조치의 법적 적정성을 보증하지 않습니다. 적용 전 최신 법령과 사업장 절차를 확인하세요.</p>
 </section>
 </section>
+
+<section class="safety-news" id="safety-news" aria-labelledby="safety-news-title">
+  <div class="section-head news-head">
+    <div><span class="eyebrow">LIVE SAFETY NEWS</span><h2 id="safety-news-title">실시간 안전 뉴스</h2></div>
+    <div class="news-actions"><span id="news-updated">최신 기사 불러오는 중</span><button type="button" id="news-refresh">새로고침</button></div>
+  </div>
+  <p class="news-desc">산업안전·안전보건·중대재해·산업재해 관련 최신 기사를 모아 보여줍니다. 기사 제목을 누르면 원문 언론사로 이동합니다.</p>
+  <div class="news-grid" id="news-grid"><div class="news-loading">안전 뉴스를 불러오고 있습니다.</div></div>
+  <p class="news-source-note">Google 뉴스 RSS를 기본으로 사용하며, NAVER API가 설정된 경우 함께 취합합니다. 뉴스는 참고자료이며 법령·공식 지침의 대체자료가 아닙니다.</p>
+</section>
 </main>
 <div class="auth-modal-bg" id="code-modal">
 <div class="auth-modal">
@@ -254,5 +264,6 @@
 <script src="js/main.js"></script>
 <script src="js/home-tabs.js"></script>
 <script src="js/mascot-cheer.js"></script>
+<script src="js/news.js"></script>
 </body>
 </html>

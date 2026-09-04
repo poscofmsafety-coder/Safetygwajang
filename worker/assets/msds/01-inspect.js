@@ -31,7 +31,13 @@ function normalizeBackendResponse(cas,raw){
 async function inspectByCas(cas,forceRefresh=false){
   cas=String(cas||'').trim();if(!cas)throw new Error('CAS No.를 입력하세요.');
   if(!forceRefresh){const c=InspectCache.get(cas);if(c)return{...c,fromCache:true}}
-  if(!apiConnected){const x={ok:false,unavailable:true,casNo:cas,error:'KOSHA API가 아직 연결되지 않았습니다. 업로드한 MSDS 15항을 확인하고 API 설정 후 재조회하세요.',checkedAt:Date.now()};InspectCache.set(cas,x);return x;}
+  if(!apiConnected){
+    try{await checkApiHealth();}catch(e){}
+  }
+  if(!apiConnected){
+    // API 설정 직후에도 즉시 다시 시도할 수 있도록 '미연결' 상태는 장기 캐시하지 않습니다.
+    return {ok:false,unavailable:true,casNo:cas,error:'KOSHA API가 아직 연결되지 않았습니다. 업로드한 MSDS 15항을 확인하고 API 설정 후 재조회하세요.',checkedAt:Date.now()};
+  }
   try{const ctrl=new AbortController();setTimeout(()=>ctrl.abort(),INSPECT_CONFIG.timeout);const u=INSPECT_CONFIG.lookup+'?cas='+encodeURIComponent(cas)+(forceRefresh?'&refresh=1':'');const r=await fetch(u,{signal:ctrl.signal});const raw=await r.json();const out=normalizeBackendResponse(cas,raw);InspectCache.set(cas,out);return out;}catch(e){const out={ok:false,casNo:cas,error:e.message,checkedAt:Date.now()};InspectCache.set(cas,out);return out;}
 }
 function applyInspectionToMaterial(m,ins){
@@ -139,16 +145,48 @@ async function inspectAllComponents(material,forceRefresh=false){
   material.compInspections=results;
   return results;
 }
+function refreshDependentMsdsViews(){
+  try{ if(typeof syncEnvTargetsFromMsds==='function') syncEnvTargetsFromMsds(true); }catch(e){console.warn('[env sync]',e);}
+  try{ if(typeof renderEnvWorkflow==='function') renderEnvWorkflow(); }catch(e){}
+  try{ if(typeof renderHealth==='function') renderHealth(); }catch(e){}
+  try{ const m=(MATERIALS||[]).find(x=>x.id===selectedMaterialId); if(m&&typeof applyMaterialToForms==='function')applyMaterialToForms(m); }catch(e){}
+}
 async function autoInspectMaterial(materialId,showToastMsg=true){
-  const m=MATERIALS.find(x=>x.id===materialId);if(!m)return null;const r=await inspectAllComponents(m,false);if(r){saveMATERIALS();if(typeof renderListTable==='function')renderListTable();if(typeof updateAllKPI==='function')updateAllKPI();if(typeof applyMaterialToForms==='function')applyMaterialToForms(m);if(showToastMsg&&typeof showToast==='function'){const found=r.filter(x=>x.inspection?.ok&&x.inspection.status==='FOUND').length;showToast(`KOSHA 조회 완료: ${r.length}개 CAS · 자료 확인 ${found}건`);}}return r;
+  const m=MATERIALS.find(x=>x.id===materialId);if(!m)return null;
+  const r=await inspectAllComponents(m,false);
+  if(r){
+    saveMATERIALS();
+    if(typeof renderListTable==='function')renderListTable();
+    if(typeof updateAllKPI==='function')updateAllKPI();
+    refreshDependentMsdsViews();
+    if(showToastMsg&&typeof showToast==='function'){
+      const found=r.filter(x=>x.inspection?.ok&&x.inspection.status==='FOUND').length;
+      const env=r.filter(x=>x.inspection?.legal?.workEnvTarget===true).length;
+      const health=r.filter(x=>x.inspection?.legal?.specialHealthTarget===true).length;
+      showToast(`CAS 대조 완료 ${found}/${r.length}건 · 작측 ${env} · 특검 ${health}`);
+    }
+  }
+  return r;
 }
 let _autoInspectRunning=false,_autoInspectDone=false;
 async function autoInspectAllPending(force=false){
-  if(!apiConnected||_autoInspectRunning||(_autoInspectDone&&!force))return;_autoInspectRunning=true;try{const list=MATERIALS.filter(m=>force||!m.laws?.checkedAt);for(const m of list){await inspectAllComponents(m,force);await new Promise(r=>setTimeout(r,120));}saveMATERIALS();if(typeof renderListTable==='function')renderListTable();if(typeof updateAllKPI==='function')updateAllKPI();_autoInspectDone=true;}finally{_autoInspectRunning=false;}
+  if(_autoInspectRunning||(_autoInspectDone&&!force))return;
+  if(!apiConnected){try{await checkApiHealth();}catch(e){}}
+  if(!apiConnected)return;
+  _autoInspectRunning=true;
+  try{
+    const list=MATERIALS.filter(m=>force||!m.laws?.checkedAt);
+    for(const m of list){await inspectAllComponents(m,force);await new Promise(r=>setTimeout(r,120));}
+    saveMATERIALS();
+    if(typeof renderListTable==='function')renderListTable();
+    if(typeof updateAllKPI==='function')updateAllKPI();
+    refreshDependentMsdsViews();
+    _autoInspectDone=true;
+  }finally{_autoInspectRunning=false;}
 }
 function startAutoInspectOnce(){autoInspectAllPending(false)}
 function insLog(msg){const b=document.getElementById('insLog');if(!b)return;b.classList.remove('hidden');const p=document.createElement('p');p.textContent='['+new Date().toLocaleTimeString()+'] '+msg;b.appendChild(p);b.scrollTop=b.scrollHeight;}
-async function inspectCasSingle(forceRefresh){const input=document.getElementById('insCasInput');const cas=input?.value.trim();if(!cas){showToast('CAS No.를 입력하세요');return;}openInspectModal(cas);insLog(cas+' KOSHA 조회 시작');const r=await inspectByCas(cas,forceRefresh);renderInspectModal(cas,r);if(r.ok){for(const m of MATERIALS){if(m.cas===cas||(m.composition||[]).some(c=>c.cas===cas))await inspectAllComponents(m,false);}saveMATERIALS();if(typeof renderListTable==='function')renderListTable();if(typeof updateAllKPI==='function')updateAllKPI();}insLog(cas+' 조회 완료');}
+async function inspectCasSingle(forceRefresh){const input=document.getElementById('insCasInput');const cas=input?.value.trim();if(!cas){showToast('CAS No.를 입력하세요');return;}openInspectModal(cas);insLog(cas+' KOSHA 조회 시작');const r=await inspectByCas(cas,forceRefresh);renderInspectModal(cas,r);if(r.ok){for(const m of MATERIALS){if(m.cas===cas||(m.composition||[]).some(c=>c.cas===cas))await inspectAllComponents(m,false);}saveMATERIALS();if(typeof renderListTable==='function')renderListTable();if(typeof updateAllKPI==='function')updateAllKPI();refreshDependentMsdsViews();}insLog(cas+' 조회 완료');}
 async function reinspectAll(){const btn=document.getElementById('btnReinspectAll');if(btn){btn.disabled=true;btn.textContent='재조회 중';}InspectCache.clearAll();_autoInspectDone=false;await autoInspectAllPending(true);if(btn){btn.disabled=false;btn.textContent='전체 재조회';}showToast('KOSHA 전체 재조회 완료');}
 function clearInspectCache(){if(!confirm('KOSHA 조회 캐시를 삭제하시겠습니까?'))return;InspectCache.clearAll();_autoInspectDone=false;showToast('조회 캐시를 삭제했습니다.');}
 function openInspectModal(cas){const m=document.getElementById('inspectModal');if(!m)return;const c=document.getElementById('insModalCas');if(c)c.textContent='CAS No. '+cas;m.classList.remove('hidden');m.classList.add('flex');const body=document.getElementById('inspectModalBody');if(body)body.innerHTML='<p class="text-center py-8 text-gray-500">KOSHA 공공데이터를 조회하고 있습니다.</p>';}

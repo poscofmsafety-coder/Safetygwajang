@@ -9,19 +9,31 @@
     
     <!-- 엑셀 -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <!-- PDF -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-    <!-- 스캔 PDF/이미지 OCR 보조 -->
-    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-    <script>
-        if(window['pdfjsLib']){
-            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    <!-- PDF.js 6.3.289: 원문 텍스트/좌표 추출. CDN 장애 시 unpkg로 자동 재시도 -->
+    <script type="module">
+      (async()=>{
+        const candidates=[
+          ['https://cdn.jsdelivr.net/npm/pdfjs-dist@6.3.289/build/pdf.min.mjs','https://cdn.jsdelivr.net/npm/pdfjs-dist@6.3.289/build/pdf.worker.min.mjs'],
+          ['https://unpkg.com/pdfjs-dist@6.3.289/build/pdf.min.mjs','https://unpkg.com/pdfjs-dist@6.3.289/build/pdf.worker.min.mjs']
+        ];
+        for(const [src,worker] of candidates){
+          try{
+            const pdfjsLib=await import(src);
+            pdfjsLib.GlobalWorkerOptions.workerSrc=worker;
+            window.pdfjsLib=pdfjsLib;
+            window.dispatchEvent(new Event('pdfjs-ready'));
+            return;
+          }catch(e){ console.warn('[PDF.js CDN fallback]',src,e); }
         }
+        window.dispatchEvent(new Event('pdfjs-ready'));
+      })();
     </script>
+    <!-- Tesseract.js 7.0.0: 스캔형 PDF/이미지 OCR 보조. 2개 CDN 순차 사용 -->
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@7/dist/tesseract.min.js" onerror="var s=document.createElement('script');s.src='https://unpkg.com/tesseract.js@7/dist/tesseract.min.js';document.head.appendChild(s);"></script>
     <!-- ⭐ 분리된 스타일 -->
     <link rel="stylesheet" href="assets/msds/styles.css">
 <meta name="robots" content="noindex,follow"><meta name="theme-color" content="#153b67"><link rel="stylesheet" href="../css/brand.css"><link rel="stylesheet" href="assets/legacy-brand.css"></head>
-<body class="legacy-tool-page bg-slate-100 min-h-screen text-gray-800"><header class="legacy-brand-nav"><div class="legacy-brand-inner"><a class="legacy-brand-name" href="../index.html?audience=worker"><img src="../assets/jaeili-head.png" alt="안전과장 제일이 로고" data-cheer-mascot><span>안전과장</span></a><nav class="legacy-worker-nav" aria-label="재직자 실무 메뉴"><a href="dashboard.html">현장 대시보드</a><a href="safety-education.html">안전교육</a><a href="risk-assessment.html">위험성평가</a><a href="risk-guide.html">실무가이드</a><a href="laws.html">법령·지침</a><a href="msds-management.html">MSDS</a><a href="confined-space.html">밀폐공간</a><a href="incident-report.html">사고기록</a></nav><a class="legacy-back" href="../index.html?audience=worker">재직자 홈</a></div></header><div class="brand-page-note"><div class="brand-page-note-inner"><img src="../assets/jaeili-full.png" alt="제일이 전체 캐릭터"><span><b>안전과장 실무도구</b> · 회사명·부서·공장 등 특정 사업장 데이터 없이 시작합니다. 필요한 정보만 직접 입력하고 저장·내보내기 기능으로 관리하세요.</span></div></div>
+<body class="legacy-tool-page bg-slate-100 min-h-screen text-gray-800"><header class="legacy-brand-nav"><div class="legacy-brand-inner"><a class="legacy-brand-name" href="../index.html?audience=worker"><img src="../assets/jaeili-face.png" alt="안전과장 제일이 로고" data-cheer-mascot><span>안전과장</span></a><nav class="legacy-worker-nav" aria-label="재직자 실무 메뉴"><a href="dashboard.html">현장 대시보드</a><a href="safety-education.html">안전교육</a><a href="risk-assessment.html">위험성평가</a><a href="risk-guide.html">실무가이드</a><a href="laws.html">법령·지침</a><a href="msds-management.html">MSDS</a><a href="confined-space.html">밀폐공간</a><a href="incident-report.html">사고기록</a></nav><a class="legacy-back" href="../index.html?audience=worker">재직자 홈</a></div></header><div class="brand-page-note"><div class="brand-page-note-inner"><img src="../assets/jaeili-full.png" alt="제일이 전체 캐릭터"><span><b>안전과장 실무도구</b> · 회사명·부서·공장 등 특정 사업장 데이터 없이 시작합니다. 필요한 정보만 직접 입력하고 저장·내보내기 기능으로 관리하세요.</span></div></div>
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
 
         <nav class="flex items-center text-xs text-gray-500 gap-2" aria-label="현재 위치">
@@ -426,23 +438,34 @@
                                 </div>
                             </div>
                             <div id="form-special" class="form-panel hidden">
-                                <div class="bg-white border-2 border-gray-800 shadow-md">
-                                    <div class="bg-gray-800 text-white text-center py-2"><h2 class="text-lg font-black tracking-widest">특별관리물질의 고지</h2><p class="text-[10px] text-gray-300 mt-0.5">[관련근거: 산업안전보건기준에 관한 규칙 제440조(특별관리물질의 고지)]</p></div>
+                                <div class="bg-white border-2 border-gray-900 shadow-md overflow-hidden">
+                                    <div class="bg-rose-700 text-white text-center py-2.5 border-b-2 border-gray-900">
+                                        <p class="text-xl font-black tracking-[0.14em]">관계자 외 출입금지</p>
+                                    </div>
+                                    <div class="bg-gray-900 text-white text-center py-3">
+                                        <h2 class="text-2xl font-black tracking-widest">특별관리물질 취급중</h2>
+                                        <p class="text-[10px] text-gray-300 mt-1">산업안전보건기준에 관한 규칙 제440조에 따른 근로자 고지 지원 양식</p>
+                                    </div>
+                                    <div class="grid grid-cols-1 md:grid-cols-4 border-b-2 border-gray-900 text-xs">
+                                        <div class="p-2 border-b md:border-b-0 md:border-r border-gray-300"><b>MSDS 제품명</b><div class="mt-1 font-black text-gray-900" data-field="special-product">-</div></div>
+                                        <div class="p-2 border-b md:border-b-0 md:border-r border-gray-300"><b>공급자 (연락처)</b><div class="mt-1 font-bold" data-field="special-supplier">원본 MSDS 1항 확인</div></div>
+                                        <div class="p-2 border-b md:border-b-0 md:border-r border-gray-300"><b>취급 부서 / 공정</b><div class="mt-1 font-bold" data-field="special-dept-process">직접 입력</div></div>
+                                        <div class="p-2"><b>고지일</b><div class="mt-1 font-bold" data-field="special-date">-</div></div>
+                                    </div>
                                     <table class="w-full text-xs border-collapse">
                                         <thead>
-                                            <tr class="bg-slate-100 border-b-2 border-gray-800"><th class="border-r-2 border-gray-800 font-black text-gray-800 py-2 px-2" rowspan="2">MSDS<br>(제품)명</th><th class="border-r-2 border-gray-800 font-black text-gray-800 py-2 px-2" rowspan="2">특별관리물질명<br>/ 함유량(%)</th><th class="border-r-2 border-gray-800 font-black text-gray-800 py-2 px-2" rowspan="2">CAS No.</th><th class="border-r-2 border-gray-800 font-black text-gray-800 py-2 px-2" rowspan="2">급성<br>독성<br>물질</th><th class="font-black text-gray-800 py-2 px-2" colspan="3">건강유해성</th></tr>
-                                            <tr class="bg-slate-100 border-b-2 border-gray-800"><th class="border-l-2 border-r border-gray-800 font-black text-gray-800 py-1.5 px-2">발암성</th><th class="border-r border-gray-800 font-black text-gray-800 py-1.5 px-2">생식세포<br>변이원성</th><th class="font-black text-gray-800 py-1.5 px-2">생식독성</th></tr>
+                                            <tr class="bg-slate-100 border-b-2 border-gray-900"><th class="border-r-2 border-gray-900 font-black text-gray-800 py-2 px-2" rowspan="2">특별관리물질명<br>/ 함유량(%)</th><th class="border-r-2 border-gray-900 font-black text-gray-800 py-2 px-2" rowspan="2">CAS No.</th><th class="font-black text-gray-800 py-2 px-2" colspan="3">고지해야 할 건강유해성 구분</th></tr>
+                                            <tr class="bg-slate-100 border-b-2 border-gray-900"><th class="border-l-2 border-r border-gray-900 font-black text-gray-800 py-1.5 px-2">발암성</th><th class="border-r border-gray-900 font-black text-gray-800 py-1.5 px-2">생식세포<br>변이원성</th><th class="font-black text-gray-800 py-1.5 px-2">생식독성</th></tr>
                                         </thead>
                                         <tbody id="specialTableBody"></tbody>
                                     </table>
-                                    <div class="border-t-2 border-gray-800 bg-yellow-50 p-4 text-center">
-                                        <p class="text-base font-black text-gray-900 mb-2">※ 특별관리물질 (<span class="text-red-600" data-field="special-mat">-</span>) 취급 중</p>
-                                        <div class="flex justify-center gap-4 text-sm font-black text-red-700">
-                                            <span>관계자 외 출입금지</span>
-                                            <span>안전보호구 착용</span>
-                                            <span>흡연·음식물 섭취 금지</span>
+                                    <div class="border-t-2 border-gray-900 bg-yellow-50 p-4 text-center">
+                                        <p class="text-base font-black text-gray-900">특별관리물질: <span class="text-red-700" data-field="special-mat">-</span></p>
+                                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3 text-sm font-black">
+                                            <div class="border-2 border-gray-900 bg-white py-2 px-3">보호구 / 보호의 착용</div>
+                                            <div class="border-2 border-gray-900 bg-white py-2 px-3">흡연 및 음식섭취 금지</div>
                                         </div>
-                                        <p class="text-[10px] text-gray-600 mt-2">(관련근거: 『산업안전보건기준에 관한 규칙』 제440조)</p>
+                                        <p class="text-[10px] leading-5 text-gray-600 mt-3">제440조는 특별관리물질이라는 사실과 발암성·생식세포 변이원성·생식독성 중 해당 구분을 근로자에게 알리도록 요구합니다. 이 화면은 고지용 출력 지원 양식이며, 물질 분류는 최신 별표 12·노출기준 고시·공급자 MSDS를 최종 대조하세요.</p>
                                     </div>
                                 </div>
                             </div>
@@ -452,6 +475,7 @@
 
                 <!-- ④ 작업환경측정 -->
                 <div id="tab-env" class="tab-panel">
+                    <div id="envWorkflowRoot"></div>
                     <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-5">
                         <div class="bg-slate-50 border border-slate-200 rounded-lg p-3 text-center"><p class="text-[11px] font-bold text-gray-500">측정대상 물질</p><p class="text-xl font-black text-gray-800 mt-1" id="k4-total">0<span class="text-xs text-gray-500"> 종</span></p></div>
                         <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 text-center"><p class="text-[11px] font-bold text-amber-600">만료임박 (D-30)</p><p class="text-xl font-black text-amber-700 mt-1" id="k4-soon">0<span class="text-xs text-gray-500"> 건</span></p></div>

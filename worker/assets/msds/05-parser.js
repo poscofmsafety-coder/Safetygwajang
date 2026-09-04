@@ -50,31 +50,43 @@ function uniqueClean(arr, max=50){
 function linesOf(text){ return normalizeMsdsText(text).split('\n').map(s=>s.trim()).filter(Boolean); }
 
 function groupPdfItemsToLines(items){
+    // PDF.js 좌표를 이용해 표의 열 경계를 최대한 보존합니다.
+    // 단순 공백 결합은 MSDS 1항/3항 표에서 제품명·CAS·함유량 열이 섞이는 원인이 됩니다.
     const rows=[];
     for(const it of items||[]){
         const str=String(it.str||'').trim(); if(!str) continue;
-        const x=it.transform?.[4]||0, y=it.transform?.[5]||0;
-        let row=rows.find(r=>Math.abs(r.y-y)<=2.4);
+        const x=Number(it.transform?.[4]||0), y=Number(it.transform?.[5]||0);
+        const width=Math.max(0,Number(it.width||0));
+        let row=rows.find(r=>Math.abs(r.y-y)<=2.8);
         if(!row){ row={y,items:[]}; rows.push(row); }
-        row.items.push({x,str});
+        row.items.push({x,width,str});
     }
     rows.sort((a,b)=>b.y-a.y);
-    return rows.map(r=>r.items.sort((a,b)=>a.x-b.x).map(v=>v.str).join(' ')).join('\n');
+    return rows.map(r=>{
+        const cols=r.items.sort((a,b)=>a.x-b.x); let out='',prevEnd=null;
+        for(const col of cols){
+            if(!out){ out=col.str; prevEnd=col.x+col.width; continue; }
+            const gap=prevEnd===null?0:col.x-prevEnd;
+            // 큰 X 간격은 표의 다음 셀로 보고 명시적 구분자를 둡니다.
+            out+=(gap>22?' | ':gap>7?'  ':' ')+col.str;
+            prevEnd=Math.max(prevEnd||0,col.x+col.width);
+        }
+        return out;
+    }).join('\n');
 }
 
 
 function preprocessOcrCanvas(sourceCanvas){
-    // 스캔 문서에서 옅은 표선·회색 배경 때문에 CAS/함유량이 깨지는 것을 줄이는 전처리.
+    // MSDS 표의 얇은 선과 회색 배경을 줄이고 작은 한글/CAS 숫자의 획을 살립니다.
     const canvas=document.createElement('canvas');
     canvas.width=sourceCanvas.width; canvas.height=sourceCanvas.height;
-    const ctx=canvas.getContext('2d',{willReadFrequently:true});
-    ctx.drawImage(sourceCanvas,0,0);
+    const ctx=canvas.getContext('2d',{willReadFrequently:true}); ctx.drawImage(sourceCanvas,0,0);
     try{
-        const img=ctx.getImageData(0,0,canvas.width,canvas.height); const d=img.data;
+        const img=ctx.getImageData(0,0,canvas.width,canvas.height), d=img.data;
         for(let i=0;i<d.length;i+=4){
             const y=0.299*d[i]+0.587*d[i+1]+0.114*d[i+2];
-            // contrast stretch around middle gray; keep text edges rather than hard thresholding.
-            const c=Math.max(0,Math.min(255,(y-128)*1.42+128));
+            const gamma=255*Math.pow(y/255,0.92);
+            const c=Math.max(0,Math.min(255,(gamma-128)*1.58+128));
             d[i]=d[i+1]=d[i+2]=c;
         }
         ctx.putImageData(img,0,0);
@@ -82,82 +94,116 @@ function preprocessOcrCanvas(sourceCanvas){
     return canvas;
 }
 
-async function ocrCanvas(canvas){
-    if(!window.Tesseract) return '';
+let __sgwOcrWorker=null;
+async function getOcrWorker(){
+    if(!window.Tesseract) return null;
+    if(__sgwOcrWorker) return __sgwOcrWorker;
     try{
-        const prepared=preprocessOcrCanvas(canvas);
-        const result=await Tesseract.recognize(prepared,'kor+eng',{preserve_interword_spaces:'1',logger:m=>{
-            if(m && m.status==='recognizing text' && typeof updateProgress==='function'){
-                const pct=Math.round((m.progress||0)*100);
+        __sgwOcrWorker=await Tesseract.createWorker('kor+eng',1,{logger:m=>{
+            if(m?.status==='recognizing text'){
                 const el=document.getElementById('progressPercent');
-                if(el) el.textContent='OCR '+pct+'%';
+                if(el)el.textContent='OCR '+Math.round((m.progress||0)*100)+'%';
             }
         }});
+        // 표가 많은 한국형 MSDS에 맞춰 한 개의 정렬된 텍스트 블록으로 우선 인식합니다.
+        // 실패/저품질 시 extractPdfText에서 원문 PDF 텍스트와 교차 사용합니다.
+        try{ await __sgwOcrWorker.setParameters({tessedit_pageseg_mode:'6',preserve_interword_spaces:'1',user_defined_dpi:'300'}); }catch(e){}
+        return __sgwOcrWorker;
+    }catch(e){ console.warn('[OCR worker] 생성 실패, 단일 인식으로 전환',e); return null; }
+}
+async function ocrCanvas(canvas){
+    if(!window.Tesseract) return '';
+    const prepared=preprocessOcrCanvas(canvas);
+    try{
+        const worker=await getOcrWorker();
+        if(worker){
+            const result=await worker.recognize(prepared,{rotateAuto:true,preserve_interword_spaces:'1'});
+            return result?.data?.text||'';
+        }
+        const result=await Tesseract.recognize(prepared,'kor+eng',{rotateAuto:true,preserve_interword_spaces:'1'});
         return result?.data?.text||'';
     }catch(e){ console.warn('[OCR] 실패',e); return ''; }
 }
-
+async function waitForPdfJs(timeout=9000){
+    if(window.pdfjsLib)return window.pdfjsLib;
+    await new Promise(resolve=>{
+        let done=false; const finish=()=>{if(done)return;done=true;resolve();};
+        window.addEventListener('pdfjs-ready',finish,{once:true}); setTimeout(finish,timeout);
+    });
+    return window.pdfjsLib||null;
+}
+async function renderPdfPage(page,scale=2.65){
+    const viewport=page.getViewport({scale});
+    const canvas=document.createElement('canvas');
+    canvas.width=Math.ceil(viewport.width); canvas.height=Math.ceil(viewport.height);
+    await page.render({canvasContext:canvas.getContext('2d',{willReadFrequently:true}),viewport}).promise;
+    return canvas;
+}
+function nativeMsdsQuality(text){
+    const s1=extractMSDSSection(text,1), s2=extractMSDSSection(text,2), s3=extractMSDSSection(text,3), s15=extractMSDSSection(text,15);
+    const productLabel=/(?:^|\n)\s*(?:[가-하]\s*[.)]\s*)?(?:제품명|제품의\s*명칭|화학제품명)\s*(?:[:：|]|\s{2,})/im.test(s1);
+    const validCas=(s3.match(/\b\d{2,7}-\d{2}-\d\b/g)||[]).filter(isValidCasChecksum).length;
+    const sections=[s1,s2,s3,s15].filter(x=>x&&x.length>30).length;
+    const score=sections+(productLabel?2:0)+(validCas?2:0)+(s2.length>80?1:0);
+    return {score,sections,productLabel,validCas,s1,s2,s3,s15};
+}
+function pageLooksCritical(text){
+    const t=String(text||'');
+    return /(?:^|\n)\s*(?:1|2|3|15)\s*[.)]?\s*(?:화학제품|유해성|구성성분|법적)/m.test(t)
+        || /제품명|CAS\s*(?:No\.?|번호)|함유량|유해.?위험\s*문구|법적\s*규제현황/.test(t);
+}
 async function extractPdfText(file){
-    if(!window.pdfjsLib) return '';
+    const lib=await waitForPdfJs(); if(!lib)throw new Error('PDF 분석 모듈을 불러오지 못했습니다. 페이지를 새로고침한 뒤 다시 시도해 주세요.');
     try{
         const buffer=await file.arrayBuffer();
-        const pdf=await pdfjsLib.getDocument({data:buffer}).promise;
-        const maxPages=Math.min(pdf.numPages,30);
-        const pageTexts=[];
-        let signalChars=0;
+        const pdf=await lib.getDocument({data:buffer,useSystemFonts:true,isEvalSupported:false,stopAtErrors:false}).promise;
+        const maxPages=Math.min(pdf.numPages,60), pageNative=[];
         for(let i=1;i<=maxPages;i++){
             const page=await pdf.getPage(i);
-            const content=await page.getTextContent({normalizeWhitespace:true});
+            const content=await page.getTextContent({includeMarkedContent:true,disableNormalization:false});
             const txt=groupPdfItemsToLines(content.items);
-            pageTexts.push(`\n[PAGE ${i}]\n${txt}`);
-            signalChars += txt.replace(/\s/g,'').length;
+            pageNative.push({page:i,text:txt,chars:txt.replace(/\s/g,'').length});
         }
-        let text=normalizeMsdsText(pageTexts.join('\n'));
-        const hasKey=/구성\s*성분|유해성\s*[·ㆍ\-]?\s*위험성|법적\s*규제/.test(text);
-        if(signalChars>=900 && hasKey) return text;
+        let text=normalizeMsdsText(pageNative.map(x=>`\n[PAGE ${x.page}]\n${x.text}`).join('\n'));
+        const totalChars=pageNative.reduce((a,x)=>a+x.chars,0), quality=nativeMsdsQuality(text);
 
-        // 스캔형 PDF 보조 OCR: 텍스트가 부족한 경우 앞쪽 최대 6페이지.
-        if(window.Tesseract){
-            const ocr=[];
-            const ocrPages=Math.min(pdf.numPages,6);
-            for(let i=1;i<=ocrPages;i++){
-                const page=await pdf.getPage(i);
-                const viewport=page.getViewport({scale:2.15});
-                const canvas=document.createElement('canvas');
-                canvas.width=Math.ceil(viewport.width); canvas.height=Math.ceil(viewport.height);
-                await page.render({canvasContext:canvas.getContext('2d',{willReadFrequently:true}),viewport}).promise;
-                const t=await ocrCanvas(canvas);
-                if(t) ocr.push(`\n[OCR PAGE ${i}]\n${t}`);
-            }
-            if(ocr.length) text=normalizeMsdsText(text+'\n'+ocr.join('\n'));
+        // 텍스트 PDF라도 1항 제품명 또는 3항 CAS가 제대로 잡히지 않으면 OCR을 보조 실행합니다.
+        if(totalChars>=1800 && quality.score>=7 && quality.productLabel && quality.validCas>=1) return text;
+
+        // 스캔/혼합형 PDF: 중요 항목이 있는 페이지 + 앞/뒤 페이지 + 텍스트가 빈약한 페이지를 선택 OCR합니다.
+        const candidate=new Set([1,2,3,4,5,maxPages,maxPages-1,maxPages-2,maxPages-3].filter(x=>x>=1&&x<=maxPages));
+        pageNative.filter(x=>pageLooksCritical(x.text)).forEach(x=>candidate.add(x.page));
+        pageNative.filter(x=>x.chars<160).slice(0,8).forEach(x=>candidate.add(x.page));
+        const pages=[...candidate].sort((a,b)=>a-b).slice(0,16), ocr=[];
+        for(const i of pages){
+            const page=await pdf.getPage(i), canvas=await renderPdfPage(page,2.9), t=normalizeMsdsText(await ocrCanvas(canvas));
+            if(t)ocr.push(`\n[OCR PAGE ${i}]\n${t}`);
+        }
+        if(ocr.length){
+            // 품질이 떨어진 native section보다 OCR critical section이 먼저 탐색되도록 OCR을 앞에 둡니다.
+            const hybrid=normalizeMsdsText(ocr.join('\n')+'\n'+text);
+            const hq=nativeMsdsQuality(hybrid);
+            if(hq.score>=quality.score) text=hybrid;
+            else text=normalizeMsdsText(text+'\n'+ocr.join('\n'));
         }
         return text;
-    }catch(e){ console.warn('[PDF] 텍스트 추출 실패',e); return ''; }
+    }catch(e){ console.warn('[PDF] 텍스트 추출 실패',e); throw new Error('PDF 자동추출 실패: '+(e?.message||'알 수 없는 오류')); }
 }
-
 async function extractImageText(file){
-    if(!window.Tesseract) return '';
+    if(!window.Tesseract)throw new Error('OCR 모듈을 불러오지 못했습니다.');
     try{
         const bitmap=await createImageBitmap(file);
-        const scale=Math.min(2.2, Math.max(1, 2200/Math.max(bitmap.width,1)));
-        const canvas=document.createElement('canvas');
-        canvas.width=Math.max(1,Math.round(bitmap.width*scale)); canvas.height=Math.max(1,Math.round(bitmap.height*scale));
-        canvas.getContext('2d',{willReadFrequently:true}).drawImage(bitmap,0,0,canvas.width,canvas.height);
-        if(bitmap.close) bitmap.close();
+        const scale=Math.min(3.2,Math.max(1.25,3000/Math.max(bitmap.width,1)));
+        const canvas=document.createElement('canvas'); canvas.width=Math.max(1,Math.round(bitmap.width*scale)); canvas.height=Math.max(1,Math.round(bitmap.height*scale));
+        canvas.getContext('2d',{willReadFrequently:true}).drawImage(bitmap,0,0,canvas.width,canvas.height); if(bitmap.close)bitmap.close();
         return normalizeMsdsText(await ocrCanvas(canvas));
-    }catch(e){
-        console.warn('[이미지 OCR] 전처리 실패, 원본 OCR 재시도',e);
-        try{const result=await Tesseract.recognize(file,'kor+eng',{preserve_interword_spaces:'1'});return normalizeMsdsText(result?.data?.text||'');}
-        catch(err){console.warn('[이미지 OCR] 실패',err);return '';}
-    }
+    }catch(e){ console.warn('[이미지 OCR] 실패',e); throw new Error('이미지 OCR 실패: '+(e?.message||'알 수 없는 오류')); }
 }
-
 async function extractSourceText(file){
-    const name=(file?.name||'').toLowerCase();
-    const type=file?.type||'';
-    if(type==='application/pdf' || name.endsWith('.pdf')) return extractPdfText(file);
-    if(type.startsWith('image/') || /\.(png|jpe?g|webp|tif?f)$/i.test(name)) return extractImageText(file);
-    throw new Error('현재 자동추출은 PDF 또는 이미지(PNG/JPG/WEBP)를 지원합니다. HWP/DOCX는 PDF로 변환 후 업로드해 주세요.');
+    const name=(file?.name||'').toLowerCase(), type=file?.type||'';
+    if(type==='application/pdf'||name.endsWith('.pdf'))return extractPdfText(file);
+    if(type.startsWith('image/')||/\.(png|jpe?g|webp|tif?f)$/i.test(name))return extractImageText(file);
+    throw new Error('자동추출은 PDF 또는 이미지(PNG/JPG/WEBP/TIFF)를 지원합니다. HWP/DOCX는 PDF로 변환 후 업로드해 주세요.');
 }
 
 function findSectionStart(text,n){
@@ -177,29 +223,132 @@ function extractMSDSSection(text,n){
     return text.slice(start,end).trim();
 }
 
-function valueAfterLabel(section, labels){
+function lineAfterExactLabel(lines,index,labelRe){
+    const line=lines[index]||'';
+    const m=line.match(labelRe);
+    if(!m)return '';
+    const same=String(m[1]||'').replace(/^\s*[:：\-]?\s*/,'').trim();
+    if(same && !/^(해당없음|없음)$/i.test(same))return same;
+    const next=lines[index+1]||'';
+    if(next&&!/^\s*(?:[가-하]|\d+)\s*[.)]/.test(next))return next.trim();
+    return '';
+}
+function exactLabelValue(section,labels){
     const ls=linesOf(section);
     for(let i=0;i<ls.length;i++){
+        const clean=ls[i].replace(/^[○●•▪■□◆◇▶▷※*\-\s]+/,'').replace(/^[가-하]\s*[.)]\s*/,'');
         for(const label of labels){
-            if(!ls[i].toLowerCase().includes(label.toLowerCase())) continue;
-            let v=ls[i].replace(new RegExp('.*?'+escReg(label)+'\\s*[:：]?\\s*','i'),'').trim();
-            if(v && v!==ls[i] && v.length>1) return v;
-            if(ls[i+1] && !/^\d+\s*[.)]/.test(ls[i+1])) return ls[i+1].trim();
+            const re=new RegExp('^'+escReg(label)+'\\s*(?:[:：|]|\\s{2,})?\\s*(.*)$','i');
+            const v=lineAfterExactLabel([clean,...ls.slice(i+1)],0,re); if(v)return v;
         }
     }
     return '';
 }
-function extractProductProfile(text,fileName){
-    const s1=extractMSDSSection(text,1);
-    const fallback=String(fileName||'MSDS').replace(/\.[^.]+$/,'').replace(/[_-]+/g,' ').trim();
-    return {
-        name:valueAfterLabel(s1,['제품명','제품의 명칭','화학제품명','물질명'])||fallback,
-        manufacturer:valueAfterLabel(s1,['제조자명','제조자','제조업체명','회사명'])||'원본 MSDS 확인',
-        supplier:valueAfterLabel(s1,['공급자명','공급자','긴급전화번호'])||'원본 MSDS 확인',
-        raw:s1
-    };
+function labelValueLoose(section,labels){
+    const ls=linesOf(section);
+    for(let i=0;i<ls.length;i++){
+        let line=ls[i].replace(/^[○●•▪■□◆◇▶▷※*\-\s]+/,'').replace(/^[가-하]\s*[.)]\s*/,'').trim();
+        for(const label of labels){
+            const re=new RegExp('^'+escReg(label)+'\\s*(?:[:：|]|\\s{2,})?\\s*(.*)$','i');
+            const m=line.match(re); if(!m)continue;
+            let v=String(m[1]||'').replace(/^\s*[|:：\-]\s*/,'').trim();
+            if(!v || /^(해당없음|없음)$/i.test(v)){
+                for(let j=i+1;j<Math.min(ls.length,i+4);j++){
+                    const n=ls[j].replace(/^[○●•▪■□◆◇▶▷※*\-\s]+/,'').trim();
+                    if(!n)continue;
+                    if(new RegExp('^(?:'+labels.map(escReg).join('|')+')\\s*(?:[:：|]|$)','i').test(n))break;
+                    if(/^\s*(?:[가-하]|\d+)\s*[.)]/.test(n))break;
+                    v=n.replace(/^\s*[|:：\-]\s*/,'').trim(); break;
+                }
+            }
+            if(v)return v;
+        }
+    }
+    return '';
 }
-
+function labelValueRegex(section,regex){
+    const ls=linesOf(section);
+    for(let i=0;i<ls.length;i++){
+        const line=ls[i].replace(/^[○●•▪■□◆◇▶▷※*\-\s]+/,'').replace(/^[가-하]\s*[.)]\s*/,'').trim();
+        const m=line.match(regex); if(!m)continue;
+        let v=String(m[1]||'').replace(/^\s*[|:：\-]\s*/,'').trim();
+        if(v)return v.includes('|')?v.split('|')[0].trim():v;
+        for(let j=i+1;j<Math.min(ls.length,i+4);j++){
+            const n=ls[j].replace(/^[○●•▪■□◆◇▶▷※*\-\s]+/,'').trim();
+            if(!n)continue;
+            if(/^\s*(?:[가-하]|\d+)\s*[.)]/.test(n))break;
+            return n.includes('|')?n.split('|')[0].trim():n;
+        }
+    }
+    return '';
+}
+function extractSupplierProfile(section){
+    const ls=linesOf(section);
+    const cleanLine=x=>String(x||'').replace(/^[○●•▪■□◆◇▶▷※*\-\s]+/,'').replace(/^[가-하]\s*[.)]\s*/,'').trim();
+    const phoneRe=/(?:\+?82[-\s)]*)?(?:0\d{1,2}[-\s)]*)?\d{3,4}[-\s]\d{4}|\b\d{2,4}-\d{3,4}-\d{4}\b/;
+    let start=ls.findIndex(x=>/(?:공급자|제조자|공급자\s*또는\s*제조자|공급자\s*및\s*제조자)\s*(?:정보|및\s*긴급전화번호)?/i.test(x));
+    const scope=start>=0?ls.slice(Math.max(0,start),Math.min(ls.length,start+38)):ls;
+    const block=scope.map(cleanLine).join('\n');
+    let company=labelValueRegex(block,/^(?:회사명|공급자명|공급업체명|제조자명|제조업체명|공급자|제조자|회사)\s*(?:\([^)]*\))?\s*(?:[:：|]|\s{2,})?\s*(.*)$/i)
+        ||labelValueLoose(block,['회사명','공급자명','공급업체명','제조자명','제조업체명','공급자','제조자','회사']);
+    let phone=labelValueRegex(block,/^(?:긴급\s*(?:연락)?\s*전화번호|긴급전화|전화번호|연락처|전화)\s*(?:\([^)]*\))?\s*(?:[:：|]|\s{2,})?\s*(.*)$/i)
+        ||labelValueLoose(block,['긴급전화번호','긴급 연락전화번호','긴급전화','전화번호','연락처','전화']);
+    const address=labelValueRegex(block,/^(?:주소|소재지)\s*(?:\([^)]*\))?\s*(?:[:：|]|\s{2,})?\s*(.*)$/i)
+        ||labelValueLoose(block,['주소','소재지']);
+    if(phone){ const pm=phone.match(phoneRe); if(pm) phone=pm[0]; }
+    if(!phone){ for(const line of scope){const pm=cleanLine(line).match(phoneRe);if(pm){phone=pm[0];break;}} }
+    // '공급자 정보' 같은 제목 자체를 회사명으로 채택하지 않습니다.
+    if(company && /^(공급자|제조자)(?:\s*(?:정보|및\s*긴급전화번호))?$/i.test(company)) company='';
+    // 회사명 라벨이 없으면 공급자 블록에서 주소/전화/항목 제목이 아닌 첫 실질 문자열을 보조 후보로 사용합니다.
+    if(!company && start>=0){
+        for(const raw of scope.slice(1,9)){
+            const line=cleanLine(raw).split('|')[0].trim();
+            if(!line||phoneRe.test(line)||/^(주소|소재지|전화|연락처|긴급|담당|팩스|FAX|전자메일|이메일|e-?mail)/i.test(line))continue;
+            if(/^(공급자|제조자).*정보$/i.test(line))continue;
+            if(line.length>=2&&line.length<=90){company=line.replace(/^(?:회사명|공급자명|제조자명)\s*[:：]?\s*/,'');break;}
+        }
+    }
+    const display=[company,phone?`연락처 ${phone}`:''].filter(Boolean).join(' · ')||'원본 MSDS 1항 공급자 정보 확인';
+    return {company,phone,address,display};
+}
+function cleanProductValue(v){
+    let x=String(v||'').replace(/^[\-|:：\s]+/,'').trim();
+    x=x.split(/\s+(?:제품의\s*권고|권고\s*용도|사용상의\s*제한|공급자\s*정보|회사명|나\s*[.)])/)[0].trim();
+    if(!x || /^(혼합물|단일물질|제품\s*형태\s*[:：]?)/.test(x))return '';
+    // PDF 표에서 다음 셀이 붙은 경우 첫 셀까지만 사용합니다.
+    if(x.includes('|')) x=x.split('|')[0].trim();
+    return x;
+}
+function extractProductProfile(text,fileName){
+    const s1=extractMSDSSection(text,1), fallback=String(fileName||'MSDS').replace(/\.[^.]+$/,'').replace(/[_-]+/g,' ').trim();
+    const ls=linesOf(s1);
+    let rawName=labelValueLoose(s1,['제품명','제품의 명칭','화학제품명','제품 명칭'])
+        ||labelValueRegex(s1,/^(?:제품명|제품의\s*명칭|화학제품명|제품\s*명칭)\s*(?:\([^)]*\))?\s*(?:[:：|]|\s{2,})?\s*(.*)$/i);
+    // 한국형 MSDS 1항의 '가. 제품명' 표/줄바꿈 형태를 별도 복구합니다.
+    if(!cleanProductValue(rawName)){
+        for(let i=0;i<ls.length;i++){
+            const line=ls[i].replace(/^[○●•▪■□◆◇▶▷※*\-\s]+/,'').trim();
+            if(!/(?:^|\s)(?:가\s*[.)]\s*)?(?:제품명|제품의\s*명칭|화학제품명|제품\s*명칭)(?:\s|[:：|]|$)/i.test(line))continue;
+            let same=line.replace(/^.*?(?:제품명|제품의\s*명칭|화학제품명|제품\s*명칭)\s*(?:\([^)]*\))?\s*(?:[:：|]|\s{2,})?/i,'').trim();
+            same=cleanProductValue(same); if(same){rawName=same;break;}
+            for(let j=i+1;j<Math.min(ls.length,i+5);j++){
+                const n=cleanProductValue(ls[j]);
+                if(!n)continue;
+                if(/^(?:나|다|라)\s*[.)]|권고\s*용도|사용상의\s*제한|공급자|제조자/i.test(n))break;
+                rawName=n;break;
+            }
+            if(cleanProductValue(rawName))break;
+        }
+    }
+    let name=cleanProductValue(rawName);
+    // 잘못 인식된 제품형태/혼합물 라벨은 파일명보다도 신뢰하지 않습니다.
+    if(!name||/^(?:제품\s*형태\s*[:：]?\s*)?(?:혼합물|단일\s*물질|단일물질)$/i.test(name))name=fallback;
+    const supplier=extractSupplierProfile(s1);
+    const manufacturer=labelValueLoose(s1,['제조자명','제조자','제조업체명'])
+        ||labelValueRegex(s1,/^(?:제조자명|제조업체명|제조자)\s*(?:\([^)]*\))?\s*(?:[:：|]|\s{2,})?\s*(.*)$/i)
+        ||supplier.company||'원본 MSDS 1항 확인';
+    return {name,manufacturer,supplier:supplier.display,supplierCompany:supplier.company,supplierPhone:supplier.phone,supplierAddress:supplier.address,raw:s1};
+}
 function inferPictogramsFromHCodes(codes){
     const set=new Set();
     for(const codeRaw of codes||[]){
@@ -321,48 +470,83 @@ function parseContentRange(str){
 }
 function cleanChemicalName(s){
     return String(s||'')
+        .replace(/\(\s*\)/g,' ')
+        .replace(/[□■☐☑✓✔]+/g,' ')
         .replace(/(CAS\s*(No\.?|번호)?|식별번호|함유량\s*\(?%?\)?|화학물질명|관용명|이명|구성성분.*)/gi,' ')
         .replace(/[|,:;]+/g,' ').replace(/\s+/g,' ').trim().replace(/^[\-·•\s]+|[\-·•\s]+$/g,'');
 }
+function normalizeCasOcrToken(token){
+    const raw=String(token||'').replace(/[‐‑‒–—−]/g,'-').replace(/\s+/g,'');
+    const fixed=raw.replace(/[Oo]/g,'0').replace(/[Il|]/g,'1');
+    return fixed;
+}
+function casHits(line){
+    const re=/\b[0-9OoIl|]{2,7}\s*-\s*[0-9OoIl|]{2}\s*-\s*[0-9OoIl|]\b/g;
+    return [...String(line||'').matchAll(re)].map(m=>({raw:m[0],index:m.index||0,cas:normalizeCasOcrToken(m[0])}));
+}
+function chemicalNameScore(s){
+    const x=cleanChemicalName(s); if(!x)return -99;
+    let score=Math.min(6,x.length/8);
+    if(/[가-힣A-Za-z]/.test(x))score+=3;
+    if(/^(구성성분|화학물질명|관용명|이명|CAS|함유량|영업비밀|번호|비고)$/i.test(x))score-=10;
+    if(/^\d/.test(x))score-=5;
+    if(/제품\s*형태|혼합물|단일물질/.test(x))score-=3;
+    return score;
+}
+function chooseChemicalName(candidates){
+    return candidates.map(v=>({v:cleanChemicalName(v),score:chemicalNameScore(v)})).filter(x=>x.v).sort((a,b)=>b.score-a.score)[0]?.v||'물질명 확인 필요';
+}
 function extractComposition(text){
     const section=extractMSDSSection(text,3);
-    const result={items:[],sum:0,valid:false,warnings:[],rawText:section,sumStatus:'확인 필요'};
-    if(!section){ result.warnings.push('MSDS 3항을 찾지 못했습니다. 구성성분을 수동 확인하세요.'); return result; }
-    const ls=linesOf(section); const seen=new Set();
+    const result={items:[],sum:0,valid:false,warnings:[],rawText:section,sumStatus:'확인 필요',suspectCas:[]};
+    if(!section){result.warnings.push('MSDS 3항을 찾지 못했습니다. 구성성분을 수동 확인하세요.');return result;}
+    const ls=linesOf(section), seen=new Set();
+    const metaCell=/^(?:화학물질명|구성성분|관용명|이명|CAS(?:\s*No\.?)?|식별번호|함유량|비고|영업비밀)$/i;
     for(let i=0;i<ls.length;i++){
-        const line=ls[i]; const hits=[...line.matchAll(/\b\d{2,7}\s*-\s*\d{2}\s*-\s*\d\b/g)];
+        const line=ls[i], hits=casHits(line);
         for(const hit of hits){
-            const rawCas=hit[0]; const cas=rawCas.replace(/\s+/g,''); if(seen.has(cas)) continue;
-            const before=line.slice(0,hit.index).trim(); const after=line.slice((hit.index||0)+rawCas.length).trim();
-            let content=parseContentRange(after)||parseContentRange(before);
-            if(!content && ls[i+1] && !/\b\d{2,7}\s*-\s*\d{2}\s*-\s*\d\b/.test(ls[i+1])) content=parseContentRange(ls[i+1]);
-            if(!content && i>0) content=parseContentRange(ls[i-1]);
-            let name=cleanChemicalName(before.replace(/([<>≤≥]?\s*\d{1,3}(?:\.\d+)?\s*(?:[~\-]\s*\d{1,3}(?:\.\d+)?)?\s*%)/g,' '));
-            if(!name && i>0) name=cleanChemicalName(ls[i-1].replace(/\b\d{2,7}\s*-\s*\d{2}\s*-\s*\d\b/g,'').replace(/([<>≤≥]?\s*\d{1,3}(?:\.\d+)?\s*(?:[~\-]\s*\d{1,3}(?:\.\d+)?)?\s*%)/g,' '));
-            if(!name || /^\d/.test(name)) name='물질명 확인 필요';
+            const cas=hit.cas; if(seen.has(cas))continue;
             const casOk=isValidCasChecksum(cas);
-            const confidence=casOk&&content?'높음':casOk?'보통':'검토 필요';
-            result.items.push({name,cas,casChecksumValid:casOk,confidence,content:content?.text||'-',contentNum:content?.num||0,contentMin:content?.min??null,contentMax:content?.max??null,contentRange:!!content?.range});
+            if(!casOk){result.suspectCas.push({raw:hit.raw,normalized:cas,line:line.slice(0,240)});continue;}
+            const cells=line.split(/\s*\|\s*/).map(x=>x.trim()).filter(Boolean);
+            let name='', content=null;
+            if(cells.length>=2){
+                const casIdx=cells.findIndex(c=>casHits(c).some(h=>h.cas===cas));
+                const nameCells=(casIdx>0?cells.slice(0,casIdx):cells).filter(c=>!metaCell.test(cleanChemicalName(c)));
+                name=chooseChemicalName(nameCells.reverse());
+                const contentCells=(casIdx>=0?cells.slice(casIdx+1):cells).concat(cells);
+                for(const c of contentCells){content=parseContentRange(c);if(content)break;}
+            }
+            const before=line.slice(0,hit.index).trim(), after=line.slice(hit.index+hit.raw.length).trim();
+            const window=[ls[i-2]||'',ls[i-1]||'',line,ls[i+1]||'',ls[i+2]||''];
+            if(!content)content=parseContentRange(after)||parseContentRange(before);
+            if(!content){for(const w of [ls[i+1],ls[i-1],ls[i+2],ls[i-2]]){if(!w||casHits(w).length)continue;content=parseContentRange(w);if(content)break;}}
+            const stripMeta=v=>String(v||'').replace(new RegExp(escReg(hit.raw),'g'),' ').replace(/([<>≤≥]?\s*\d{1,3}(?:\.\d+)?\s*(?:[~\-]\s*\d{1,3}(?:\.\d+)?)?\s*%)/g,' ');
+            if(!name||name==='물질명 확인 필요'){
+                const candidates=[stripMeta(before),stripMeta(line),stripMeta(ls[i-1]),stripMeta(ls[i+1])];
+                name=chooseChemicalName(candidates);
+            }
+            const confidence=content&&name!=='물질명 확인 필요'?'높음':(content||name!=='물질명 확인 필요')?'보통':'검토 필요';
+            result.items.push({name,cas,casChecksumValid:true,confidence,content:content?.text||'-',contentNum:content?.num||0,contentMin:content?.min??null,contentMax:content?.max??null,contentRange:!!content?.range,sourceWindow:window.join(' | ').slice(0,700)});
             seen.add(cas);
         }
     }
-    // OCR에서 CAS가 빠졌더라도 “물질명 + 함유량” 형태가 명확하면 검수용 행으로 보존합니다.
     if(result.items.length===0){
         for(const line of ls){
-            const content=parseContentRange(line); if(!content) continue;
-            let name=cleanChemicalName(line.replace(/([<>≤≥]?\s*\d{1,3}(?:\.\d+)?\s*(?:[~\-]\s*\d{1,3}(?:\.\d+)?)?\s*%)/g,' '));
-            if(!name || /^(함유량|구성성분|CAS)/i.test(name)) continue;
+            const content=parseContentRange(line);if(!content)continue;
+            const name=chooseChemicalName([line.replace(/([<>≤≥]?\s*\d{1,3}(?:\.\d+)?\s*(?:[~\-]\s*\d{1,3}(?:\.\d+)?)?\s*%)/g,' ')]);
+            if(name==='물질명 확인 필요')continue;
             result.items.push({name,cas:'-',casChecksumValid:null,confidence:'검토 필요',content:content.text,contentNum:content.num,contentMin:content.min,contentMax:content.max,contentRange:!!content.range,needsCas:true});
         }
     }
     result.sum=Math.round(result.items.reduce((a,c)=>a+(c.contentNum||0),0)*10)/10;
     result.valid=result.items.length>0;
-    if(!result.items.length) result.warnings.push('구성성분을 자동 인식하지 못했습니다. 스캔 품질을 확인하거나 수동 입력하세요.');
-    const badCas=result.items.filter(x=>x.cas!=='-'&&x.casChecksumValid===false); if(badCas.length) result.warnings.push(`${badCas.length}개 CAS No.의 체크디지트가 맞지 않습니다. OCR 오인식 여부를 원본과 대조하세요.`);
-    const missingCas=result.items.filter(x=>x.cas==='-').length; if(missingCas) result.warnings.push(`${missingCas}개 성분의 CAS No.를 인식하지 못했습니다. 원본 3항에서 보완하세요.`);
-    const missing=result.items.filter(x=>x.content==='-').length; if(missing) result.warnings.push(`${missing}개 성분의 함유량을 인식하지 못했습니다. MSDS 3항과 대조하세요.`);
-    if(result.items.some(x=>x.contentRange)) result.warnings.push('범위 함유량은 중간값으로 합계만 참고 표시합니다. 범위 자체가 원본 기준입니다.');
-    if(result.sum>=95&&result.sum<=105) result.sumStatus='단순 합계 약 100%'; else if(result.items.length) result.sumStatus='범위·영업비밀·누락 여부 확인';
+    if(!result.items.length)result.warnings.push('구성성분을 자동 인식하지 못했습니다. 스캔 품질을 확인하거나 수동 입력하세요.');
+    if(result.suspectCas.length)result.warnings.push(`${result.suspectCas.length}개 CAS 후보가 체크디지트 검증을 통과하지 못해 자동등록에서 제외되었습니다. 원본 3항에서 수동 확인하세요.`);
+    const missingCas=result.items.filter(x=>x.cas==='-').length;if(missingCas)result.warnings.push(`${missingCas}개 성분의 CAS No.를 인식하지 못했습니다. 원본 3항에서 보완하세요.`);
+    const missing=result.items.filter(x=>x.content==='-').length;if(missing)result.warnings.push(`${missing}개 성분의 함유량을 인식하지 못했습니다. MSDS 3항과 대조하세요.`);
+    if(result.items.some(x=>x.contentRange))result.warnings.push('범위 함유량은 중간값으로 합계만 참고 표시하며 원본 범위값을 그대로 보존합니다.');
+    result.sumStatus=(result.sum>=95&&result.sum<=105)?'단순 합계 약 100%':(result.items.length?'범위·영업비밀·누락 여부 확인':'확인 필요');
     return result;
 }
 function triStateKeyword(section, keyword){
@@ -381,7 +565,7 @@ function triStateCmr(section, keyword){
     let value=null;
     for(const line of contexts){
         if(/해당\s*없|분류\s*되지|비대상|없음|자료\s*없/.test(line)) value=false;
-        else if(/(?:구분|category|cat\.?)[\s:.-]*(?:1A|1B|1)|1A|1B|해당|대상/i.test(line)) value=true;
+        else if(/(?:구분|category|cat\.?)[\s:.-]*(?:1A|1B|1)|\b1A\b|\b1B\b|해당|대상/i.test(line)) value=true;
     }
     return {value,evidence:contexts.slice(0,5)};
 }
@@ -436,6 +620,9 @@ async function parseMSDSFile(file){
     base.subtitle=comp.items[0]?.cas||'원본 MSDS 기준';
     base.manufacturer=product.manufacturer;
     base.supplier=product.supplier;
+    base.supplierCompany=product.supplierCompany||'';
+    base.supplierPhone=product.supplierPhone||'';
+    base.supplierAddress=product.supplierAddress||'';
     base.cas=comp.items[0]?.cas||'-';
     base.signalWord=hazard.signalWord;
     base.pictograms=hazard.pictograms;
@@ -473,7 +660,8 @@ async function parseMSDSFile(file){
     const score=[trace.section1,trace.section2,trace.section3,trace.section15].filter(Boolean).length + (comp.items.length?1:0) + (hazard.hCodes.length?1:0);
     base.matchConfidence=score>=5?'높음 (MSDS 주요 항목 직접 추출)':score>=3?'보통 (자동추출 후 원본 대조 필요)':'검토 필요 (OCR/수동확인 권장)';
     base.matchReason=`1항 ${trace.section1?'확인':'미확인'} · 2항 ${trace.section2?'확인':'미확인'} · 3항 ${trace.section3?'확인':'미확인'} · 15항 ${trace.section15?'확인':'미확인'}`;
-    base.rawMsdsText=sourceText.slice(0,60000);
+    base.extractionEngine='PDF.js 6.3.289 + Tesseract.js 7.0.0 · 레이아웃 보존 + 중요항목 선택 OCR';
+    base.rawMsdsText=sourceText.slice(0,90000);
     return base;
 }
 

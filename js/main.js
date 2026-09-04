@@ -320,6 +320,13 @@
     Object.keys(groups).forEach(key => {
       if (key === 'dup') {
         groups[key].sort((a, b) => String(a.title || a.id).localeCompare(String(b.title || b.id)));
+      } else if (key === 'safety') {
+        // 산업안전기사 랜덤 120제는 가장 자주 쓰는 퀵런처이므로 항상 첫 카드에 둡니다.
+        groups[key].sort((a, b) => {
+          if (a.id === 'random') return -1;
+          if (b.id === 'random') return 1;
+          return getDateKey(b).localeCompare(getDateKey(a));
+        });
       } else {
         groups[key].sort((a, b) => getDateKey(b).localeCompare(getDateKey(a)));
       }

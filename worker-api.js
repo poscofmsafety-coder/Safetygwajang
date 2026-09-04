@@ -6,6 +6,7 @@ export default {
     if (url.pathname === '/api/health') return apiHealth(env);
     if (url.pathname === '/api/msds/lookup') return msdsLookup(request, env);
     if (url.pathname === '/api/msds/search') return msdsSearch(request, env);
+    if (url.pathname === '/api/news') return safetyNews(request, env);
     return env.ASSETS.fetch(request);
   }
 };
@@ -15,7 +16,14 @@ function json(data, status=200){
 }
 function apiHealth(env){
   const configured=Boolean(env.KOSHA_API_KEY);
-  return json({ok:true,configured,message:configured?'KOSHA 공공데이터 인증키 설정됨':'Cloudflare Secret KOSHA_API_KEY가 아직 설정되지 않았습니다.'});
+  const naverHubConfigured=Boolean(env.NAVER_API_HUB_CLIENT_ID&&env.NAVER_API_HUB_CLIENT_SECRET);
+  const naverLegacyConfigured=Boolean(env.NAVER_CLIENT_ID&&env.NAVER_CLIENT_SECRET);
+  return json({
+    ok:true, configured, koshaConfigured:configured,
+    naverNewsConfigured:naverHubConfigured||naverLegacyConfigured,
+    naverMode:naverHubConfigured?'API_HUB':(naverLegacyConfigured?'LEGACY':'GOOGLE_ONLY'),
+    message:configured?'KOSHA 공공데이터 인증키 설정됨':'Cloudflare Secret KOSHA_API_KEY가 아직 설정되지 않았습니다.'
+  });
 }
 function decodeXml(s){return String(s||'').replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g,'$1').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&amp;/g,'&').replace(/&quot;/g,'"').replace(/&#39;/g,"'");}
 function stripTags(s){return decodeXml(String(s||'').replace(/<[^>]+>/g,' ')).replace(/\s+/g,' ').trim();}
@@ -55,21 +63,52 @@ async function koshaFetch(path,key,params){
   if(/SERVICE_KEY|APPLICATION_ERROR|ERROR/i.test(text)&&!/<item/i.test(text)){throw new Error(stripTags(text).slice(0,220)||'KOSHA API 오류');}
   return {text,items:parseItems(text)};
 }
-function triFromLines(lines,keyword){
-  const ev=lines.filter(x=>x.includes(keyword));if(!ev.length)return{value:null,evidence:[]};let value=null;
-  for(const line of ev){if(/해당\s*없|비대상|규제\s*없|없음|해당되지|적용\s*안/.test(line))value=false;else if(/해당|대상|규제|관리대상|특별관리/.test(line))value=true;}
-  return {value,evidence:ev.slice(0,5)};
+function normalizeLegalText(v){
+  return String(v||'').replace(/[·ㆍ]/g,' ').replace(/[‐‑‒–—−]/g,'-').replace(/\s+/g,' ').trim();
 }
-function cmrFromLines(lines,keyword){
-  const ev=lines.filter(x=>x.includes(keyword));if(!ev.length)return{value:null,evidence:[]};let value=null;
-  for(const line of ev){if(/해당\s*없|분류\s*되지|비대상|없음|자료\s*없/.test(line))value=false;else if(/(?:구분|category|cat\.?)[\s:.-]*(?:1A|1B|1\b)|\b1A\b|\b1B\b|해당|대상/i.test(line))value=true;}
-  return {value,evidence:ev.slice(0,5)};
+function legalRows(rows){
+  return (rows||[]).flatMap(obj=>Object.entries(obj||{}).map(([k,v])=>{
+    const original=normalizeLegalText(`${k}: ${v}`);
+    return {original,compact:original.replace(/\s+/g,''),lower:original.toLowerCase()};
+  })).filter(x=>x.original.replace(/^[^:]+:\s*/, '').trim());
+}
+function triFromPatterns(rows,patterns){
+  const ev=rows.filter(r=>patterns.some(p=>p.test(r.compact)));
+  if(!ev.length)return{value:null,evidence:[]};
+  let positive=false, negative=false;
+  const neg=/(해당없음|해당되지않|비대상|대상아님|규제없음|적용안됨|자료없음|없음)/;
+  const pos=/(대상물질|측정주기|진단주기|특별관리물질|관리대상유해물질|해당됨|해당|규제대상)/;
+  for(const r of ev){
+    if(neg.test(r.compact)) negative=true;
+    if(pos.test(r.compact) && !neg.test(r.compact)) positive=true;
+  }
+  return {value:positive?true:(negative?false:null),evidence:ev.map(x=>x.original).slice(0,8)};
+}
+function cmrFromPatterns(rows,patterns){
+  const ev=rows.filter(r=>patterns.some(p=>p.test(r.compact)));
+  if(!ev.length)return{value:null,evidence:[]};
+  let positive=false, negative=false;
+  for(const r of ev){
+    if(/(해당없음|분류되지않|비대상|자료없음|없음)/.test(r.compact))negative=true;
+    if(/(구분|category|cat\.?|1A|1B|해당|대상)/i.test(r.compact)&&!/(해당없음|분류되지않|비대상|자료없음)/.test(r.compact))positive=true;
+  }
+  return {value:positive?true:(negative?false:null),evidence:ev.map(x=>x.original).slice(0,8)};
 }
 function parseLegal(detailOrItems){
-  const rows=Array.isArray(detailOrItems)?detailOrItems:[detailOrItems||{}];
-  const lines=rows.flatMap(allValues);const work=triFromLines(lines,'작업환경측정'),health=triFromLines(lines,'특수건강진단'),special=triFromLines(lines,'특별관리물질'),managed=triFromLines(lines,'관리대상유해물질'),carc=cmrFromLines(lines,'발암성'),mut=cmrFromLines(lines,'생식세포 변이원성'),repro=cmrFromLines(lines,'생식독성');
+  const rows=legalRows(Array.isArray(detailOrItems)?detailOrItems:[detailOrItems||{}]);
+  const work=triFromPatterns(rows,[/작업환경측정(?:대상)?물질/,/작업환경측정대상/]);
+  const health=triFromPatterns(rows,[/특수건강진단(?:대상)?물질/,/특수건강진단대상/]);
+  const special=triFromPatterns(rows,[/특별관리물질/]);
+  const managed=triFromPatterns(rows,[/관리대상유해물질/]);
+  const carc=cmrFromPatterns(rows,[/발암성/]);
+  const mut=cmrFromPatterns(rows,[/생식세포변이원성/,/변이원성/]);
+  const repro=cmrFromPatterns(rows,[/생식독성/]);
   const evidence=[...new Set([...work.evidence,...health.evidence,...special.evidence,...managed.evidence,...carc.evidence,...mut.evidence,...repro.evidence])];
-  return{workEnvTarget:work.value,specialHealthTarget:health.value,specialManagement:special.value,managementTarget:managed.value,cmr:{carcinogenic:carc.value,mutagenic:mut.value,reprotoxic:repro.value},evidence,source:'KOSHA MSDS 15항'};
+  return{
+    workEnvTarget:work.value,specialHealthTarget:health.value,specialManagement:special.value,managementTarget:managed.value,
+    cmr:{carcinogenic:carc.value,mutagenic:mut.value,reprotoxic:repro.value},evidence,source:'KOSHA MSDS 15항',
+    parserVersion:'2026-09-04-cas-regulatory-v2'
+  };
 }
 function findChemId(obj){
   const preferred=pick(obj,[/^chemId$/i,/^chem_id$/i,/chem.*id/i,/msds.*id/i]);if(preferred)return preferred;
@@ -108,4 +147,74 @@ async function msdsSearch(request,env){
   if(!env.KOSHA_API_KEY)return json({ok:false,error:'KOSHA_API_KEY secret not configured'},503);
   const u=new URL(request.url);const q=(u.searchParams.get('q')||'').trim();if(!q)return json({ok:false,error:'검색어가 필요합니다.'},400);
   const isCas=validateCas(q);try{const r=await searchChem(env.KOSHA_API_KEY,q,isCas?1:0);return json({ok:true,items:r.items.slice(0,20)});}catch(e){return json({ok:false,error:e.message},502);}
+}
+
+
+function cleanHtmlText(s){
+  return decodeXml(String(s||''))
+    .replace(/<b>/gi,'').replace(/<\/b>/gi,'')
+    .replace(/<[^>]+>/g,' ')
+    .replace(/\s+/g,' ').trim();
+}
+function rssTag(block, tag){
+  const m=String(block||'').match(new RegExp('<'+tag+'(?:\\s[^>]*)?>([\\s\\S]*?)<\\/'+tag+'>','i'));
+  return m?cleanHtmlText(m[1]):'';
+}
+function parseGoogleNewsRss(xml){
+  const out=[];
+  for(const m of String(xml||'').matchAll(/<item(?:\s[^>]*)?>([\s\S]*?)<\/item>/gi)){
+    const b=m[1];
+    const title=rssTag(b,'title');
+    const link=stripTags(b.match(/<link(?:\s[^>]*)?>([\s\S]*?)<\/link>/i)?.[1]||'');
+    const pubDate=rssTag(b,'pubDate');
+    const source=rssTag(b,'source')||'Google 뉴스';
+    if(title&&link)out.push({title,link,pubDate,source,provider:'Google 뉴스'});
+  }
+  return out;
+}
+function canonicalNewsTitle(s){return cleanHtmlText(s).replace(/\s*[-–—|]\s*[^-–—|]{2,40}$/,'').toLowerCase();}
+function dedupeNews(items){
+  const seen=new Set(); const out=[];
+  for(const item of items){
+    const key=canonicalNewsTitle(item.title); if(!key||seen.has(key))continue; seen.add(key); out.push(item);
+  }
+  return out;
+}
+async function googleSafetyNews(){
+  const q=encodeURIComponent('산업안전 OR 안전보건 OR 중대재해 OR 산업재해');
+  const u=`https://news.google.com/rss/search?q=${q}&hl=ko&gl=KR&ceid=KR:ko`;
+  const r=await fetch(u,{headers:{'user-agent':'Safetygwajang/1.0'}});
+  if(!r.ok)throw new Error(`Google News RSS ${r.status}`);
+  return parseGoogleNewsRss(await r.text()).slice(0,14);
+}
+async function naverSafetyNews(env){
+  const hub=env.NAVER_API_HUB_CLIENT_ID&&env.NAVER_API_HUB_CLIENT_SECRET;
+  const legacy=env.NAVER_CLIENT_ID&&env.NAVER_CLIENT_SECRET;
+  if(!hub&&!legacy)return [];
+  const u=new URL(hub?'https://naverapihub.apigw.ntruss.com/search/v1/news':'https://openapi.naver.com/v1/search/news.json');
+  u.searchParams.set('query','산업안전 OR 중대재해 OR 안전보건 OR 산업재해');
+  u.searchParams.set('display','15');u.searchParams.set('sort','date');
+  if(hub)u.searchParams.set('format','json');
+  const headers=hub
+    ? {'X-NCP-APIGW-API-KEY-ID':env.NAVER_API_HUB_CLIENT_ID,'X-NCP-APIGW-API-KEY':env.NAVER_API_HUB_CLIENT_SECRET}
+    : {'X-Naver-Client-Id':env.NAVER_CLIENT_ID,'X-Naver-Client-Secret':env.NAVER_CLIENT_SECRET};
+  const r=await fetch(u,{headers});
+  if(!r.ok)throw new Error(`Naver News API ${r.status}`);
+  const j=await r.json();
+  return (j.items||[]).map(x=>({
+    title:cleanHtmlText(x.title), link:x.originallink||x.link, pubDate:x.pubDate||'',
+    source:'네이버 뉴스', provider:hub?'NAVER API HUB':'네이버 Developers'
+  }));
+}
+async function safetyNews(request,env){
+  const naverConfigured=Boolean((env.NAVER_API_HUB_CLIENT_ID&&env.NAVER_API_HUB_CLIENT_SECRET)||(env.NAVER_CLIENT_ID&&env.NAVER_CLIENT_SECRET));
+  const tasks=[googleSafetyNews().catch(e=>({error:e.message,items:[]}))];
+  if(naverConfigured)tasks.push(naverSafetyNews(env).catch(e=>({error:e.message,items:[]})));
+  const settled=await Promise.all(tasks); const errors=[]; let items=[];
+  for(const x of settled){if(Array.isArray(x))items.push(...x);else if(x&&x.error)errors.push(x.error);}
+  items=dedupeNews(items).sort((a,b)=>Date.parse(b.pubDate||0)-Date.parse(a.pubDate||0)).slice(0,14);
+  return json({
+    ok:items.length>0,items,updatedAt:new Date().toISOString(),naverConfigured,
+    naverMode:env.NAVER_API_HUB_CLIENT_ID?'API_HUB':(env.NAVER_CLIENT_ID?'LEGACY':'OFF'),errors
+  },items.length?200:502);
 }

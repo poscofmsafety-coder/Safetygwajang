@@ -7,7 +7,31 @@
 let healths = JSON.parse(localStorage.getItem('sgw_healths_v6') || '[]');
 function saveHealthLS(){ localStorage.setItem('sgw_healths_v6', JSON.stringify(healths)); }
 function healthEsc(v){ return String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
-function healthTargets(){ return (MATERIALS||[]).filter(m=>m.healthTarget===true); }
+function healthTargets(){
+    const out=[];
+    (MATERIALS||[]).forEach(m=>{
+        const comps=m.composition||[];
+        const inspections=m.compInspections||[];
+        const trueRows=inspections.filter(x=>x.inspection?.ok&&x.inspection?.status==='FOUND'&&x.inspection?.legal?.specialHealthTarget===true);
+        trueRows.forEach(x=>{
+            const c=comps.find(v=>v.cas===x.cas)||{};
+            out.push({id:`${m.id}::${x.cas}`,productId:m.id,productName:m.name,name:c.name||x.inspection.matchedName||m.name,cas:x.cas,content:c.content||'-',inspection:x.inspection});
+        });
+        // 공급자 MSDS 15항에서 특수건강진단 관련 정보가 있으나 CAS 대조 전이라면
+        // 3항의 모든 CAS를 '확인 후보'로 펼치고, 별표 22 대상이라고 임의 확정하지 않습니다.
+        if(!trueRows.length&&m.healthTarget===true&&!inspections.length){
+            const candidates=(comps||[]).filter(c=>c.cas&&c.cas!=='-');
+            if(!candidates.length&&m.cas&&m.cas!=='-')candidates.push({name:m.name,cas:m.cas,content:'-'});
+            const seen=new Set();
+            candidates.forEach(c=>{
+                if(seen.has(c.cas))return;seen.add(c.cas);
+                out.push({id:`${m.id}::${c.cas}`,productId:m.id,productName:m.name,name:c.name||m.name,cas:c.cas,content:c.content||'-',inspection:null,needsConfirm:true,sourceLabel:'MSDS 15항 후보 · 별표22/CAS 대조 필요'});
+            });
+        }
+    });
+    return out;
+}
+function healthTargetByKey(key){return healthTargets().find(x=>x.id===key)||null;}
 function calcNextHealthDate(examDate, cycleMonths){
     if(!examDate || !cycleMonths) return '';
     const d=new Date(examDate); if(isNaN(d)) return '';
@@ -20,21 +44,21 @@ function renderHealthTargetMaterials(){
     const k=document.getElementById('k5-targets'); if(k) k.textContent=list.length;
     const hdr=document.getElementById('hdr-health'); if(hdr) hdr.textContent=list.length;
     if(!list.length){ box.innerHTML='<div class="md:col-span-2 lg:col-span-3 text-center py-5 text-gray-400 text-xs border border-dashed rounded-lg">특수건강진단 대상으로 명시 확인된 MSDS 물질이 없습니다.<br>MSDS 등록 후 CAS 공공데이터 검토를 실행하거나 원본 15항을 확인하세요.</div>'; return; }
-    box.innerHTML=list.map(m=>`<div class="border border-indigo-100 bg-indigo-50/50 rounded-lg p-3"><div class="flex items-start justify-between gap-2"><div><p class="font-bold text-gray-900">${healthEsc(m.name)}</p><p class="text-[10px] text-gray-500 font-mono mt-0.5">${healthEsc(m.cas||'-')}</p></div><span class="bg-indigo-100 text-indigo-700 text-[9px] font-bold px-2 py-0.5 rounded">대상 확인</span></div><button onclick="addHealthRow('${healthEsc(m.id)}')" class="mt-2 text-[10px] font-bold text-indigo-700 underline">이 물질로 검진기록 추가</button></div>`).join('');
+    box.innerHTML=list.map(m=>`<div class="border ${m.needsConfirm?'border-amber-200 bg-amber-50/60':'border-indigo-100 bg-indigo-50/50'} rounded-lg p-3"><div class="flex items-start justify-between gap-2"><div><p class="font-bold text-gray-900">${healthEsc(m.name)}</p><p class="text-[10px] text-gray-500 mt-0.5">제품 ${healthEsc(m.productName||'-')} · 함유량 ${healthEsc(m.content||'-')}</p><p class="text-[10px] text-gray-500 font-mono mt-0.5">CAS ${healthEsc(m.cas||'-')}</p></div><span class="${m.needsConfirm?'bg-amber-100 text-amber-800':'bg-indigo-100 text-indigo-700'} text-[9px] font-bold px-2 py-0.5 rounded">${m.needsConfirm?'별표22 확인 필요':'CAS 대상 확인'}</span></div>${m.needsConfirm?'<p class="mt-2 text-[10px] leading-4 text-amber-800">공급자 MSDS 15항의 제품 수준 정보만 확인되었습니다. CAS별 공공데이터·별표 22 대조 후 검진대상으로 확정하세요.</p>':`<button onclick="addHealthRow('${healthEsc(m.id)}')" class="mt-2 text-[10px] font-bold text-indigo-700 underline">이 물질로 검진기록 추가</button>`}</div>`).join('');
 }
 function healthMaterialOptions(selectedId){
     const list=healthTargets();
     return '<option value="">대상물질 선택</option>'+list.map(m=>`<option value="${healthEsc(m.id)}" ${m.id===selectedId?'selected':''}>${healthEsc(m.name)} (${healthEsc(m.cas||'-')})</option>`).join('');
 }
 function addHealthRow(materialId=''){
-    const m=(MATERIALS||[]).find(x=>x.id===materialId);
-    healths.unshift({id:'H_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),dept:'',name:'',materialId:materialId||'',hazardName:m?.name||'',cas:m?.cas||'',assignedDate:'',examDate:'',cycleMonths:null,nextDate:'',note:'',fileReport:null});
+    const m=healthTargetByKey(materialId);
+    healths.unshift({id:'H_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),dept:'',name:'',materialId:materialId||'',hazardName:m?.name||'',cas:m?.cas||'',productName:m?.productName||'',assignedDate:'',examDate:'',cycleMonths:null,nextDate:'',note:'',fileReport:null});
     saveHealthLS(); renderHealth();
 }
 function updateHealth(id,field,value){
     const h=healths.find(x=>x.id===id); if(!h) return;
     if(field==='materialId'){
-        const m=(MATERIALS||[]).find(x=>x.id===value); h.materialId=value; h.hazardName=m?.name||''; h.cas=m?.cas||'';
+        const m=healthTargetByKey(value); h.materialId=value; h.hazardName=m?.name||''; h.cas=m?.cas||''; h.productName=m?.productName||'';
     } else if(field==='cycleMonths') { const n=Number(value); h.cycleMonths=Number.isFinite(n)&&n>0?n:null; }
     else h[field]=value;
     h.nextDate=calcNextHealthDate(h.examDate,h.cycleMonths); saveHealthLS(); renderHealth();

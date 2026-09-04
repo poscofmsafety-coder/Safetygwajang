@@ -90,5 +90,5 @@ document.addEventListener('DOMContentLoaded', ()=>{
     }
     // 특수건강진단 대상 물질 수는 MSDS 법규검토에서 명시적으로 확인된 경우만 집계합니다.
     const hdrHealth = document.getElementById('hdr-health');
-    if(hdrHealth) hdrHealth.textContent = MATERIALS.filter(m=>m.healthTarget===true).length;
+    if(hdrHealth) hdrHealth.textContent = (typeof healthTargets==='function'?healthTargets().length:MATERIALS.filter(m=>m.healthTarget===true).length);
 });

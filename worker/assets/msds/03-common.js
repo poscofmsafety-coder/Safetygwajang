@@ -103,27 +103,32 @@ function applyMaterialToForms(m){
     setField('form-process','supplier',m.supplier);
     applySpecialForm(m); applyEditMode();
 }
+function deriveSpecialRows(m){
+    const fromInspection=(m.compInspections||[]).filter(x=>x.inspection?.ok&&x.inspection?.status==='FOUND'&&x.inspection?.legal?.specialManagement===true).map(x=>{
+        const c=(m.composition||[]).find(v=>v.cas===x.cas)||{}, cmr=x.inspection.legal?.cmr||{};
+        return {name:c.name||x.inspection.matchedName||'물질명 확인 필요',content:c.content||'-',cas:x.cas,carcino:cmr.carcinogenic,mutagen:cmr.mutagenic,repro:cmr.reprotoxic,source:'KOSHA CAS 대조'};
+    });
+    return fromInspection.length?fromInspection:(m.specialMaterials||[]);
+}
 function applySpecialForm(m){
-    const badge=document.getElementById('specialBadge'), banner=document.getElementById('notSpecialBanner'), tbody=document.getElementById('specialTableBody');
-    if(!badge || !banner || !tbody) return;
-    if(m.isSpecial===true && m.specialMaterials && m.specialMaterials.length>0){
-        badge.classList.remove('hidden'); badge.textContent='확인'; banner.classList.add('hidden');
-        tbody.innerHTML = m.specialMaterials.map((sm,idx)=>{
-            const chk = v => v===true?`<span class="inline-flex w-6 h-6 border-2 border-gray-800 text-base font-black items-center justify-center">✓</span>`:`<span class="inline-flex w-6 h-6 border-2 border-gray-800 text-[9px] text-gray-500 items-center justify-center">${v===false?'－':'?'}</span>`;
-            const pc = idx===0?`<td class="border-r-2 border-gray-800 text-center font-bold py-3 px-2" rowspan="${m.specialMaterials.length}">${m.name}</td>`:'';
-            return `<tr class="border-b-2 border-gray-800">${pc}<td class="border-r-2 border-gray-800 py-3 px-2"><p>${sm.name} / ${sm.content}</p><p class="text-gray-500 text-[10px]">${sm.nameEn||''}</p></td><td class="border-r-2 border-gray-800 text-center py-3">${sm.cas}</td><td class="border-r-2 border-gray-800 text-center py-3">${chk(sm.acute)}</td><td class="border-l-2 border-r border-gray-800 text-center py-3">${chk(sm.carcino)}</td><td class="border-r border-gray-800 text-center py-3">${chk(sm.mutagen)}</td><td class="text-center py-3">${chk(sm.repro)}</td></tr>`;
-        }).join('');
-        setField('form-special','special-mat',m.specialMaterials.map(sm=>sm.name).join(', '));
-    } else if(m.isSpecial===true) {
-        badge.classList.remove('hidden'); badge.textContent='대상 확인'; banner.classList.remove('hidden');
-        banner.innerHTML='특별관리물질 대상은 확인되었지만 해당 구성성분을 CAS No.로 연결하지 못했습니다. MSDS 3항·15항과 안전보건규칙 별표 12를 대조해 구성성분을 확인한 뒤 고지문을 출력하세요.';
-        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-8 text-amber-700 text-xs font-bold">특별관리물질 구성성분 매칭 필요</td></tr>`;
-        setField('form-special','special-mat','구성성분 확인 필요');
-    } else {
-        badge.classList.add('hidden'); banner.classList.remove('hidden');
-        banner.innerHTML=m.isSpecial===false?'업로드 MSDS 또는 KOSHA 자료에 특별관리물질 해당 없음으로 기재되어 있습니다. 최신 법령과 실제 취급 성분을 최종 확인하세요.':'특별관리물질 여부가 자동 확정되지 않았습니다. 업로드 MSDS 15항, KOSHA 조회 결과, 안전보건규칙 별표 12 및 제440조를 확인한 뒤 고지문을 출력하세요.';
-        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-8 text-gray-400 text-xs">특별관리물질 고지 대상 여부를 MSDS 15항과 최신 법령에서 확인하세요</td></tr>`;
-        setField('form-special','special-mat',m.isSpecial===false?'해당 없음으로 기재':'확인 필요');
+    const badge=document.getElementById('specialBadge'),banner=document.getElementById('notSpecialBanner'),tbody=document.getElementById('specialTableBody');if(!badge||!banner||!tbody)return;
+    const rows=deriveSpecialRows(m); if(rows.length){m.specialMaterials=rows;m.isSpecial=true;}
+    const chk=v=>v===true?'<span class="inline-flex w-6 h-6 border-2 border-gray-800 text-base font-black items-center justify-center">✓</span>':v===false?'<span class="inline-flex w-6 h-6 border-2 border-gray-800 text-[10px] text-gray-500 items-center justify-center">－</span>':'<span class="inline-flex w-6 h-6 border-2 border-amber-500 text-[10px] text-amber-700 items-center justify-center">?</span>';
+    const today=new Date().toLocaleDateString('ko-KR',{year:'numeric',month:'2-digit',day:'2-digit'});
+    setField('form-special','special-product',escHtml(m.name||'원본 MSDS 1항 확인'));
+    setField('form-special','special-supplier',escHtml(m.supplier||'원본 MSDS 1항 공급자 정보 확인'));
+    const dept=[m.deptInfo,m.processInfo].filter(Boolean).map(escHtml).join(' / ')||'직접 입력';
+    setField('form-special','special-dept-process',dept); setField('form-special','special-date',today);
+    if(m.isSpecial===true&&rows.length){
+        badge.classList.remove('hidden');badge.textContent=`${rows.length}개 CAS`;banner.classList.add('hidden');
+        tbody.innerHTML=rows.map(sm=>`<tr class="border-b-2 border-gray-900"><td class="border-r-2 border-gray-900 py-3 px-2"><p class="font-bold">${escHtml(sm.name)} / ${escHtml(sm.content||'-')}</p><p class="text-gray-500 text-[9px] mt-1">CAS별 확인 · ${escHtml(sm.source||'KOSHA/MSDS 대조')}</p></td><td class="border-r-2 border-gray-900 text-center py-3 font-mono">${escHtml(sm.cas)}</td><td class="border-l-2 border-r border-gray-900 text-center py-3">${chk(sm.carcino)}</td><td class="border-r border-gray-900 text-center py-3">${chk(sm.mutagen)}</td><td class="text-center py-3">${chk(sm.repro)}</td></tr>`).join('');
+        setField('form-special','special-mat',rows.map(sm=>`${escHtml(sm.name)} (${escHtml(sm.cas)})`).join(', '));
+    }else if(m.isSpecial===true){
+        const candidates=(m.composition||[]).filter(c=>c.cas&&c.cas!=='-');
+        const list=candidates.length?`<div class="mt-2 grid sm:grid-cols-2 gap-1">${candidates.map(c=>`<div class="bg-white border border-amber-200 rounded px-2 py-1"><b>${escHtml(c.name||'성분명 확인')}</b> · <span class="font-mono">${escHtml(c.cas)}</span> · ${escHtml(c.content||'-')}</div>`).join('')}</div>`:'';
+        badge.classList.remove('hidden');badge.textContent='CAS 확인 필요';banner.classList.remove('hidden');banner.innerHTML='제품 수준에서 특별관리물질 관련 정보가 확인되었지만 구성성분 CAS별 연결이 완료되지 않았습니다. 3항 구성성분별로 KOSHA/별표 12를 대조한 뒤 고지문을 출력하세요.'+list;tbody.innerHTML='<tr><td colspan="5" class="text-center py-8 text-amber-700 text-xs font-bold">특별관리물질 구성성분 CAS 매칭 필요</td></tr>';setField('form-special','special-mat','구성성분 확인 필요');
+    }else{
+        badge.classList.add('hidden');banner.classList.remove('hidden');banner.innerHTML=m.isSpecial===false?'CAS별 KOSHA/MSDS 검토에서 특별관리물질 대상 표기가 확인되지 않았습니다. 최신 별표 12와 공급자 MSDS를 최종 확인하세요.':'특별관리물질 여부가 아직 확정되지 않았습니다. MSDS 3항 CAS와 15항, KOSHA 대조 및 최신 별표 12를 확인하세요.';tbody.innerHTML='<tr><td colspan="5" class="text-center py-8 text-gray-400 text-xs">CAS별 특별관리물질 여부 확인 필요</td></tr>';setField('form-special','special-mat',m.isSpecial===false?'해당 표기 없음':'확인 필요');
     }
 }
 function switchForm(btn,targetId){
