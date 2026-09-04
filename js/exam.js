@@ -1,5 +1,5 @@
 /* ============================================
-   포스코퓨처엠 CBT - 시험 진행 로직
+   안전과장 CBT - 시험 진행 로직
    exam.js (v5 - 랜덤 문제은행 출제 기능 추가)
    ============================================ */
 
@@ -121,7 +121,7 @@
 
     if (!state.examId) {
       els.questionArea.innerHTML =
-        '<p class="loading">❌ 시험 정보가 없습니다. <a href="index.html">홈으로</a></p>';
+        '<p class="loading">❌ 시험 정보가 없습니다. <a href="index.html?audience=jobseeker">홈으로</a></p>';
       return;
     }
 
@@ -147,7 +147,7 @@
 
     if (state.questions.length === 0) {
       els.questionArea.innerHTML =
-        '<p class="loading">😅 풀 문제가 없습니다. <a href="index.html">홈으로</a></p>';
+        '<p class="loading">😅 풀 문제가 없습니다. <a href="index.html?audience=jobseeker">홈으로</a></p>';
       return;
     }
 
@@ -201,7 +201,7 @@
         <div class="loading">
           <p>❌ 랜덤 문제를 생성할 수 없습니다.</p>
           <p>${msg}</p>
-          <p><a href="index.html">홈으로</a></p>
+          <p><a href="index.html?audience=jobseeker">홈으로</a></p>
         </div>
       `;
     } else {
@@ -210,7 +210,7 @@
           <p>❌ 문제 파일을 불러올 수 없습니다.</p>
           <p>파일: <code>data/${escapeHtml(state.examId)}.json</code></p>
           <p>${msg}</p>
-          <p><a href="index.html">홈으로</a></p>
+          <p><a href="index.html?audience=jobseeker">홈으로</a></p>
         </div>
       `;
     }
@@ -675,7 +675,7 @@
         saveProgress();
         clearInterval(state.autoSaveInterval);
         window.removeEventListener('beforeunload', beforeUnloadHandler);
-        window.location.href = 'index.html';
+        window.location.href = 'index.html?audience=jobseeker';
       });
     }
 

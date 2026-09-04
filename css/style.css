@@ -46,7 +46,7 @@ body {
   min-height: 100vh;
 }
 
-/* 배경 워터마크 (POSCO 로고 느낌) */
+/* 배경 워터마크 (안전관리 브랜드) */
 body::before {
   content: '';
   position: fixed;

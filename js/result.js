@@ -20,7 +20,7 @@
 
     if (!data) {
       document.querySelector('main.container').innerHTML =
-        '<p class="loading">❌ 결과 정보를 찾을 수 없습니다. <a href="index.html">홈으로</a></p>';
+        '<p class="loading">❌ 결과 정보를 찾을 수 없습니다. <a href="index.html?audience=jobseeker">홈으로</a></p>';
       return;
     }
 
