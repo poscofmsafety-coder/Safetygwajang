@@ -544,6 +544,7 @@
 
     const tab = document.querySelector('.main-tab[data-tab="dup"]');
     if (tab) tab.innerHTML = tab.innerHTML.replace('🔒 ', '🔓 ');
+    window.dispatchEvent(new Event('dup-unlocked'));
   }
 
   function bindCodeModal() {
