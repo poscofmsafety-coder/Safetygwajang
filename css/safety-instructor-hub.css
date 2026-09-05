@@ -113,3 +113,29 @@
 }
 #safety-instructor-hub .si-subject-line{display:flex;gap:6px;flex-wrap:wrap;margin:-5px 0 13px}
 #safety-instructor-hub .si-subject-line span{font-size:.76rem;color:#475467;background:#fff;border:1px solid var(--si-line);border-radius:8px;padding:5px 8px}
+/* V25 - 문제/정답/원문 중심 */
+#safety-instructor-hub .si-cbt-link{margin-left:auto;background:#175cd3;color:#fff;text-decoration:none;font-weight:900}
+#safety-instructor-hub .si-official-links{display:flex;align-items:stretch;gap:6px;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:1px dashed #dbe4ee}
+#safety-instructor-hub .si-official-label{display:flex;align-items:center;font-size:.69rem;font-weight:900;color:#667085;padding-right:2px}
+#safety-instructor-hub .si-official-links>a{display:flex;flex-direction:column;gap:2px;min-width:130px;max-width:235px;border:1px solid #d9e2ec;border-radius:8px;padding:7px 9px;text-decoration:none;color:#344054;background:#fbfcfe;font-size:.72rem;font-weight:800;line-height:1.35}
+#safety-instructor-hub .si-official-links>a>span{font-size:.63rem;color:#667085;font-weight:700}
+#safety-instructor-hub .si-official-links>a>mark,#safety-instructor-hub .si-focus mark{display:block;width:max-content;max-width:100%;margin-top:2px;background:#fff0a6;color:#664d03;border-radius:4px;padding:1px 4px;font-size:.62rem;font-weight:850;white-space:normal}
+#safety-instructor-hub mark.si-hit{background:#fff09a;color:#5d4500;padding:0 1px;border-radius:2px}
+#safety-instructor-hub .si-source-row span em{display:inline-block;margin-left:6px;padding:1px 5px;border-radius:999px;background:#fff0a6;color:#8a5d00;font-style:normal;font-weight:900}
+#safety-instructor-hub .si-source-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+#safety-instructor-hub .si-source-card{border:1px solid var(--si-line);border-radius:12px;background:#fff;padding:14px}
+#safety-instructor-hub .si-source-card-top{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:4px}
+#safety-instructor-hub .si-source-card h3{font-size:.92rem;line-height:1.45;margin:4px 0 8px}
+#safety-instructor-hub .si-focus{min-height:24px;margin-bottom:8px}
+#safety-instructor-hub .si-hit-count{display:flex;gap:6px;flex-wrap:wrap;margin:7px 0}
+#safety-instructor-hub .si-hit-count span{font-size:.68rem;font-weight:800;color:#475467;background:#f2f4f7;border-radius:6px;padding:4px 7px}
+#safety-instructor-hub .si-law-link{display:inline-flex;align-items:center;border:1px solid #b2ccff;background:#eef4ff;color:#175cd3;border-radius:9px;padding:8px 11px;font-size:.79rem;font-weight:850;text-decoration:none}
+#safety-instructor-hub .si-inline-source{margin-top:10px}
+@media(max-width:760px){
+  #safety-instructor-hub .si-source-grid{grid-template-columns:1fr}
+  #safety-instructor-hub .si-cbt-link{margin-left:0}
+  #safety-instructor-hub .si-official-links>a{max-width:none;flex:1 1 145px}
+}
+#safety-instructor-hub .si-source-searchbar{display:flex;gap:8px;align-items:center;margin:4px 0 10px;padding:10px;border:1px solid #d7e3f4;background:#f7faff;border-radius:12px}
+#safety-instructor-hub .si-source-searchbar .si-input{min-width:0}
+@media(max-width:760px){#safety-instructor-hub .si-source-searchbar{flex-direction:column;align-items:stretch}}
