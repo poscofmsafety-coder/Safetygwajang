@@ -636,16 +636,8 @@
       if(!x){ body.innerHTML = ''; return; }
       var c = x.c;
 
-      var total = 0;
-      (c.interviews || []).forEach(function(s){ total += (s.questions || []).length; });
-
-      var h = '<div style="margin-bottom:10px">';
-      h += '<span class="chip">' + esc(GROUP_NAME[x.g] || x.g) + '</span>';
-      if(c.tier) h += '<span class="chip g">' + esc(TIER_LABEL[c.tier] || c.tier) + '</span>';
-      (c.jobFields || []).forEach(function(f){ h += '<span class="chip g">' + esc(f) + '</span>'; });
-      h += '<span class="chip g">총 ' + total + '문항</span>';
-      h += '</div>';
-
+      // 그룹/기업군/문항수 요약 칩은 회사 선택 영역과 정보가 중복되어 제거합니다.
+      var h = '';
       var secs = c.interviews || [];
       if(!secs.length){
         h += '<div class="empty">등록된 전형 데이터가 없습니다.</div>';
