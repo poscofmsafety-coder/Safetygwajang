@@ -68,7 +68,7 @@ AI 출력:
 - Imported/AI records are review-required until a user confirms site conditions.
 
 ## 5. 참고한 공식 자료
-- KRAS 위험성평가 지원시스템: https://kras.kosha.or.kr/
+- KRAS 위험성평가 지원시스템: https://kras.kosha.or.kr/kras24/
 - 국가법령정보센터 사업장 위험성평가에 관한 지침: https://www.law.go.kr/
 - Groq Structured Outputs: https://console.groq.com/docs/structured-outputs
 - Groq Models: https://console.groq.com/docs/models

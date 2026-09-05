@@ -40,6 +40,14 @@
   }
   let state=normalizeState(safeParse(localStorage.getItem(STORAGE_KEY),null));
   let hazardSearch='',hazardFilter='all',editingHazard=null,editingShare=null,saveTimer=null;
+  const fileStore=()=>window.KRASFiles||null;
+  const shareAttachments=s=>Array.isArray(s?.attachments)?s.attachments:[];
+  function attachmentNames(s){return shareAttachments(s).map(x=>x.name).filter(Boolean).join(', ')}
+  async function downloadAttachment(id){try{if(!fileStore())throw new Error('첨부파일 저장모듈을 불러오지 못했습니다.');await fileStore().download(id)}catch(e){alert(e.message||'첨부파일을 열지 못했습니다.')}}
+  async function removeAttachmentFromShare(shareId,attId){const s=state.shares.find(x=>x.id===shareId);if(!s)return;if(!confirm('이 첨부파일을 삭제할까요?'))return;try{await fileStore()?.remove(attId)}catch(e){}s.attachments=shareAttachments(s).filter(x=>x.id!==attId);save(true);renderShare();if(editingShare===shareId)renderShareAttachmentEditor(s);}
+  function renderShareAttachmentEditor(s={}){const box=$('#s-attachments');if(!box)return;const rows=shareAttachments(s);box.innerHTML=rows.length?rows.map(a=>`<span class="kras-attachment-chip"><b title="${esc(a.name)}">${esc(a.name)}</b><span>${fileStore()?.size(a.size)||''}</span><button type="button" data-open-att="${esc(a.id)}">보기</button><button type="button" class="delete" data-remove-att="${esc(a.id)}">삭제</button></span>`).join(''):'<span class="kras-mini-note">저장된 첨부파일이 없습니다.</span>';box.querySelectorAll('[data-open-att]').forEach(b=>b.addEventListener('click',()=>downloadAttachment(b.dataset.openAtt)));box.querySelectorAll('[data-remove-att]').forEach(b=>b.addEventListener('click',()=>removeAttachmentFromShare(s.id,b.dataset.removeAtt)));}
+  async function syncShareAttachments(s){if(!s?.id||!fileStore())return;try{const rows=await fileStore().listShare(s.id);if(rows.length){s.attachments=rows;save(true);renderShareAttachmentEditor(s);renderShare();}}catch(e){console.warn('KRAS attachments',e)}}
+
 
   function save(immediate=false){
     state.updatedAt=new Date().toISOString();
@@ -173,10 +181,11 @@
   function tbmText(){const rows=tbmRows();if(!rows.length)return '현재 TBM에 자동 반영할 허용 불가능·개선 진행 위험요인이 없습니다.';return ['[오늘의 핵심 위험 · KRAS 위험성평가 연계]',...rows.map((h,i)=>`${i+1}. ${h.task}${h.step?' / '+h.step:''}\n- 위험: ${h.scenario}\n- 조치: ${h.measure||'추가 감소대책 수립 필요'}${h.owner?'\n- 담당: '+h.owner:''}`),'작업 전 변경사항과 현장 상태를 다시 확인하고, 새로운 위험이 있으면 작업을 중지한 뒤 공유해 주세요.'].join('\n');}
   function renderShare(){
     const preview=$('#tbm-preview');const rows=tbmRows();if(preview)preview.innerHTML=rows.length?`<div class="kras-tbm-list">${rows.map((h,i)=>`<div><span>${String(i+1).padStart(2,'0')}</span><div><b>${esc(h.task)}${h.step?' · '+esc(h.step):''}</b><p>${esc(h.scenario)}</p><small>대책: ${esc(h.measure||'추가 대책 수립 필요')}</small></div></div>`).join('')}</div>`:'<div class="kras-board-empty">현재 TBM 자동요약 대상이 없습니다.</div>';
-    const box=$('#share-list');if(!box)return;if(!state.shares.length){box.innerHTML='<div class="kras-share-empty">아직 공유·교육 기록이 없습니다. 위험성평가 결과를 TBM 또는 교육으로 공유한 뒤 기록을 남기세요.</div>';return;}
-    box.innerHTML=`<div class="kras-share-list">${state.shares.map(s=>`<article><div><span>${esc(s.method||'공유')}</span><b>${fmtDate(s.date)} · ${esc(s.target||'대상 미기재')}</b><p>${nl(s.content||'')}</p><small>${s.feedback?'피드백: '+esc(s.feedback):'피드백 미기재'}</small></div><div><button class="mini-btn" data-edit-share="${esc(s.id)}">수정</button><button class="mini-btn delete" data-delete-share="${esc(s.id)}">삭제</button></div></article>`).join('')}</div>`;
+    const box=$('#share-list');if(!box)return;if(!state.shares.length){box.innerHTML='<div class="kras-share-empty">아직 공유·교육 기록이 없습니다. 위험성평가 결과를 TBM 또는 교육으로 공유한 뒤 사진·교육 서명록과 함께 기록을 남기세요.</div>';return;}
+    box.innerHTML=`<div class="kras-share-list">${state.shares.map(s=>{const files=shareAttachments(s);return `<article><div><span>${esc(s.method||'공유')}</span><b>${fmtDate(s.date)} · ${esc(s.target||'대상 미기재')}</b><p>${nl(s.content||'')}</p><small>${s.feedback?'피드백: '+esc(s.feedback):'피드백 미기재'}</small>${files.length?`<div class="kras-share-files">${files.map(a=>`<button type="button" data-download-att="${esc(a.id)}">📎 ${esc(a.name)}</button>`).join('')}</div>`:'<div class="kras-share-files"><span>첨부 없음</span></div>'}</div><div><button class="mini-btn" data-edit-share="${esc(s.id)}">수정</button><button class="mini-btn delete" data-delete-share="${esc(s.id)}">삭제</button></div></article>`}).join('')}</div>`;
+    box.querySelectorAll('[data-download-att]').forEach(b=>b.addEventListener('click',()=>downloadAttachment(b.dataset.downloadAtt)));
     box.querySelectorAll('[data-edit-share]').forEach(b=>b.addEventListener('click',()=>openShare(b.dataset.editShare)));
-    box.querySelectorAll('[data-delete-share]').forEach(b=>b.addEventListener('click',()=>{if(confirm('이 공유 기록을 삭제할까요?')){state.shares=state.shares.filter(s=>s.id!==b.dataset.deleteShare);save(true);renderAllBoards();}}));
+    box.querySelectorAll('[data-delete-share]').forEach(b=>b.addEventListener('click',async()=>{if(!confirm('이 공유 기록과 연결된 첨부파일을 함께 삭제할까요?'))return;const id=b.dataset.deleteShare;try{await fileStore()?.removeShare(id)}catch(e){}state.shares=state.shares.filter(s=>s.id!==id);save(true);renderAllBoards();}));
   }
 
   function readinessItems(){
@@ -251,7 +260,7 @@
     return h;
   }
 
-  function openShare(id){editingShare=id||null;const s=id?state.shares.find(x=>x.id===id)||{}:{};$('#share-modal-title').textContent=id?'공유 기록 수정':'결과 공유·TBM 기록';$('#share-id').value=s.id||'';$('#s-date').value=s.date||today();$('#s-method').value=s.method||'TBM';$('#s-target').value=s.target||'';$('#s-instructor').value=s.instructor||state.setup.evaluator||'';$('#s-content').value=s.content||tbmText();$('#s-feedback').value=s.feedback||'';openModal('#share-modal');}
+  function openShare(id){editingShare=id||null;const s=id?state.shares.find(x=>x.id===id)||{}:{id:'',attachments:[]};$('#share-modal-title').textContent=id?'공유 기록 수정':'결과 공유·TBM 기록';$('#share-id').value=s.id||'';$('#s-date').value=s.date||today();$('#s-method').value=s.method||'TBM';$('#s-target').value=s.target||'';$('#s-instructor').value=s.instructor||state.setup.evaluator||'';$('#s-content').value=s.content||tbmText();$('#s-feedback').value=s.feedback||'';if($('#s-files'))$('#s-files').value='';renderShareAttachmentEditor(s);openModal('#share-modal');if(id)syncShareAttachments(s);}
 
   function legacyRows(){const x=safeParse(localStorage.getItem(LEGACY_KEY),[]);return Array.isArray(x)?x:[]}
   function renderLegacyButton(){const b=$('#import-legacy');if(!b)return;const n=legacyRows().length;b.hidden=!n;b.textContent=n?`기존 기록 ${n}건 가져오기`:'기존 기록 가져오기';}
@@ -276,8 +285,8 @@
     const setup=[['항목','내용'],['평가명',state.setup.title],['평가구분',state.setup.evaluationType],['평가방법',METHOD_LABELS[state.setup.method]],['사업장',state.setup.workplace],['부서/공정',state.setup.department],['업종',state.setup.industry],['총괄 책임자',state.setup.manager],['평가 담당자',state.setup.evaluator],['참여 근로자',state.setup.workers],['평가 시작일',state.setup.startDate],['평가 완료예정일',state.setup.endDate],['평가 대상·범위',state.setup.scope],['유해·위험요인 파악방법',state.setup.identificationSources.join(', ')],['사전 검토자료',state.setup.preData],['허용기준',criteriaText()],['근로자 참여·공유방법',state.setup.sharePlan],['기록·보존',state.setup.recordPlan]];
     const risk=exportRows();
     const actions=state.hazards.filter(h=>h.measure||riskInfo(h,false).accepted===false).map((h,i)=>({'번호':i+1,'공정(작업)':h.task,'유해·위험요인':h.scenario,'현재위험성':riskInfo(h,false).label,'대책 우선순위':h.controlType,'감소대책':h.measure,'담당자':h.owner,'완료예정일':h.due,'조치상태':h.status,'실제완료일':h.completed,'이행증빙':h.evidence,'개선후위험성':riskInfo(h,true).label,'재평가근거':h.afterReason||''}));
-    const share=state.shares.map((s,i)=>({'번호':i+1,'공유일':s.date,'공유방법':s.method,'대상·참여인원':s.target,'진행자':s.instructor,'공유한 핵심 위험·대책':s.content,'근로자 피드백':s.feedback}));
-    const guide=[['KRAS 등록 호환 안내'],['본 파일은 KRAS 일반 위험성평가 화면의 입력 흐름에 맞춘 등록 보조·복사·증빙 첨부용 작업파일입니다.'],['2025 KRAS 사용설명서에서는 일반 3단계/체크리스트/OPS/빈도강도 평가의 Excel 일괄 직접 업로드 기능을 명시적으로 확인할 수 없으므로 직접 업로드 호환을 보장하지 않습니다.'],['화학물질 위험성평가에는 KRAS 공식 Excel 일괄 업로드 기능이 별도로 안내되어 있으므로 화학물질 평가는 KRAS가 제공하는 공식 양식을 사용하세요.'],['등록 권장 순서'],['1. KRAS에서 위험성평가 생성 → 평가방법과 구분 선택'],['2. 사전준비의 공정(작업) 및 유해인자 등록'],['3. 유해·위험요인과 현재 안전보건조치 입력'],['4. 위험성 결정 → 허용 불가능 항목의 감소대책 입력'],['5. 담당자·완료일 확인 후 잔여위험 재평가'],['6. 결과 공유·TBM 실시 및 기록·보존'],['공식사이트','https://kras.kosha.or.kr/']];
+    const share=state.shares.map((s,i)=>({'번호':i+1,'공유일':s.date,'공유방법':s.method,'대상·참여인원':s.target,'진행자':s.instructor,'공유한 핵심 위험·대책':s.content,'근로자 피드백':s.feedback,'첨부파일':attachmentNames(s)}));
+    const guide=[['KRAS 등록 호환 안내'],['본 파일은 KRAS 일반 위험성평가 화면의 입력 흐름에 맞춘 등록 보조·복사·증빙 첨부용 작업파일입니다.'],['2025 KRAS 사용설명서에서는 일반 3단계/체크리스트/OPS/빈도강도 평가의 Excel 일괄 직접 업로드 기능을 명시적으로 확인할 수 없으므로 직접 업로드 호환을 보장하지 않습니다.'],['화학물질 위험성평가에는 KRAS 공식 Excel 일괄 업로드 기능이 별도로 안내되어 있으므로 화학물질 평가는 KRAS가 제공하는 공식 양식을 사용하세요.'],['등록 권장 순서'],['1. KRAS에서 위험성평가 생성 → 평가방법과 구분 선택'],['2. 사전준비의 공정(작업) 및 유해인자 등록'],['3. 유해·위험요인과 현재 안전보건조치 입력'],['4. 위험성 결정 → 허용 불가능 항목의 감소대책 입력'],['5. 담당자·완료일 확인 후 잔여위험 재평가'],['6. 결과 공유·TBM 실시 및 기록·보존'],['공식사이트','https://kras.kosha.or.kr/kras24/']];
     return {setup,risk,actions,share,guide};
   }
   function criteriaText(){const m=state.setup.method;if(m==='three')return `3단계: 상=${state.setup.threeHigh} / 중=${state.setup.threeMedium} / 하=${state.setup.threeLow} / 허용=${state.setup.threeAcceptable==='low'?'하':state.setup.threeAcceptable==='medium'?'중·하':'하'}`;if(m==='frequency')return `빈도강도 ${state.setup.freqPreset}; 허용 최대점수=${state.setup.freqAcceptableMax||'미설정'}; ${state.setup.freqCriteria||''}`;if(m==='checklist')return '체크리스트: 적정=허용, 보완필요=감소대책 수립';return 'OPS: 추가대책 필요=허용 불가능으로 관리';}
@@ -289,7 +298,7 @@
     const ws0=X.utils.aoa_to_sheet(d.setup);setSheetWidths(ws0,[24,90]);X.utils.book_append_sheet(wb,ws0,'평가개요');
     const ws1=X.utils.json_to_sheet(d.risk);setSheetWidths(ws1,[7,20,14,25,20,18,24,22,18,18,45,35,35,24,20,30,16,16,35,35,35,35,35,12,12,12,18,45,14,14,14,14,30,16,16,35,35]);X.utils.book_append_sheet(wb,ws1,'위험성평가');
     const ws2=X.utils.json_to_sheet(d.actions);setSheetWidths(ws2,[7,24,45,16,18,45,16,16,14,16,30,18,35]);X.utils.book_append_sheet(wb,ws2,'감소대책');
-    const ws3=X.utils.json_to_sheet(d.share);setSheetWidths(ws3,[7,14,18,22,18,60,45]);X.utils.book_append_sheet(wb,ws3,'TBM공유');
+    const ws3=X.utils.json_to_sheet(d.share);setSheetWidths(ws3,[7,14,18,22,18,60,45,45]);X.utils.book_append_sheet(wb,ws3,'TBM공유');
     const ws4=X.utils.aoa_to_sheet(d.guide);setSheetWidths(ws4,[28,90]);X.utils.book_append_sheet(wb,ws4,'KRAS등록안내');
     X.writeFile(wb,`KRAS_등록보조_${today()}.xlsx`);
   }
@@ -316,12 +325,12 @@
     $('#hazard-form')?.addEventListener('submit',e=>{e.preventDefault();const h=collectHazard();if(!h.task||!h.scenario)return alert('공정(작업)명과 유해·위험요인을 입력하세요.');const r=riskInfo(h,false);if(r.accepted===false&&(!h.measure||!h.owner||!h.due)){if(!confirm('현재 위험성이 허용 불가능으로 판단되었지만 감소대책·담당자·기한 중 일부가 비어 있습니다. 그래도 저장할까요?'))return;}const i=state.hazards.findIndex(x=>x.id===h.id);if(i>=0)state.hazards[i]=h;else state.hazards.unshift(h);save(true);closeModal('#hazard-modal');renderAllBoards();});
     $$('[data-close="hazard-modal"]').forEach(b=>b.addEventListener('click',()=>closeModal('#hazard-modal')));$('#hazard-modal')?.addEventListener('click',e=>{if(e.target.id==='hazard-modal')closeModal('#hazard-modal')});
     $('#add-share')?.addEventListener('click',()=>openShare());
-    $('#share-form')?.addEventListener('submit',e=>{e.preventDefault();const s={id:editingShare||uid(),date:$('#s-date').value,method:$('#s-method').value,target:clean($('#s-target').value),instructor:clean($('#s-instructor').value),content:clean($('#s-content').value),feedback:clean($('#s-feedback').value),updatedAt:new Date().toISOString()};const i=state.shares.findIndex(x=>x.id===s.id);if(i>=0)state.shares[i]=s;else state.shares.unshift(s);save(true);closeModal('#share-modal');renderAllBoards();});
+    $('#share-form')?.addEventListener('submit',async e=>{e.preventDefault();const id=editingShare||uid(),old=state.shares.find(x=>x.id===id)||{},s={...old,id,date:$('#s-date').value,method:$('#s-method').value,target:clean($('#s-target').value),instructor:clean($('#s-instructor').value),content:clean($('#s-content').value),feedback:clean($('#s-feedback').value),attachments:shareAttachments(old),updatedAt:new Date().toISOString()};const files=$('#s-files')?.files||[];const submit=e.submitter;if(submit)submit.disabled=true;try{if(files.length){if(!fileStore())throw new Error('첨부파일 저장기능을 준비하지 못했습니다.');const added=await fileStore().saveFiles(id,files);s.attachments=[...s.attachments,...added];}const i=state.shares.findIndex(x=>x.id===s.id);if(i>=0)state.shares[i]=s;else state.shares.unshift(s);save(true);closeModal('#share-modal');renderAllBoards();}catch(err){alert(err.message||'첨부파일 저장 중 오류가 발생했습니다.');}finally{if(submit)submit.disabled=false;}});
     $$('[data-close="share-modal"]').forEach(b=>b.addEventListener('click',()=>closeModal('#share-modal')));$('#share-modal')?.addEventListener('click',e=>{if(e.target.id==='share-modal')closeModal('#share-modal')});
     $('#copy-tbm')?.addEventListener('click',async()=>{const t=tbmText();try{await navigator.clipboard.writeText(t);alert('TBM 문구를 복사했습니다.')}catch(_){const ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove();alert('TBM 문구를 복사했습니다.')}});
     $('#export-xlsx')?.addEventListener('click',exportExcel);$('#export-tsv')?.addEventListener('click',exportTSV);$('#export-json')?.addEventListener('click',exportJSON);
     $('#import-json')?.addEventListener('click',()=>$('#import-json-file').click());$('#import-json-file')?.addEventListener('change',e=>{const f=e.target.files?.[0];if(f)importJSONFile(f);e.target.value=''});
-    $('#clear-kras')?.addEventListener('click',()=>{if(!confirm('KRAS 위험성평가에 저장된 모든 데이터를 초기화할까요?\n이 작업은 되돌릴 수 없습니다. 먼저 JSON 백업을 권장합니다.'))return;state=defaultState();save(true);bindSetupValues();renderAllBoards();});
+    $('#clear-kras')?.addEventListener('click',async()=>{if(!confirm('KRAS 위험성평가에 저장된 모든 데이터와 TBM 첨부파일을 초기화할까요?\n이 작업은 되돌릴 수 없습니다. 먼저 JSON 백업을 권장합니다.'))return;try{await fileStore()?.clear()}catch(e){}state=defaultState();save(true);bindSetupValues();renderAllBoards();});
     window.addEventListener('hashchange',()=>setTimeout(()=>document.querySelector(location.hash)?.scrollIntoView({behavior:'smooth',block:'start'}),30));
   }
 

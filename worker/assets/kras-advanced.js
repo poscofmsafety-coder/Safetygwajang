@@ -108,11 +108,26 @@
     return parseMatrix(rows,'붙여넣은 표');
   }
   function riskCriteriaText(s){const m=s.setup?.method||'three';if(m==='three')return `3단계 판단법. 상: ${s.setup?.threeHigh||''} / 중: ${s.setup?.threeMedium||''} / 하: ${s.setup?.threeLow||''} / 허용 기준: ${s.setup?.threeAcceptable||'low'}`;if(m==='frequency')return `빈도·강도법 ${s.setup?.freqPreset||''}; 허용 최대점수 ${s.setup?.freqAcceptableMax||'미설정'}; ${s.setup?.freqCriteria||''}`;if(m==='checklist')return '체크리스트법';return '핵심요인기술법(OPS)';}
-  let aiDraft=null;
+  let aiDraft=null, publicContext=null;
+  function publicSummaryHtml(j){
+    const d=j?.data||{}, rows=[];
+    if(d.weather){const a=[];if(d.weather.temp!=null)a.push(`${d.weather.temp}℃`);if(d.weather.humidity!=null)a.push(`습도 ${d.weather.humidity}%`);if(d.weather.windSpeed!=null)a.push(`풍속 ${d.weather.windSpeed}m/s`);rows.push(`<p><b>기상</b> ${esc(a.join(' · ')||'관측자료 확인')}</p>`);(d.weather.notes||[]).slice(0,2).forEach(n=>rows.push(`<p class="warn"><b>현장 확인</b> ${esc(n)}</p>`));}
+    if(d.air){const a=[];if(d.air.pm10Avg!=null)a.push(`PM10 ${d.air.pm10Avg}`);if(d.air.pm25Avg!=null)a.push(`PM2.5 ${d.air.pm25Avg}`);if(d.air.khaiAvg!=null)a.push(`통합대기 ${d.air.khaiAvg}`);rows.push(`<p><b>대기질</b> ${esc(a.join(' · ')||'측정자료 확인')}</p>`);}
+    if(d.wildfire)rows.push(`<p><b>산불위험</b> ${esc(d.wildfire.summary||'전국 참고자료 조회')}</p>`);
+    if(d.fire)rows.push(`<p><b>화재통계</b> ${esc([d.fire.fireCount!=null?`화재 ${d.fire.fireCount}건`:'',d.fire.death!=null?`사망 ${d.fire.death}`:'',d.fire.injury!=null?`부상 ${d.fire.injury}`:''].filter(Boolean).join(' · ')||'전국 참고통계')}</p>`);
+    return rows.join('');
+  }
+  async function loadKrasPublic(force=false){
+    const api=window.SGWPublicSafety, status=$('#kras-public-status'), box=$('#kras-public-summary'), sido=$('#kras-public-sido');if(!api||!status||!box)return;
+    const pref=api.savePref({sido:sido?.value||api.readPref().sido||''});status.className='kras-smart-status working';status.textContent='공공데이터를 확인하고 있습니다…';
+    try{const j=await api.fetchBrief(pref,force);publicContext={summary:api.concise(j),updatedAt:j.updatedAt,sources:Object.keys(j.data||{}),notice:j.notice||''};box.innerHTML=publicSummaryHtml(j);status.className='kras-smart-status ok';status.textContent=`공공데이터 ${publicContext.sources.length}종 연결 · AI에는 참고정보로만 전달됩니다.`;}
+    catch(e){publicContext=null;box.innerHTML='';status.className='kras-smart-status bad';status.textContent=e.message||'공공데이터를 불러오지 못했습니다. AI 작성은 계속 사용할 수 있습니다.';}
+  }
+  function initKrasPublic(){const api=window.SGWPublicSafety,sido=$('#kras-public-sido');if(!api||!sido)return;api.fillSido(sido);sido.addEventListener('change',()=>{api.savePref({sido:sido.value});loadKrasPublic(true)});$('#kras-public-refresh')?.addEventListener('click',()=>loadKrasPublic(true));$('#kras-public-location')?.addEventListener('click',async e=>{const b=e.currentTarget;b.disabled=true;setStatus('#kras-public-status','현재 위치를 확인하고 있습니다…','working');try{const pos=await api.getPosition();api.savePref(pos);await loadKrasPublic(true);}catch(err){setStatus('#kras-public-status',err.message||'현재 위치를 확인하지 못했습니다.','bad')}finally{b.disabled=false}});const pref=api.readPref();if(pref.sido||pref.lat)loadKrasPublic(false);}
   async function generateAI(){
     const task=clean($('#kras-ai-task')?.value),description=clean($('#kras-ai-description')?.value);if(!task||!description){setStatus('#kras-ai-status','공정·작업명과 작업내용은 반드시 입력해 주세요.','bad');return;}
     const s=stateNow();const btn=$('#kras-ai-generate');btn.disabled=true;btn.textContent='AI 분석 중…';setStatus('#kras-ai-status','Groq가 작업내용을 KRAS 위험 시나리오와 감소대책 초안으로 구조화하고 있습니다.','working');
-    const body={task,description,equipment:clean($('#kras-ai-equipment')?.value),controls:clean($('#kras-ai-controls')?.value),conditions:clean($('#kras-ai-conditions')?.value),incidents:clean($('#kras-ai-incidents')?.value),workplace:clean(s.setup?.workplace),industry:clean(s.setup?.industry),method:s.setup?.method||'three',criteria:riskCriteriaText(s)};
+    const body={task,description,equipment:clean($('#kras-ai-equipment')?.value),controls:clean($('#kras-ai-controls')?.value),conditions:clean($('#kras-ai-conditions')?.value),incidents:clean($('#kras-ai-incidents')?.value),workplace:clean(s.setup?.workplace),industry:clean(s.setup?.industry),method:s.setup?.method||'three',criteria:riskCriteriaText(s),publicContext:publicContext||null};
     try{
       const ctrl=new AbortController();const timer=setTimeout(()=>ctrl.abort(),60000);const r=await fetch('/api/ai/kras',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body),signal:ctrl.signal});clearTimeout(timer);const data=await r.json().catch(()=>({}));if(!r.ok||!data.ok)throw new Error(data.error||'AI 초안을 만들지 못했습니다.');aiDraft=data.result;renderAiPreview(aiDraft);setStatus('#kras-ai-status',`AI 초안 ${aiDraft.hazards?.length||0}건 생성 · 저장 전 반드시 현장 사실과 위험성 수준을 확인하세요.`,'ok');
     }catch(e){setStatus('#kras-ai-status',e?.name==='AbortError'?'AI 응답 시간이 길어 중단되었습니다. 잠시 후 다시 시도해 주세요.':(e.message||'AI 처리 중 오류가 발생했습니다.'),'bad');}
@@ -129,5 +144,5 @@
     $('#kras-import-text-btn')?.addEventListener('click',()=>{try{const p=parseDelimited($('#kras-import-text')?.value||'');if(!p.hazards.length)return setStatus('#kras-import-status','붙여넣은 표에서 위험성평가 행을 찾지 못했습니다. 첫 행에 항목명이 포함되어 있는지 확인해 주세요.','bad');if(confirm(`붙여넣은 자료에서 ${p.hazards.length}건을 찾았습니다. 현재 평가표에 병합할까요?`))mergeImport(p,'붙여넣은 표');}catch(e){setStatus('#kras-import-status','붙여넣은 자료 형식을 확인해 주세요.','bad');}});
     $('#kras-ai-generate')?.addEventListener('click',generateAI);$('#kras-ai-apply')?.addEventListener('click',applyAI);
   }
-  bind();
+  bind();initKrasPublic();
 })();

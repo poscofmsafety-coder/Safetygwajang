@@ -32,3 +32,9 @@ Workers Static Assets + Worker API 구조입니다. `/api/*`는 `worker-api.js`�
 - `ads.txt` 및 모든 HTML 페이지에 AdSense `ca-pub-9283463208175336` 코드 적용
 - `ADSENSE-SETUP.md`: 배포/자동광고 확인 절차
 - `AUTH-PAYMENTS-PLAN.md`: 회원가입·소셜로그인·유료결제 도입 설계안
+
+## v16 현장 공공데이터 / KRAS
+- Cloudflare Secret `PUBLIC_DATA_API_KEY`를 사용해 기상·대기질·화학물질·산불·화재 공공데이터를 보조정보로 연결합니다.
+- KRAS AI는 Groq 기반이며 공공데이터와 CAS 정보는 참고문맥으로만 사용합니다. AI가 위험성 수준·작업중지·법적 적합성을 자동 확정하지 않습니다.
+- TBM 사진/PDF 첨부파일은 브라우저 IndexedDB에 저장됩니다.
+- 한국전기안전공사 전기안전정보 API는 현재 버전에서 사용하지 않습니다.
