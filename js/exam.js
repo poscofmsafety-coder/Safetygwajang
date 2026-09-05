@@ -246,6 +246,8 @@
       min = 60;
     } else if (/산업위생관리기사/.test(text)) {
       min = 150;
+    } else if (/인간공학기사/.test(text)) {
+      min = 120;
     } else {
       min = 150;
     }
