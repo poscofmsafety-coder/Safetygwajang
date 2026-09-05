@@ -1,0 +1,13 @@
+.git/
+.gitignore
+.assetsignore
+worker-api.js
+wrangler.jsonc
+README.md
+DATA-FIXES.md
+DEPLOY-CHECKLIST.md
+API-SETUP.md
+*.zip
+node_modules/
+package.json
+package-lock.json
