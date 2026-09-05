@@ -246,6 +246,10 @@
       min = 90;
     } else if (/위험물기능장/.test(text)) {
       min = 60;
+    } else if (/소방설비기사\s*\(?기계분야\)?|소방설비기사\(기계분야\)/.test(text)) {
+      min = 120;
+    } else if (/소방설비기사\s*\(?전기분야\)?|소방설비기사\(전기분야\)/.test(text)) {
+      min = 120;
     } else if (/산업위생관리기사/.test(text)) {
       min = 150;
     } else if (/인간공학기사/.test(text)) {

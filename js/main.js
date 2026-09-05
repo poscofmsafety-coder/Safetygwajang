@@ -31,6 +31,8 @@
     { key: 'ergonomics',   label: '🧠 인간공학기사' },
     { key: 'hazmatIndustry', label: '🧯 위험물산업기사' },
     { key: 'hazmat',       label: '🧪 위험물기능장' },
+    { key: 'fireMechanical', label: '🔥 소방설비기사(기계분야)' },
+    { key: 'fireElectrical', label: '⚡ 소방설비기사(전기분야)' },
     { key: 'dup',          label: '중복기출 모음집', locked: true, alwaysShow: true },
     { key: 'etc',          label: '📂 기타' }
   ];
@@ -88,6 +90,8 @@
     if (/인간공학기사/.test(text)) return 'ergonomics';
     if (/위험물산업기사/.test(text)) return 'hazmatIndustry';
     if (/위험물기능장/.test(text)) return 'hazmat';
+    if (/소방설비기사\s*\(?기계분야\)?|소방설비기사\(기계분야\)/.test(text)) return 'fireMechanical';
+    if (/소방설비기사\s*\(?전기분야\)?|소방설비기사\(전기분야\)/.test(text)) return 'fireElectrical';
     if (/산업안전기사/.test(text)) return 'safety';
     if (/^\d{4}-\d{2}-\d{2}$/.test(String(exam.id || '').trim())) return 'safety';
     return 'etc';
@@ -113,6 +117,16 @@
       out.questions = 60;
       out.duration = 60;
       out.subjects = null;
+      return out;
+    }
+    if (/소방설비기사\s*\(?기계분야\)?|소방설비기사\(기계분야\)/.test(text)) {
+      out.questions = 80;
+      out.duration = 120;
+      return out;
+    }
+    if (/소방설비기사\s*\(?전기분야\)?|소방설비기사\(전기분야\)/.test(text)) {
+      out.questions = 80;
+      out.duration = 120;
       return out;
     }
     if (/산업위생관리기사/.test(text)) {
