@@ -98,6 +98,33 @@
         desc: '총 80문항(4과목) · 120분<br><b>전 과목 평균 60점 이상 + 과목별 40점 이상</b>'
       };
     }
+    if (/소방시설관리사/.test(t)) {
+      return {
+        name: '소방시설관리사 1차',
+        pass: 60,
+        cutoff: 40,
+        useSubject: true,
+        desc: '총 125문항(5과목) · 125분<br><b>전 과목 평균 60점 이상 + 과목별 40점 이상</b>'
+      };
+    }
+    if (/산업안전지도사/.test(t)) {
+      return {
+        name: '산업안전지도사 1차',
+        pass: 60,
+        cutoff: 40,
+        useSubject: true,
+        desc: '총 75문항(3과목) · 90분<br><b>전 과목 평균 60점 이상 + 과목별 40점 이상</b>'
+      };
+    }
+    if (/산업보건지도사/.test(t)) {
+      return {
+        name: '산업보건지도사 1차',
+        pass: 60,
+        cutoff: 40,
+        useSubject: true,
+        desc: '총 75문항(3과목) · 90분<br><b>전 과목 평균 60점 이상 + 과목별 40점 이상</b>'
+      };
+    }
     if (/산업위생관리기사/.test(t)) {
       return {
         name: '산업위생관리기사',

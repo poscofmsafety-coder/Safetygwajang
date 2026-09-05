@@ -376,7 +376,7 @@
     }
     function isHeaderRow(cells){
         const joined = cells.slice(0, 6).join('').replace(/\s/g,'');
-        const headerKeywords = ['일자','작업상세정보','NO.','고위험','운전부서','작업지시부서','작업장소','작업명','부서','공장','가동상태','실장','현장소장','부식개소','안전Monitor','CCTV','유무'];
+        const headerKeywords = ['일자','작업상세정보','NO.','고위험','운전부서','작업지시부서','작업장소','작업명','부서','공장','가동상태','안전보건관리책임자','팀장','현장소장','부식개소','안전Monitor','CCTV','유무'];
         const c0 = (cells[0]||'').trim();
         if(!c0) return true;
         let hitCount = 0;
@@ -677,9 +677,9 @@
                     </div>`:''}
                     <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-[10px]">
                         <div class="bg-white rounded p-2 border"><b>가동상태:</b> ${opStatusMark}</div>
-                        <div class="bg-white rounded p-2 border"><b>실장결재(수리):</b> ${w.signMgr1?'✅':'❌'}</div>
+                        <div class="bg-white rounded p-2 border"><b>안전보건관리책임자 결재(수리):</b> ${w.signMgr1?'✅':'❌'}</div>
                         <div class="bg-white rounded p-2 border"><b>소장결재(점검):</b> ${w.signSiteMgr?'✅':'❌'}</div>
-                        <div class="bg-white rounded p-2 border"><b>부장결재(부식):</b> ${w.signHead?'✅':'❌'}</div>
+                        <div class="bg-white rounded p-2 border"><b>팀장 결재(부식):</b> ${w.signHead?'✅':'❌'}</div>
                     </div>
                 </div>
             </details>`;

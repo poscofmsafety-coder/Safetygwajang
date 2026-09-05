@@ -119,9 +119,9 @@
   }
   async function loadKrasPublic(force=false){
     const api=window.SGWPublicSafety, status=$('#kras-public-status'), box=$('#kras-public-summary'), sido=$('#kras-public-sido');if(!api||!status||!box)return;
-    const pref=api.savePref({sido:sido?.value||api.readPref().sido||''});status.className='kras-smart-status working';status.textContent='공공데이터를 확인하고 있습니다…';
-    try{const j=await api.fetchBrief(pref,force);publicContext={summary:api.concise(j),updatedAt:j.updatedAt,sources:Object.keys(j.data||{}),notice:j.notice||''};box.innerHTML=publicSummaryHtml(j);status.className='kras-smart-status ok';status.textContent=`공공데이터 ${publicContext.sources.length}종 연결 · AI에는 참고정보로만 전달됩니다.`;}
-    catch(e){publicContext=null;box.innerHTML='';status.className='kras-smart-status bad';status.textContent=e.message||'공공데이터를 불러오지 못했습니다. AI 작성은 계속 사용할 수 있습니다.';}
+    const pref=api.savePref({sido:sido?.value||api.readPref().sido||''});status.className='kras-smart-status working';status.textContent='현장 데이터를 확인하고 있습니다…';
+    try{const j=await api.fetchBrief(pref,force);publicContext={summary:api.concise(j),updatedAt:j.updatedAt,sources:Object.keys(j.data||{}),notice:j.notice||''};box.innerHTML=publicSummaryHtml(j);status.className='kras-smart-status ok';status.textContent=`현장 자료 ${publicContext.sources.length}종 연결 · AI에는 참고정보로만 전달됩니다.`;}
+    catch(e){publicContext=null;box.innerHTML='';status.className='kras-smart-status bad';status.textContent=e.message||'현장 데이터를 불러오지 못했습니다. AI 작성은 계속 사용할 수 있습니다.';}
   }
   function initKrasPublic(){const api=window.SGWPublicSafety,sido=$('#kras-public-sido');if(!api||!sido)return;api.fillSido(sido);sido.addEventListener('change',()=>{api.savePref({sido:sido.value});loadKrasPublic(true)});$('#kras-public-refresh')?.addEventListener('click',()=>loadKrasPublic(true));$('#kras-public-location')?.addEventListener('click',async e=>{const b=e.currentTarget;b.disabled=true;setStatus('#kras-public-status','현재 위치를 확인하고 있습니다…','working');try{const pos=await api.getPosition();api.savePref(pos);await loadKrasPublic(true);}catch(err){setStatus('#kras-public-status',err.message||'현재 위치를 확인하지 못했습니다.','bad')}finally{b.disabled=false}});const pref=api.readPref();if(pref.sido||pref.lat)loadKrasPublic(false);}
   async function generateAI(){

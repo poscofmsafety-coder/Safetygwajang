@@ -300,7 +300,7 @@ function updateAIPreview(m){
                 <li>특수건강진단: ${tri(rp.specialHealthTarget)}</li>
                 <li>특별관리물질: ${tri(rp.specialManagement)}</li>
             </ul>
-            <p class="text-[9px] text-gray-500 mt-1">등록 후 구성성분별 CAS를 KOSHA 공공데이터와 추가 대조합니다. 법정 대상·주기는 사업장 조건 및 최신 별표를 확인해야 합니다.</p>
+            <p class="text-[9px] text-gray-500 mt-1">등록 후 구성성분별 CAS를 KOSHA 자료와 추가 대조합니다. 법정 대상·주기는 사업장 조건 및 최신 별표를 확인해야 합니다.</p>
         </div>
         <div class="text-[10px] text-gray-500 pt-2 border-t border-teal-100">추출 신뢰도: <b>${escHtmlLocal(m.matchConfidence||'검토 필요')}</b></div>
     `;
@@ -382,7 +382,7 @@ function registerMaterial(){
             registeredIds.push(m.id);
             if(!firstId) firstId = m.id;
         });
-        showToast(`${lastParsedMaterials.length}건 등록 완료 · KOSHA 공공데이터 대조를 시작합니다.`);
+        showToast(`${lastParsedMaterials.length}건 등록 완료 · KOSHA 자료 대조를 시작합니다.`);
         lastParsedMaterials = [];
     } else {
         const manual = JSON.parse(JSON.stringify(FALLBACK_TEMPLATE));
@@ -410,7 +410,7 @@ function registerMaterial(){
         MATERIALS.unshift(manual);
         firstId = manual.id;
         registeredIds.push(firstId);
-        showToast(`수동 등록 완료 (성분 ${validManualComp.length}개) · KOSHA 공공데이터 대조를 시작합니다.`);
+        showToast(`수동 등록 완료 (성분 ${validManualComp.length}개) · KOSHA 자료 대조를 시작합니다.`);
     }
 
     saveMATERIALS();

@@ -250,6 +250,8 @@
       min = 120;
     } else if (/소방설비기사\s*\(?전기분야\)?|소방설비기사\(전기분야\)/.test(text)) {
       min = 120;
+    } else if (/소방시설관리사/.test(text)) {
+      min = 125;
     } else if (/산업위생관리기사/.test(text)) {
       min = 150;
     } else if (/인간공학기사/.test(text)) {

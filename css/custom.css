@@ -9,8 +9,12 @@
    1. 상단 탭
    ============================================ */
 .main-tabs {
-  display: flex;
-  gap: 4px;
+  display: grid;
+  grid-template-columns: repeat(10, max-content);
+  grid-template-rows: auto auto;
+  column-gap: 4px;
+  row-gap: 2px;
+  align-items: end;
   border-bottom: 2px solid var(--primary);
   margin: 30px 0 20px;
   overflow-x: auto;
@@ -37,7 +41,6 @@
   border-bottom: 3px solid transparent;
   margin-bottom: -2px;
   white-space: nowrap;
-  flex-shrink: 0;
   transition: all 0.15s ease;
 }
 
@@ -46,6 +49,14 @@
 .main-tab.active {
   color: var(--secondary);
   border-bottom-color: var(--primary);
+}
+
+
+/* 2행 자격 탭: 위 기사 계열과 같은 열에 놓아 긴 가로 메뉴를 늘리지 않습니다. */
+.main-tab[style*="grid-row: 2"] {
+  padding-top: 9px;
+  padding-bottom: 10px;
+  font-size: .95rem;
 }
 
 /* 탭 안 문항수 배지 (중복 선언 통합) */

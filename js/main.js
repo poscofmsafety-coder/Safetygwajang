@@ -25,16 +25,20 @@
      자격증 탭 목록
      ============================================ */
   const CATEGORIES = [
-    { key: 'safety',       label: '🏭 산업안전기사' },
-    { key: 'construction', label: '🏗 건설안전기사' },
-    { key: 'hygiene',      label: '🩺 산업위생관리기사' },
-    { key: 'ergonomics',   label: '🧠 인간공학기사' },
-    { key: 'hazmatIndustry', label: '🧯 위험물산업기사' },
-    { key: 'hazmat',       label: '🧪 위험물기능장' },
-    { key: 'fireMechanical', label: '🔥 소방설비기사(기계분야)' },
-    { key: 'fireElectrical', label: '⚡ 소방설비기사(전기분야)' },
-    { key: 'dup',          label: '중복기출 모음집', locked: true, alwaysShow: true },
-    { key: 'etc',          label: '📂 기타' }
+    // 1행: 기존 기사/기능장 CBT. 2행의 1~3열은 지도사/관리사 계열을 세로로 맞춰 확장합니다.
+    { key: 'safety',       label: '🏭 산업안전기사', row: 1, col: 1 },
+    { key: 'safetyInstructor', label: '🦺 산업안전지도사', row: 2, col: 1 },
+    { key: 'construction', label: '🏗 건설안전기사', row: 1, col: 2 },
+    { key: 'healthInstructor', label: '🩺 산업보건지도사', row: 2, col: 2 },
+    { key: 'hygiene',      label: '🩺 산업위생관리기사', row: 1, col: 3 },
+    { key: 'fireManager',   label: '🧯 소방시설관리사', row: 2, col: 3 },
+    { key: 'ergonomics',   label: '🧠 인간공학기사', row: 1, col: 4 },
+    { key: 'hazmatIndustry', label: '🧯 위험물산업기사', row: 1, col: 5 },
+    { key: 'hazmat',       label: '🧪 위험물기능장', row: 1, col: 6 },
+    { key: 'fireMechanical', label: '🔥 소방설비기사(기계분야)', row: 1, col: 7 },
+    { key: 'fireElectrical', label: '⚡ 소방설비기사(전기분야)', row: 1, col: 8 },
+    { key: 'dup',          label: '중복기출 모음집', locked: true, alwaysShow: true, row: 1, col: 9 },
+    { key: 'etc',          label: '📂 기타', row: 1, col: 10 }
   ];
 
   document.addEventListener('DOMContentLoaded', init);
@@ -85,6 +89,9 @@
     const text = `${exam.id || ''} ${exam.title || ''}`;
 
     if (/중복기출/.test(text)) return 'dup';
+    if (/산업안전지도사/.test(text)) return 'safetyInstructor';
+    if (/산업보건지도사/.test(text)) return 'healthInstructor';
+    if (/소방시설관리사/.test(text)) return 'fireManager';
     if (/건설안전기사/.test(text)) return 'construction';
     if (/산업위생관리기사|산업위생/.test(text)) return 'hygiene';
     if (/인간공학기사/.test(text)) return 'ergonomics';
@@ -137,6 +144,21 @@
     if (/인간공학기사/.test(text)) {
       out.questions = 80;
       out.duration = 120;
+      return out;
+    }
+    if (/산업안전지도사/.test(text)) {
+      out.questions = 75;
+      out.duration = 90;
+      return out;
+    }
+    if (/산업보건지도사/.test(text)) {
+      out.questions = 75;
+      out.duration = 90;
+      return out;
+    }
+    if (/소방시설관리사/.test(text)) {
+      out.questions = 125;
+      out.duration = 125;
       return out;
     }
     if (/건설안전기사|산업안전기사/.test(text)) {
@@ -374,6 +396,8 @@
       btn.type = 'button';
       btn.className = 'main-tab';
       btn.dataset.tab = cat.key;
+      if (cat.row) btn.style.gridRow = String(cat.row);
+      if (cat.col) btn.style.gridColumn = String(cat.col);
       btn.innerHTML = `${cat.locked && !isUnlocked() ? '🔒 ' : (cat.locked ? '🔓 ' : '')}${cat.label}<span class="tab-cnt">${items.length}</span>`;
       tabsEl.appendChild(btn);
       panelKeys.push(cat.key);

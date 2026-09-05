@@ -402,12 +402,12 @@ function openDetailPanel(id){
         </div>`;
     }
 
-    // 구성성분별 KOSHA MSDS 공공데이터 대조 (CAS 기준)
+    // 구성성분별 KOSHA MSDS 자료 대조 (CAS 기준)
     let compInspHtml = '';
     if(m.compInspections && m.compInspections.length > 0){
         compInspHtml = `
         <div>
-            <p class="text-xs font-bold text-gray-500 mb-1">구성성분별 KOSHA 공공데이터 대조 <span class="text-[10px] text-gray-400">(CAS No. 기준 · 참고자료)</span></p>
+            <p class="text-xs font-bold text-gray-500 mb-1">구성성분별 KOSHA 자료 대조 <span class="text-[10px] text-gray-400">(CAS No. 기준 · 참고자료)</span></p>
             <div class="bg-white border border-indigo-200 rounded-lg divide-y divide-indigo-100">
                 ${m.compInspections.map(ci=>{
                     const ins = ci.inspection || ci || {};
@@ -445,7 +445,7 @@ function openDetailPanel(id){
     let lawsHtml = '';
     if(m.laws || m.envTarget!==undefined || m.healthTarget!==undefined || m.isSpecial!==undefined){
         const lawItems = [];
-        if(m.laws?.status==='FOUND') lawItems.push('<li><b>KOSHA MSDS 자료 확인:</b> 등록된 CAS No.를 공공데이터와 대조했습니다.</li>');
+        if(m.laws?.status==='FOUND') lawItems.push('<li><b>KOSHA MSDS 자료 확인:</b> 등록된 CAS No.를 KOSHA 자료와 대조했습니다.</li>');
         if(m.laws?.status==='NOT_FOUND') lawItems.push('<li><b>KOSHA 자료 없음:</b> 해당 CAS No.로 조회되는 자료를 찾지 못했습니다. 원본 MSDS를 기준으로 수동 검토하세요.</li>');
         if(m.envTarget===true) lawItems.push('<li><b>작업환경측정 대상 근거:</b> 시행규칙 제186조·별표 21과 실제 노출 작업 여부를 함께 확인하세요.</li>');
         else if(m.envTarget===false) lawItems.push('<li><b>작업환경측정:</b> 현재 저장된 근거에는 비대상으로 기재되어 있습니다. 취급조건 변경 시 다시 확인하세요.</li>');

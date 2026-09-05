@@ -11,3 +11,10 @@ body.legacy-tool-page{font-family:var(--sg-font)!important;background:var(--sg-p
 @media(max-width:1000px){.legacy-solution-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:620px){.legacy-solution-grid{grid-template-columns:1fr}.legacy-actionbar{padding:0 12px}.brand-page-note-inner img{width:44px;height:54px}}
 
 .legacy-tool-page .emoji,.legacy-tool-page [data-emoji]{font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif!important}.legacy-live-clock{margin-left:8px}
+
+/* v18 readability pass */
+.legacy-tool-page{font-size:1rem!important}
+.legacy-tool-page .text-\[9px\]{font-size:.7rem!important}.legacy-tool-page .text-\[10px\]{font-size:.74rem!important}.legacy-tool-page .text-\[11px\]{font-size:.78rem!important}
+.legacy-tool-page input,.legacy-tool-page select,.legacy-tool-page textarea{font-size:.86rem!important;min-height:36px}
+.legacy-tool-page .legacy-worker-nav a{font-size:.82rem!important}.legacy-tool-page .legacy-back{font-size:.82rem!important}.legacy-actionbar span{font-size:.82rem!important}
+@media(max-width:900px){.legacy-tool-page .legacy-worker-nav a{font-size:.78rem!important}.legacy-tool-page input,.legacy-tool-page select,.legacy-tool-page textarea{font-size:.88rem!important}}

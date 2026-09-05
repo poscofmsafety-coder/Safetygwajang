@@ -695,7 +695,7 @@ async function lawsSearch(request,env){
   const u=new URL(KOSHA_SMART_SEARCH);u.searchParams.set('serviceKey',normalizeServiceKey(key));u.searchParams.set('searchValue',q);u.searchParams.set('pageNo','1');u.searchParams.set('numOfRows',String(limit));u.searchParams.set('category','0');u.searchParams.set('dataType','JSON');
   try{
     const r=await fetch(u,{headers:{Accept:'application/json,text/plain,*/*'},cf:{cacheTtl:300,cacheEverything:true}});const text=await r.text();if(!r.ok)throw new Error(`KOSHA Smart Search HTTP ${r.status}`);
-    if(/SERVICE_ACCESS_DENIED|PERMISSION_DENIED|SERVICE_KEY_IS_NOT_REGISTERED|SERVICE_KEY_IS_NULL|APPLICATION_ERROR|LIMITED_NUMBER_OF_SERVICE_REQUESTS_EXCEEDS/i.test(text))throw new Error(cleanHtmlText(text).slice(0,220)+' · 공공데이터포털 안전보건법령 스마트검색(15123696) 활용신청과 Cloudflare Secret을 확인하세요.');let data;try{data=JSON.parse(text)}catch(e){throw new Error('KOSHA Smart Search JSON 응답을 해석하지 못했습니다: '+cleanHtmlText(text).slice(0,140))}
+    if(/SERVICE_ACCESS_DENIED|PERMISSION_DENIED|SERVICE_KEY_IS_NOT_REGISTERED|SERVICE_KEY_IS_NULL|APPLICATION_ERROR|LIMITED_NUMBER_OF_SERVICE_REQUESTS_EXCEEDS/i.test(text))throw new Error(cleanHtmlText(text).slice(0,220)+' · 데이터 서비스 안전보건법령 스마트검색(15123696) 활용신청과 Cloudflare Secret을 확인하세요.');let data;try{data=JSON.parse(text)}catch(e){throw new Error('KOSHA Smart Search JSON 응답을 해석하지 못했습니다: '+cleanHtmlText(text).slice(0,140))}
     const resultCode=data?.response?.header?.resultCode||data?.header?.resultCode; if(resultCode&&!['00','0'].includes(String(resultCode)))throw new Error((data?.response?.header?.resultMsg||data?.header?.resultMsg||`KOSHA resultCode ${resultCode}`)+' · 안전보건법령 스마트검색(15123696) 활용신청 상태를 확인하세요.');
     const items=flattenSearchItems(data).map(x=>normalizeLawItem(x,q)).filter(x=>x.title||x.content);
     return json({ok:true,query:q,total:items.length,items,updatedAt:new Date().toISOString(),searchedAtLabel:new Date().toLocaleTimeString('ko-KR',{timeZone:'Asia/Seoul',hour:'2-digit',minute:'2-digit'})});
@@ -931,9 +931,9 @@ const FIRE_SUMMARY='https://apis.data.go.kr/1661000/FireInformationService/getOc
 function publicUrl(base,key,params={}){const u=new URL(base);u.searchParams.set('serviceKey',normalizeServiceKey(key));for(const[k,v]of Object.entries(params))if(v!==''&&v!==undefined&&v!==null)u.searchParams.set(k,String(v));return u;}
 function publicRows(j){let x=j?.response?.body?.items?.item??j?.response?.body?.items??j?.body?.items?.item??j?.body?.items??j?.items?.item??j?.items??[];if(Array.isArray(x))return x;if(x&&typeof x==='object')return [x];return [];}
 async function publicFetch(base,key,params={},timeout=8500){
-  const r=await fetchTimed(publicUrl(base,key,params),{headers:{Accept:'application/json,application/xml,text/xml,*/*'},cf:{cacheTtl:180,cacheEverything:true}},timeout);const text=await r.text();if(!r.ok)throw new Error(`공공데이터 HTTP ${r.status}`);
-  if(/SERVICE_(?:KEY|ACCESS)|APPLICATION_ERROR|PERMISSION_DENIED|LIMITED_NUMBER/i.test(text)&&!/[\"<]resultCode[\">:]\s*\"?00/i.test(text))throw new Error(cleanHtmlText(text).slice(0,180)||'공공데이터 인증/승인 상태를 확인하세요.');
-  try{const j=JSON.parse(text);const code=j?.response?.header?.resultCode??j?.header?.resultCode;if(code!==undefined&&!['00','0','NORMAL_SERVICE'].includes(String(code)))throw new Error(j?.response?.header?.resultMsg||j?.header?.resultMsg||`공공데이터 resultCode ${code}`);return {format:'json',data:j,rows:publicRows(j),raw:text};}catch(e){if(e instanceof SyntaxError){const rows=parseItems(text);if(!rows.length&&/<resultCode>[^0<]/i.test(text))throw new Error(stripTags(text).slice(0,180));return {format:'xml',data:null,rows,raw:text};}throw e;}
+  const r=await fetchTimed(publicUrl(base,key,params),{headers:{Accept:'application/json,application/xml,text/xml,*/*'},cf:{cacheTtl:180,cacheEverything:true}},timeout);const text=await r.text();if(!r.ok)throw new Error(`데이터 HTTP ${r.status}`);
+  if(/SERVICE_(?:KEY|ACCESS)|APPLICATION_ERROR|PERMISSION_DENIED|LIMITED_NUMBER/i.test(text)&&!/[\"<]resultCode[\">:]\s*\"?00/i.test(text))throw new Error(cleanHtmlText(text).slice(0,180)||'데이터 인증/승인 상태를 확인하세요.');
+  try{const j=JSON.parse(text);const code=j?.response?.header?.resultCode??j?.header?.resultCode;if(code!==undefined&&!['00','0','NORMAL_SERVICE'].includes(String(code)))throw new Error(j?.response?.header?.resultMsg||j?.header?.resultMsg||`데이터 resultCode ${code}`);return {format:'json',data:j,rows:publicRows(j),raw:text};}catch(e){if(e instanceof SyntaxError){const rows=parseItems(text);if(!rows.length&&/<resultCode>[^0<]/i.test(text))throw new Error(stripTags(text).slice(0,180));return {format:'xml',data:null,rows,raw:text};}throw e;}
 }
 function kstParts(offsetMinutes=0){const d=new Date(Date.now()+9*3600000+offsetMinutes*60000);const pad=n=>String(n).padStart(2,'0');return{date:`${d.getUTCFullYear()}${pad(d.getUTCMonth()+1)}${pad(d.getUTCDate())}`,time:`${pad(d.getUTCHours())}00`};}
 function dfsGrid(lat,lon){
@@ -958,7 +958,7 @@ async function publicAir(request,env){const u=new URL(request.url);try{return js
 async function publicChemical(request,env){const u=new URL(request.url);try{return json({ok:true,data:await fetchChemicalContext(u.searchParams.get('cas'),env)})}catch(e){return json(publicError(e),502)}}
 async function publicWildfire(request,env){try{return json({ok:true,data:await fetchWildfireContext(env)})}catch(e){return json(publicError(e),502)}}
 async function publicFire(request,env){try{return json({ok:true,data:await fetchFireContext(env)})}catch(e){return json(publicError(e),502)}}
-async function publicSafetyBrief(request,env){if(request.method!=='GET')return json({ok:false,error:'허용되지 않은 요청입니다.'},405);const u=new URL(request.url),lat=u.searchParams.get('lat'),lon=u.searchParams.get('lon'),sido=u.searchParams.get('sido');const jobs=[];if(lat&&lon)jobs.push(['weather',fetchWeatherContext(lat,lon,env)]);if(sido)jobs.push(['air',fetchAirContext(sido,env)]);jobs.push(['wildfire',fetchWildfireContext(env)],['fire',fetchFireContext(env)]);const settled=await Promise.allSettled(jobs.map(x=>x[1]));const data={},errors={};settled.forEach((r,i)=>{const name=jobs[i][0];if(r.status==='fulfilled')data[name]=r.value;else errors[name]=String(r.reason?.message||r.reason||'조회 실패').slice(0,160)});return json({ok:Object.keys(data).length>0,data,errors,updatedAt:new Date().toISOString(),notice:'공공데이터는 현장조건 확인을 돕는 참고정보이며 작업중지·위험성 수준을 자동 결정하지 않습니다.'},Object.keys(data).length?200:502);}
+async function publicSafetyBrief(request,env){if(request.method!=='GET')return json({ok:false,error:'허용되지 않은 요청입니다.'},405);const u=new URL(request.url),lat=u.searchParams.get('lat'),lon=u.searchParams.get('lon'),sido=u.searchParams.get('sido');const jobs=[];if(lat&&lon)jobs.push(['weather',fetchWeatherContext(lat,lon,env)]);if(sido)jobs.push(['air',fetchAirContext(sido,env)]);jobs.push(['wildfire',fetchWildfireContext(env)],['fire',fetchFireContext(env)]);const settled=await Promise.allSettled(jobs.map(x=>x[1]));const data={},errors={};settled.forEach((r,i)=>{const name=jobs[i][0];if(r.status==='fulfilled')data[name]=r.value;else errors[name]=String(r.reason?.message||r.reason||'조회 실패').slice(0,160)});return json({ok:Object.keys(data).length>0,data,errors,updatedAt:new Date().toISOString(),notice:'표시된 현장 자료는 작업조건 확인을 돕는 참고정보이며 작업중지·위험성 수준을 자동 결정하지 않습니다.'},Object.keys(data).length?200:502);}
 function casCandidates(text){return [...new Set((String(text||'').match(/\b\d{2,7}-\d{2}-\d\b/g)||[]).map(normalizeCas).filter(validateCas))].slice(0,3)}
 async function enrichKrasPublicContext(body,env){const out={};const cas=casCandidates([body?.equipment,body?.description,body?.controls].join(' ')).slice(0,5);if(cas.length){const settled=await Promise.allSettled(cas.map(x=>fetchChemicalContext(x,env)));out.chemicals=settled.filter(x=>x.status==='fulfilled').map(x=>x.value);}const pc=body?.publicContext;if(pc&&typeof pc==='object'){out.environment={summary:clipText(pc.summary,5000),updatedAt:clipText(pc.updatedAt,80),sources:Array.isArray(pc.sources)?pc.sources.slice(0,8).map(x=>clipText(x,40)):[],notice:clipText(pc.notice,500)};}return out;}
 
@@ -1032,10 +1032,10 @@ async function aiKras(request,env){
 작업조건·인원·빈도: ${conditions||'미입력'}
 사고·아차사고·특이사항: ${incidents||'미입력'}
 
-[공공데이터 참고정보]
-${publicContextText&&publicContextText!=='{}'?publicContextText:'연결된 공공데이터 없음'}
+[현장 참고자료]
+${publicContextText&&publicContextText!=='{}'?publicContextText:'연결된 현장 자료 없음'}
 
-[공공데이터 사용 규칙]
+[현장 자료 사용 규칙]
 - 위 자료는 현장 확인을 보조하는 참고정보이며 위험성 수준, 작업중지, 법규 적합성을 자동 확정하는 근거가 아닙니다.
 - 작업과 직접 관련 없는 기상·대기·산불·화재 통계는 억지로 위험요인으로 만들지 마세요.
 - 화학물질안전원 정보가 있으면 해당 CAS 물질의 노출·사고 시나리오 확인에 참고하되 실제 사용농도·사용량·환기·MSDS는 현장에서 확인해야 합니다.
