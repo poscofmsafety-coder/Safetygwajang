@@ -72,7 +72,7 @@ Cloudflare Worker의 **Settings → Variables and Secrets**에서 다음을 확�
 - [ ] `내 위치 사용` 버튼을 눌러 브라우저 위치 권한 허용/거부 양쪽 동작 확인
 - [ ] KRAS AI에서 공공데이터 불러오기 후 AI 초안 생성 확인
 - [ ] KRAS TBM 기록에서 사진 1개 + PDF 서명록 1개 저장/다운로드/삭제 확인
-- [ ] `KRAS에서 등록 계속하기` 버튼이 `https://kras.kosha.or.kr/kras24/`로 새 탭 연결되는지 확인
+- [ ] `KRAS에서 등록 계속하기` 버튼이 `https://portal.kosha.or.kr/kras/implement/real`로 새 탭 연결되는지 확인
 - [ ] 모바일 390px/430px에서 상단 헤더 한 줄, 취준생·재직자 빠른 메뉴 2열 확인
 - [ ] 데스크톱 메인 대형 제일이 클릭 시 랜덤 안전문구와 모션 확인
 - [ ] 한국전기안전공사 API Secret은 불필요(v16 미사용)

@@ -4,7 +4,7 @@
   const updated=document.getElementById('jobs-updated');
   const refresh=document.getElementById('jobs-refresh');
   if(!grid)return;
-  const CACHE_KEY='sgw_safety_jobs_v3', CACHE_MS=10*60*1000;
+  const CACHE_KEY='sgw_safety_jobs_v4', CACHE_MS=10*60*1000;
   let followUpChecks=0;
   const FALLBACK=[
     {company:'현대자동차',position:'현대자동차 9월 신입 채용 (안전관리·전주공장)',category:'안전관리',career:'신입',location:'전북 완주군',deadline:'2026-09-14',registered:'2026-09-01',provider:'사람인',link:'https://m.saramin.co.kr/job-search/view?rec_idx=54825196&t_category=top1000&t_content=generic&tab=introduce',expiresAt:'2026-09-14T17:00:00+09:00',curated:true},
@@ -21,7 +21,19 @@
   function dedupe(items){const seen=new Set(),out=[];for(const x of items||[]){const k=fingerprint(x);if(!k||seen.has(k))continue;seen.add(k);out.push(x)}return out}
   function activeFallback(){const now=Date.now();return FALLBACK.filter(x=>!x.expiresAt||Date.parse(x.expiresAt)>=now)}
   function mergedItems(data){return dedupe([...(data?.items||[]),...activeFallback()]).slice(0,16)}
-  function deadline(v){const s=clean(v);if(!s)return '';if(s==='채용시'||/^D-\d+/i.test(s))return s;let m=s.match(/^(?:\d{4}|\d{2})-(\d{1,2})-(\d{1,2})$/);if(m)return `${Number(m[1])}.${Number(m[2])} 마감`;return s}
+  function deadline(v){
+    const raw=clean(v);if(!raw)return '';
+    const s=raw.replace(/\s+/g,' ').trim();
+    if(/채용시/.test(s))return '~ 채용시';
+    if(/상시/.test(s))return '~ 상시';
+    const dayNames='일월화수목금토';
+    const label=(y,m,d)=>{const yy=Number(y),mm=Number(m),dd=Number(d);if(!mm||!dd||mm>12||dd>31)return '';const dt=new Date(yy,mm-1,dd);if(dt.getFullYear()!==yy||dt.getMonth()!==mm-1||dt.getDate()!==dd)return '';return `~ ${String(mm).padStart(2,'0')}/${String(dd).padStart(2,'0')}(${dayNames[dt.getDay()]})`};
+    let m=s.match(/D\s*-\s*(\d+)/i);if(m){const dt=new Date();dt.setHours(12,0,0,0);dt.setDate(dt.getDate()+Number(m[1]));return label(dt.getFullYear(),dt.getMonth()+1,dt.getDate())}
+    m=s.match(/(20\d{2})\s*(?:[-./]|년\s*)(\d{1,2})\s*(?:[-./]|월\s*)(\d{1,2})/);if(m)return label(m[1],m[2],m[3])||('~ '+s.replace(/^~\s*/,'').replace(/\s*마감.*$/,''));
+    m=s.match(/(?:^|[^\d])(\d{2})[-./](\d{1,2})[-./](\d{1,2})(?:[^\d]|$)/);if(m)return label(2000+Number(m[1]),m[2],m[3])||('~ '+s.replace(/^~\s*/,'').replace(/\s*마감.*$/,''));
+    m=s.match(/(?:^|[^\d])(\d{1,2})\s*[./-]\s*(\d{1,2})(?:\s*\([일월화수목금토]\))?/);if(m){let y=new Date().getFullYear();let out=label(y,m[1],m[2]);if(out)return out}
+    return '~ '+s.replace(/^~\s*/,'').replace(/\s*마감(?:예정)?\s*$/,'').trim();
+  }
   function cacheGet(){try{const x=JSON.parse(localStorage.getItem(CACHE_KEY)||'null');return x&&x.savedAt?x:null}catch(e){return null}}
   function cacheSet(data){try{localStorage.setItem(CACHE_KEY,JSON.stringify({savedAt:Date.now(),data}))}catch(e){}}
   function render(data,stale=false,label=''){

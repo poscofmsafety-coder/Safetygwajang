@@ -10,7 +10,7 @@
 - 안전보건공단 위험성평가 안내자료 / 3단계 판단법 자료
   - https://www.kosha.or.kr/
 - KRAS 공식사이트
-  - https://kras.kosha.or.kr/kras24/
+  - https://portal.kosha.or.kr/kras/implement/real
 
 ## 2. 구현 원칙
 

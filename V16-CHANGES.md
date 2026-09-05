@@ -11,7 +11,7 @@
 - 클릭 시 제일이가 힘차게 흔들리는 모션을 추가했으며 `prefers-reduced-motion`을 존중합니다.
 
 ## KRAS
-- 현행 KRAS 주소를 `https://kras.kosha.or.kr/kras24/`로 통일했습니다.
+- 현행 KRAS 주소를 `https://portal.kosha.or.kr/kras/implement/real`로 통일했습니다.
 - 결과공유/TBM 기록에 현장사진·교육서명록(이미지/PDF) 첨부 기능을 추가했습니다.
 - 첨부파일은 localStorage가 아닌 IndexedDB Blob 저장소에 보관합니다.
 - Excel TBM공유 시트에 첨부파일명을 포함합니다.

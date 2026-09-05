@@ -619,7 +619,7 @@ async function quickSafetyJobs(){
 }
 async function safetyJobs(request,env,ctx){
   const url=new URL(request.url),force=url.searchParams.get('refresh')==='1';let cache=null,key=null,cached=null;
-  try{cache=caches.default;key=new Request(new URL('/api/jobs?cache=v3',request.url).toString(),{method:'GET'});cached=await cache.match(key)}catch(e){}
+  try{cache=caches.default;key=new Request(new URL('/api/jobs?cache=v4',request.url).toString(),{method:'GET'});cached=await cache.match(key)}catch(e){}
   if(cached){
     const data=await cached.clone().json().catch(()=>null);const age=data?.updatedAt?Math.max(0,Date.now()-Date.parse(data.updatedAt)):Infinity;
     if(force){

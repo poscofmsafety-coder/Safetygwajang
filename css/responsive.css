@@ -255,3 +255,36 @@ pre,code{max-width:100%;overflow-wrap:anywhere;}
 .hero-visual-full img.mascot-power-wave{animation:sgwHeroCheer .78s ease-in-out!important;transform-origin:50% 100%!important;}
 img[data-cheer-mascot].mascot-power-pop:not([data-hero-mascot]){animation:sgwMascotPop .48s ease!important;}
 @media (prefers-reduced-motion:reduce){.hero-visual-full img.mascot-power-wave,img[data-cheer-mascot].mascot-power-pop{animation:none!important}}
+
+
+/* ===== v17 hero slogan collision-proof layout ===== */
+@media (min-width:981px){
+  .hero-visual-full{
+    min-height:530px!important;
+    padding-bottom:118px!important;
+    box-sizing:border-box!important;
+  }
+  .hero-visual-full img{
+    height:400px!important;
+    bottom:118px!important;
+    left:50%!important;
+    max-width:90%!important;
+  }
+  .hero-handnote{
+    top:auto!important;
+    right:22px!important;
+    bottom:14px!important;
+    min-width:190px!important;
+    padding:9px 14px!important;
+    transform:rotate(-1deg)!important;
+    text-align:center!important;
+    background:rgba(255,255,255,.94)!important;
+    border:1px solid rgba(11,129,133,.18)!important;
+    border-radius:14px!important;
+    box-shadow:0 8px 22px rgba(21,59,103,.07)!important;
+  }
+}
+@media (max-width:760px){
+  /* 모바일에서는 히어로의 문구가 캐릭터를 가리지 않도록 클릭 응원말풍선만 사용 */
+  .hero-handnote{display:none!important;}
+}
