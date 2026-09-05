@@ -15,7 +15,7 @@ npx wrangler deploy
 ## 3. Runtime variables and secrets
 Cloudflare Worker의 **Settings → Variables and Secrets**에서 다음을 확인합니다.
 - `KOSHA_API_KEY`: 법령·MSDS 공식자료 조회
-- `GROQ_API_KEY`: 자기소개서 AI + 순회점검 사진 분석
+- `GROQ_API_KEY`: 자기소개서 AI + 순회점검 사진 분석 + KRAS 위험성평가 AI 초안
 
 키 값은 GitHub나 `wrangler.jsonc`에 직접 적지 않습니다. 기존 Worker에 Secret으로 저장하면 GitHub를 비공개로 바꿔도 자동 배포 연결을 유지할 수 있습니다.
 
@@ -61,3 +61,5 @@ Cloudflare Worker의 **Settings → Variables and Secrets**에서 다음을 확�
 - 서버 응답에 `liveCount`, `sourceStats`, `sourceErrors` 진단 필드를 포함하여 어떤 수집원이 실패했는지 확인할 수 있습니다.
 - 실시간 원천이 모두 실패해도 검증된 대기업·중견기업 최근 공고를 7건까지 표시하고, 마감일 이후 자동 제외합니다.
 - 사람인/중계 게시판 수집 결과는 대기업·중견·공공기관 우선 필터 후 회사명+직무+근무지 기준으로 중복 제거합니다.
+
+- KRAS: 기존 Excel/CSV/TSV/JSON 가져오기, 헤더 자동매핑, Groq AI 초안 생성, AI 결과가 재검토 필요 상태로 저장되는지 확인

@@ -60,3 +60,16 @@ npx wrangler deploy
 
 ## 선택: 뉴스 API
 Google News RSS는 별도 키 없이 Worker가 수집합니다. Kakao 검색을 함께 쓰려면 `KAKAO_REST_API_KEY`, Naver 검색을 쓰려면 `NAVER_CLIENT_ID` + `NAVER_CLIENT_SECRET`을 Secret으로 저장할 수 있습니다.
+
+
+## 6. Groq AI
+Cloudflare Worker의 **Settings → Variables and Secrets**에 다음 Secret을 저장합니다.
+
+- `GROQ_API_KEY`: 자기소개서 AI, 순회점검 이미지 분석, KRAS 위험성평가 AI 초안에 공통 사용
+- 선택: `GROQ_TEXT_MODEL`
+- 선택: `GROQ_VISION_MODEL`
+- 선택: `GROQ_KRAS_MODEL`
+
+KRAS AI는 `/api/ai/kras`에서 처리하며 API 키를 브라우저로 보내지 않습니다. `GROQ_KRAS_MODEL`을 별도로 지정하지 않으면 Structured Outputs strict mode를 지원하는 모델 중 코드의 기본값을 사용합니다.
+
+배포 후 `/api/health`에서 `aiConfigured: true`인지 확인하세요. 실제 KRAS AI 호출은 같은 사이트 화면에서 POST 요청으로만 허용됩니다.

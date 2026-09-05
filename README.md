@@ -13,7 +13,7 @@
 - MSDS PDF/이미지 하이브리드 추출, CAS별 KOSHA 대조
 - 작업환경측정: MSDS/CAS 인벤토리 → 예비조사 → 적용제외 검토 → 측정·결과 → 주기관리
 - 특수건강진단 대상물질/검진기록 관리
-- 현장 작업, AI 사진 순회점검, 안전보건교육, 위험성평가, 사고·아차사고 기록
+- 현장 작업, AI 사진 순회점검, 안전보건교육, KRAS 위험성평가(기존 KRAS/Excel 가져오기 + Groq AI 초안), 사고·아차사고 기록
 
 ## Cloudflare
 Workers Static Assets + Worker API 구조입니다. `/api/*`는 `worker-api.js`가 처리합니다.
@@ -21,7 +21,7 @@ Workers Static Assets + Worker API 구조입니다. `/api/*`는 `worker-api.js`�
 - 배포: `npx wrangler deploy`
 - 필수 Secret: `KOSHA_API_KEY`
 - AI 기능 사용 시 Secret: `GROQ_API_KEY`
-- 선택 Secret: `GROQ_TEXT_MODEL`, `GROQ_VISION_MODEL`, `KAKAO_REST_API_KEY`, NAVER 검색 API 키
+- 선택 Secret: `GROQ_TEXT_MODEL`, `GROQ_VISION_MODEL`, `GROQ_KRAS_MODEL`, `KAKAO_REST_API_KEY`, NAVER 검색 API 키
 
 자세한 점검 순서는 `DEPLOY-CHECKLIST.md`, API 연결은 `API-SETUP.md`를 확인하세요.
 
