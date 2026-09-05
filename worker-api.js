@@ -15,6 +15,7 @@ export default {
     if (url.pathname === '/api/msds/lookup') return msdsLookup(request, env);
     if (url.pathname === '/api/msds/search') return msdsSearch(request, env);
     if (url.pathname === '/api/news') return safetyNews(request, env, ctx);
+    if (url.pathname === '/api/jobs') return safetyJobs(request, env, ctx);
     if (url.pathname === '/api/laws/search') return lawsSearch(request, env);
     if (url.pathname === '/api/safety-law/search') return safetyLawSearch(request, env);
     return secureResponse(await env.ASSETS.fetch(request));
@@ -344,6 +345,130 @@ async function safetyNews(request,env,ctx){
   if(ctx&&cache&&key)ctx.waitUntil(refreshNewsCache(cache,key,env));
   else if(cache&&key&&quick.items.length)try{await cache.put(key,newsJson(quick).clone())}catch(e){}
   return newsJson(quick,quick.items.length?200:502);
+}
+
+
+// 최신 안전관리자 채용공고
+// 공개 구인 목록은 빠르게 보여주고, 원문 채용사이트 링크 확인은 백그라운드에서 보강합니다.
+const SAFETY_JOB_LIST='https://isafety.co.kr/is/job';
+const SAFETY_JOB_UA='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/152.0 Safari/537.36';
+function jobText(v){
+  return cleanHtmlText(String(v||'')
+    .replace(/&nbsp;|&#160;/gi,' ')
+    .replace(/&#x([0-9a-f]+);/gi,(_,h)=>{try{return String.fromCodePoint(parseInt(h,16))}catch(e){return ' '}})
+    .replace(/&#(\d+);/g,(_,n)=>{try{return String.fromCodePoint(parseInt(n,10))}catch(e){return ' '}}));
+}
+function jobAbsoluteUrl(href,base=SAFETY_JOB_LIST){try{return new URL(decodeXml(String(href||'').replace(/&amp;/g,'&')),base).href}catch(e){return ''}}
+function jobIdFromUrl(href){const u=String(href||'');let m=u.match(/[?&]wr_id=(\d+)/);if(m)return m[1];m=u.match(/\/is\/job\/(\d+)/);return m?m[1]:''}
+function safetyJobTitle(v){return /(안전|EHS|HSE|SHE|산업안전|안전보건|보건안전|환경안전|안전환경|PSM|소방안전|위험물)/i.test(String(v||''))}
+function parseSafetyJobRows(html){
+  const out=[];
+  const rows=String(html||'').match(/<tr\b[^>]*>[\s\S]*?<\/tr>/gi)||[];
+  for(const row of rows){
+    const cells=[...row.matchAll(/<td\b[^>]*>([\s\S]*?)<\/td>/gi)].map(m=>m[1]);
+    if(cells.length<5)continue;
+    const a=cells[0].match(/<a\b[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/i);
+    if(!a)continue;
+    const href=jobAbsoluteUrl(a[1]); const jobId=jobIdFromUrl(href); if(!jobId)continue;
+    const position=jobText(a[2]); if(!position||!safetyJobTitle(position))continue;
+    const first=jobText(cells[0]);
+    let tail=first; if(position&&tail.startsWith(position))tail=tail.slice(position.length).trim();
+    const parts=tail.split('·').map(x=>x.trim()).filter(Boolean);
+    out.push({
+      id:jobId,position,category:parts[0]||'',registered:parts[1]||'',views:parts[2]||'',
+      company:jobText(cells[1]),career:jobText(cells[2]).replace(/\.$/,''),location:jobText(cells[3]),deadline:jobText(cells[4]),
+      detailUrl:href,link:href,provider:'채용정보'
+    });
+  }
+  return out;
+}
+function normalizedJobCompany(v){return jobText(v).toLowerCase().replace(/\(주\)|㈜|주식회사|유한회사|\(유\)/g,'').replace(/[^0-9a-z가-힣]/g,'')}
+function normalizedJobTitle(v){return jobText(v).toLowerCase().replace(/[\[\](){}<>·ㆍ,_/\\|-]/g,' ').replace(/\b(신입|경력|정규직|계약직|채용|모집|담당자|담당)\b/g,' ').replace(/안전관리자/g,'안전관리').replace(/\s+/g,'').trim()}
+function normalizedJobLocation(v){return jobText(v).toLowerCase().replace(/[^0-9a-z가-힣]/g,'')}
+function jobFingerprint(x){return [normalizedJobCompany(x.company),normalizedJobTitle(x.position),normalizedJobLocation(x.location)].join('|')}
+function dedupeSafetyJobs(items){
+  const seen=new Set(),out=[];
+  for(const x of items||[]){const k=jobFingerprint(x);if(!x?.company||!x?.position||!k.replace(/\|/g,'')||seen.has(k))continue;seen.add(k);out.push(x)}
+  return out;
+}
+function jobProviderFromUrl(raw){
+  let host='';try{host=new URL(raw).hostname.toLowerCase()}catch(e){}
+  if(/saramin\.co\.kr$/.test(host)||host.includes('.saramin.co.kr'))return '사람인';
+  if(/jobkorea\.co\.kr$/.test(host)||host.includes('.jobkorea.co.kr'))return '잡코리아';
+  if(/incruit\.com$/.test(host)||host.includes('.incruit.com'))return '인크루트';
+  if(/jasoseol\.com$/.test(host)||host.includes('.jasoseol.com'))return '자소설닷컴';
+  if(/catch\.co\.kr$/.test(host)||host.includes('.catch.co.kr'))return '캐치';
+  if(/wanted\.co\.kr$/.test(host)||host.includes('.wanted.co.kr'))return '원티드';
+  if(/linkareer\.com$/.test(host)||host.includes('.linkareer.com'))return '링커리어';
+  if(/jobplanet\.co\.kr$/.test(host)||host.includes('.jobplanet.co.kr'))return '잡플래닛';
+  if(/career\.co\.kr$/.test(host)||host.includes('.career.co.kr'))return '커리어';
+  if(host&&host!=='isafety.co.kr'&&!host.endsWith('.isafety.co.kr'))return '기업 채용';
+  return '채용정보';
+}
+function validJobExternal(raw){
+  const u=jobAbsoluteUrl(raw);if(!/^https:\/\//i.test(u))return false;
+  let host='';try{host=new URL(u).hostname.toLowerCase()}catch(e){return false}
+  if(host==='isafety.co.kr'||host.endsWith('.isafety.co.kr'))return false;
+  if(/facebook|twitter|x\.com|kakao|band\.us|pinterest|instagram|youtube/.test(host))return false;
+  if(/\.(?:jpg|jpeg|png|gif|webp|pdf|hwp|docx?)(?:$|[?#])/i.test(u))return false;
+  return true;
+}
+function extractJobOriginalLink(html){
+  const candidates=[];const add=v=>{const u=jobAbsoluteUrl(v);if(validJobExternal(u)&&!candidates.includes(u))candidates.push(u)};
+  for(const m of String(html||'').matchAll(/<(?:a|iframe)\b[^>]*(?:href|src)=["']([^"']+)["'][^>]*>/gi))add(m[1]);
+  for(const m of String(html||'').matchAll(/https?:\/\/[^\s'"<>()\\]+/gi))add(m[0].replace(/[;,)>\]}]+$/,''));
+  const preferred=['사람인','잡코리아','인크루트','자소설닷컴','캐치','원티드','링커리어','잡플래닛','커리어'];
+  candidates.sort((a,b)=>{const ia=preferred.indexOf(jobProviderFromUrl(a)),ib=preferred.indexOf(jobProviderFromUrl(b));return (ia<0?99:ia)-(ib<0?99:ib)});
+  return candidates[0]||'';
+}
+async function fetchSafetyJobPage(page=1,timeoutMs=4800){
+  const url=page>1?`${SAFETY_JOB_LIST}/p${page}`:SAFETY_JOB_LIST;
+  const r=await fetchTimed(url,{redirect:'follow',headers:{'user-agent':SAFETY_JOB_UA,'accept':'text/html,application/xhtml+xml','accept-language':'ko-KR,ko;q=0.9'},cf:{cacheTtl:600,cacheEverything:true}},timeoutMs);
+  const text=await r.text();if(!r.ok)throw new Error(`채용 목록 ${r.status}`);const items=parseSafetyJobRows(text);if(!items.length)throw new Error('채용 목록을 읽지 못했습니다.');return items;
+}
+async function enrichSafetyJob(item){
+  try{
+    const r=await fetchTimed(item.detailUrl,{redirect:'follow',headers:{'user-agent':SAFETY_JOB_UA,'accept':'text/html,application/xhtml+xml','accept-language':'ko-KR,ko;q=0.9'},cf:{cacheTtl:900,cacheEverything:true}},3600);
+    if(!r.ok)return item;const html=await r.text();const original=extractJobOriginalLink(html);
+    return original?{...item,link:original,provider:jobProviderFromUrl(original)}:item;
+  }catch(e){return item}
+}
+async function jobMapLimit(items,limit,fn){
+  const out=new Array(items.length);let next=0;
+  async function run(){while(true){const i=next++;if(i>=items.length)return;try{out[i]=await fn(items[i],i)}catch(e){out[i]=items[i]}}}
+  await Promise.all(Array.from({length:Math.min(limit,items.length)},run));return out;
+}
+function safetyJobsPayload(items,extra={}){return {ok:Boolean(items?.length),items:dedupeSafetyJobs(items||[]).slice(0,18),updatedAt:new Date().toISOString(),...extra}}
+function safetyJobsJson(data,status=200){return new Response(JSON.stringify(data),{status,headers:applySecurityHeaders({'content-type':'application/json; charset=utf-8','cache-control':'public, max-age=30, s-maxage=900, stale-while-revalidate=43200'})})}
+async function buildEnrichedSafetyJobs(){
+  const settled=await Promise.allSettled([fetchSafetyJobPage(1,5200),fetchSafetyJobPage(2,5200)]);
+  let items=[];for(const r of settled)if(r.status==='fulfilled')items.push(...r.value);
+  items=dedupeSafetyJobs(items).slice(0,22);if(!items.length)throw new Error('최신 채용공고를 확인하지 못했습니다.');
+  const enriched=await jobMapLimit(items.slice(0,18),4,enrichSafetyJob);
+  return safetyJobsPayload(enriched);
+}
+async function refreshSafetyJobsCache(cache,key){
+  try{const payload=await buildEnrichedSafetyJobs();if(payload.items.length&&cache&&key)await cache.put(key,safetyJobsJson(payload).clone());return payload}catch(e){return null}
+}
+async function quickSafetyJobs(){const items=await fetchSafetyJobPage(1,4500);return safetyJobsPayload(items,{refreshing:true})}
+async function safetyJobs(request,env,ctx){
+  const url=new URL(request.url),force=url.searchParams.get('refresh')==='1';let cache=null,key=null,cached=null;
+  try{cache=caches.default;key=new Request(new URL('/api/jobs?cache=v1',request.url).toString(),{method:'GET'});cached=await cache.match(key)}catch(e){}
+  if(cached){
+    const data=await cached.clone().json().catch(()=>null);const age=data?.updatedAt?Math.max(0,Date.now()-Date.parse(data.updatedAt)):Infinity;
+    if(ctx&&cache&&key&&(force||age>10*60*1000))ctx.waitUntil(refreshSafetyJobsCache(cache,key));
+    if(force&&data)return safetyJobsJson({...data,refreshing:true});return cached;
+  }
+  try{
+    const quick=await quickSafetyJobs();
+    if(cache&&key)try{await cache.put(key,safetyJobsJson(quick).clone())}catch(e){}
+    if(ctx&&cache&&key)ctx.waitUntil(refreshSafetyJobsCache(cache,key));
+    return safetyJobsJson(quick,200);
+  }catch(e){
+    // 최초 목록 호출까지 실패한 경우 백그라운드 재시도를 걸고 화면은 명확한 오류 상태로 전환합니다.
+    if(ctx&&cache&&key)ctx.waitUntil(refreshSafetyJobsCache(cache,key));
+    return safetyJobsJson({ok:false,items:[],updatedAt:new Date().toISOString(),error:'최신 채용공고를 잠시 불러오지 못했습니다.'},502);
+  }
 }
 
 // KOSHA Smart Search proxy: 인증키를 브라우저에 노출하지 않습니다.
