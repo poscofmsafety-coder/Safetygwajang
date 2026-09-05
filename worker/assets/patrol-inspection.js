@@ -10,7 +10,7 @@
   function setState(msg,kind){const el=$('#patrolAnalyzeState');if(!el)return;el.textContent=msg;el.className='patrol-state '+(kind||'');}
   function today(){return new Date().toISOString().slice(0,10)}
   function radio(v){const e=document.querySelector('input[name="patrolRisk"][value="'+v+'"]');if(e)e.checked=true}
-  function compress(file,max=1600,quality=.82){
+  function compress(file,max=1280,quality=.78){
     return new Promise((resolve,reject)=>{const r=new FileReader();r.onerror=reject;r.onload=()=>{const img=new Image();img.onerror=reject;img.onload=()=>{let w=img.width,h=img.height;if(Math.max(w,h)>max){const k=max/Math.max(w,h);w=Math.round(w*k);h=Math.round(h*k)}const c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(img,0,0,w,h);resolve(c.toDataURL('image/jpeg',quality))};img.src=r.result};r.readAsDataURL(file)});
   }
   function makeThumb(data){return new Promise(resolve=>{const img=new Image();img.onload=()=>{let w=img.width,h=img.height,k=Math.min(1,420/Math.max(w,h));w=Math.round(w*k);h=Math.round(h*k);const c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(img,0,0,w,h);resolve(c.toDataURL('image/jpeg',.62))};img.onerror=()=>resolve('');img.src=data})}
@@ -24,9 +24,24 @@
   function applyAI(r){
     $('#patrolItem').value=r.inspectionItem||'';$('#patrolObservation').value=r.observation||'';$('#patrolImprovement').value=r.improvement||'';$('#patrolAccidentType').value=r.accidentType||'기타';$('#patrolScenario').value=r.hazardScenario||'';$('#patrolUrgency').value=r.urgency||'계획 개선';$('#patrolRiskReason').value=r.reason||'';radio(r.riskAssessmentRecommended?'O':'X');
   }
+  async function requestAnalysis(payload,attempt=0){
+    const ctrl=new AbortController();
+    const timer=setTimeout(()=>ctrl.abort(),34000);
+    try{
+      const res=await fetch('/api/ai/inspection',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload),signal:ctrl.signal});
+      const data=await res.json().catch(()=>({}));
+      if(res.ok&&data.ok)return data;
+      const retryable=[429,500,502,503,504].includes(res.status);
+      if(retryable&&attempt<1){setState('AI 응답을 다시 확인하고 있습니다…');await new Promise(r=>setTimeout(r,700));return requestAnalysis(payload,attempt+1)}
+      throw new Error(data.error||'사진 분석을 완료하지 못했습니다. 잠시 후 다시 시도해 주세요.');
+    }catch(e){
+      if(e?.name==='AbortError'&&attempt<1){setState('AI 응답을 다시 확인하고 있습니다…');return requestAnalysis(payload,attempt+1)}
+      throw e;
+    }finally{clearTimeout(timer)}
+  }
   async function analyze(){
     if(!imageData||analyzing)return;analyzing=true;const b=$('#patrolAnalyzeBtn');b.disabled=true;b.textContent='분석 중…';setState('사진에서 위험요인과 점검사항을 분석하는 중…');
-    try{const res=await fetch('/api/ai/inspection',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({image:imageData,context:$('#patrolContext').value.trim()})});const data=await res.json().catch(()=>({}));if(!res.ok||!data.ok)throw new Error(data.error||'사진 분석을 완료하지 못했습니다.');applyAI(data.result||{});setState('AI 초안 작성 완료 · 내용을 확인하고 수정한 뒤 저장하세요.','ok');$('#patrolItem').scrollIntoView({behavior:'smooth',block:'center'})}catch(e){setState(e.message||'사진 분석 중 오류가 발생했습니다.','bad')}finally{analyzing=false;b.disabled=!imageData;b.textContent='✨ 사진 분석해서 점검일지 채우기'}
+    try{const data=await requestAnalysis({image:imageData,context:$('#patrolContext').value.trim()});applyAI(data.result||{});setState('AI 초안 작성 완료 · 내용을 확인하고 수정한 뒤 저장하세요.','ok');$('#patrolItem').scrollIntoView({behavior:'smooth',block:'center'})}catch(e){setState(e?.name==='AbortError'?'AI 응답이 늦어 분석을 완료하지 못했습니다. 잠시 후 다시 시도해 주세요.':(e.message||'사진 분석 중 오류가 발생했습니다.'),'bad')}finally{analyzing=false;b.disabled=!imageData;b.textContent='✨ 사진 분석해서 점검일지 채우기'}
   }
   function riskHazardType(type){const m={'추락':'추락·낙하','넘어짐':'충돌·전도','끼임':'끼임·말림','맞음':'충돌·전도','부딪힘':'충돌·전도','깔림·뒤집힘':'차량·운반','무너짐':'기타','감전':'감전','화재·폭발':'화재·폭발','질식·중독':'질식·중독','절단·베임·찔림':'기타','교통·운반':'차량·운반','화학물질 노출':'화학물질'};return m[type]||'기타'}
   function riskPriority(u){return u==='즉시 조치'?'즉시 조치':u==='당일 개선'?'우선 개선':u==='관찰 유지'?'현 수준 유지':'계획 개선'}

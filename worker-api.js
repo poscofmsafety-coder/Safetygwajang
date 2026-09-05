@@ -528,12 +528,68 @@ function normalizeInspectionResult(x){
 }
 function inspectionTextValues(x){return [x.inspectionItem,x.observation,x.improvement,x.hazardScenario,x.reason].map(v=>String(v||''))}
 function inspectionHasForbidden(x){return inspectionTextValues(x).some(hasForbiddenScript)}
-function scrubInspectionResult(x){const y={...x};for(const k of ['inspectionItem','observation','improvement','hazardScenario','reason'])y[k]=scrubForbiddenScripts(y[k]);return normalizeInspectionResult(y)}
-async function rewriteInspectionKorean(x,env){
-  if(!env?.GROQ_API_KEY)return null;
-  const prompt='다음 순회점검 JSON의 사실과 판단을 절대 추가·삭제하지 말고, 문자열 값의 언어만 자연스러운 한국어로 교정하세요. 한자·중국어·일본어·러시아어·아랍어·태국어·베트남어식 확장문자는 한 글자도 사용하지 마세요. CCTV, MSDS, AI 같은 통용 영문 약어는 허용합니다. 키 이름과 불리언·숫자는 그대로 유지하세요. JSON 객체만 반환하세요.\n\n'+JSON.stringify(x);
-  const payload={model:String(env.GROQ_TEXT_MODEL||'openai/gpt-oss-120b'),temperature:0.03,max_completion_tokens:1600,response_format:{type:'json_object'},messages:[{role:'system',content:KOREAN_OUTPUT_GUARD},{role:'user',content:prompt}]};
-  try{const r=await fetchTimed('https://api.groq.com/openai/v1/chat/completions',{method:'POST',headers:{'content-type':'application/json','authorization':'Bearer '+env.GROQ_API_KEY},body:JSON.stringify(payload)},18000);if(!r.ok)return null;const j=await r.json();const parsed=safeInspectionJson(j?.choices?.[0]?.message?.content);return parsed?normalizeInspectionResult(parsed):null}catch(e){return null}
+function normalizeKoreanSafetyPhrase(v){
+  return String(v||'')
+    .replace(/(?:지면|바닥|바닥면)?\s*이?\s*불평(?:하다|하여|해서|한)?/g,'바닥이 고르지 않아')
+    .replace(/\s{2,}/g,' ').trim();
+}
+function safeKoreanField(value,fallback){
+  const raw=normalizeKoreanSafetyPhrase(String(value||'').trim());
+  if(!raw)return fallback;
+  if(!hasForbiddenScript(raw))return raw;
+  const cleaned=normalizeKoreanSafetyPhrase(scrubForbiddenScripts(raw));
+  const hangul=(cleaned.match(/[가-힣]/g)||[]).length;
+  return hangul>=8?cleaned:fallback;
+}
+
+function finalKoreanInspection(x){
+  const y=normalizeInspectionResult(x);
+  y.inspectionItem=safeKoreanField(y.inspectionItem,'사진에서 확인된 현장 상태를 기준으로 점검이 필요합니다.');
+  y.observation=safeKoreanField(y.observation,'사진에서 확인 가능한 상태만 바탕으로 현장에서 다시 확인해 주세요.');
+  y.improvement=safeKoreanField(y.improvement,'위험구역을 정리하고 필요한 안전조치를 현장 기준에 따라 시행해 주세요.');
+  y.hazardScenario=safeKoreanField(y.hazardScenario,'현재 상태가 지속되면 작업 중 안전사고가 발생할 수 있습니다.');
+  y.reason=safeKoreanField(y.reason,'사진 분석 결과를 참고해 현장 확인 후 위험성평가 연계 여부를 결정해 주세요.');
+  return normalizeInspectionResult(y);
+}
+const INSPECTION_SCHEMA={
+  type:'object',
+  properties:{
+    inspectionItem:{type:'string'},observation:{type:'string'},improvement:{type:'string'},
+    accidentType:{type:'string',enum:['추락','넘어짐','끼임','맞음','부딪힘','깔림·뒤집힘','무너짐','감전','화재·폭발','질식·중독','절단·베임·찔림','교통·운반','화학물질 노출','기타']},
+    hazardScenario:{type:'string'},riskAssessmentRecommended:{type:'boolean'},
+    urgency:{type:'string',enum:['즉시 조치','당일 개선','계획 개선','관찰 유지']},reason:{type:'string'},confidence:{type:'number'}
+  },
+  required:['inspectionItem','observation','improvement','accidentType','hazardScenario','riskAssessmentRecommended','urgency','reason','confidence'],
+  additionalProperties:false
+};
+function currentVisionModels(env){
+  const supported=['qwen/qwen3.6-27b','qwen/qwen3.8-27b'];
+  const configured=String(env?.GROQ_VISION_MODEL||'').trim();
+  const ordered=[];
+  if(supported.includes(configured))ordered.push(configured);
+  for(const m of supported)if(!ordered.includes(m))ordered.push(m);
+  return ordered;
+}
+async function callInspectionVision(model,prompt,image,env,timeoutMs){
+  const useStrict=model==='qwen/qwen3.8-27b';
+  const payload={
+    model,
+    messages:[{role:'user',content:[{type:'text',text:prompt},{type:'image_url',image_url:{url:image}}]}],
+    temperature:0.15,
+    max_completion_tokens:1200,
+    stream:false,
+    reasoning_effort:'none',
+    response_format:useStrict?{type:'json_schema',json_schema:{name:'patrol_inspection',strict:true,schema:INSPECTION_SCHEMA}}:{type:'json_object'}
+  };
+  const r=await fetchTimed('https://api.groq.com/openai/v1/chat/completions',{
+    method:'POST',headers:{'content-type':'application/json','authorization':'Bearer '+env.GROQ_API_KEY},body:JSON.stringify(payload)
+  },timeoutMs);
+  const text=await r.text();
+  if(!r.ok){const err=new Error('groq_http_'+r.status);err.status=r.status;throw err}
+  let data;try{data=JSON.parse(text)}catch(e){throw new Error('groq_response_json')}
+  const parsed=safeInspectionJson(data?.choices?.[0]?.message?.content);
+  if(!parsed)throw new Error('inspection_json');
+  return normalizeInspectionResult(parsed);
 }
 async function aiInspection(request,env){
   if(request.method!=='POST')return json({ok:false,error:'허용되지 않은 요청입니다.'},405);
@@ -543,39 +599,23 @@ async function aiInspection(request,env){
   const image=String(body?.image||'');
   const context=String(body?.context||'').slice(0,2500);
   if(!/^data:image\/(?:jpeg|jpg|png|webp);base64,/i.test(image))return json({ok:false,error:'JPG, PNG 또는 WEBP 이미지를 선택해 주세요.'},400);
-  if(image.length>12_000_000)return json({ok:false,error:'이미지가 너무 큽니다. 더 작은 사진으로 다시 시도해 주세요.'},413);
-  const prompt=`당신은 대한민국 제조·건설 현장을 점검하는 숙련된 안전관리자입니다. 사진에 실제로 보이는 사실만 근거로 순회점검일지 초안을 만드세요. 보이지 않는 설비나 행동을 추측해 사실처럼 쓰지 마세요.\n\n[언어 규칙 - 최우선]\n모든 문자열 값은 자연스러운 한국어로 작성하세요. 한자·중국어·일본어·러시아어·아랍어·태국어·베트남어식 확장문자는 절대 사용하지 마세요. 한자 표기나 다른 문자권 글자를 출력하지 말고 같은 뜻을 한글로 풀어 쓰세요. CCTV, MSDS, AI 같은 통용 약어만 영문을 허용합니다. 사진 속 외국어 표기를 그대로 베끼지 말고 필요한 의미만 한국어로 설명하세요. '지면이 불평' 같은 직역 비문 대신 '지면이 고르지 않아 넘어질 위험이 있음'처럼 현장 안전 문장으로 자연스럽게 쓰세요.\n\n추가 현장정보:\n${context||'(없음)'}\n\n다음 JSON 객체만 반환하세요.\n{\n  "inspectionItem":"점검 사항. 사진에서 확인되는 상태를 구체적으로 1~3문장",\n  "observation":"근거가 되는 관찰 사실",\n  "improvement":"개선조치 필요사항. 제거·대체→공학적→관리적→보호구 순으로 실현 가능한 조치",\n  "accidentType":"추락|넘어짐|끼임|맞음|부딪힘|깔림·뒤집힘|무너짐|감전|화재·폭발|질식·중독|절단·베임·찔림|교통·운반|화학물질 노출|기타 중 하나",\n  "hazardScenario":"누가 어떤 상황에서 어떤 재해를 당할 수 있는지 한 문장",\n  "riskAssessmentRecommended":true 또는 false,\n  "urgency":"즉시 조치|당일 개선|계획 개선|관찰 유지 중 하나",\n  "reason":"위험성평가 연계 여부의 근거",\n  "confidence":0부터100 숫자\n}\n\n중대한 위험이 명확하지 않으면 위험성평가 권고를 과도하게 true로 두지 말고, 사진만으로 판단이 어려우면 confidence를 낮추세요.`;
-  const models=[String(env.GROQ_VISION_MODEL||'meta-llama/llama-4-scout-17b-16e-instruct'),'qwen/qwen3.6-27b'];
-  let lastStatus=502,lastLanguageCandidate=null;
-  for(const model of [...new Set(models)]){
-    const payload={
-      model,
-      messages:[{role:'user',content:[{type:'text',text:prompt},{type:'image_url',image_url:{url:image}}]}],
-      temperature:0.05,
-      max_completion_tokens:1800,
-      response_format:{type:'json_object'}
-    };
+  if(image.length>9_000_000)return json({ok:false,error:'이미지가 너무 큽니다. 더 작은 사진으로 다시 시도해 주세요.'},413);
+  const prompt=`당신은 대한민국 제조·건설 현장의 숙련된 안전관리자입니다. 사진에 실제로 보이는 사실만 근거로 순회점검일지 초안을 작성하세요. 보이지 않는 사람의 행동, 설비 상태, 수치, 보호구 착용 여부를 임의로 단정하지 마세요.\n\n[출력 언어]\n모든 설명은 자연스럽고 간결한 한국어 문장으로만 작성하세요. 한자·중국어·일본어 등 다른 문자권 글자를 섞지 마세요. 사진 속 외국어 문구를 그대로 옮기지 말고 필요한 의미만 한국어로 설명하세요. CCTV, MSDS, AI 같은 현장 통용 약어만 영문으로 허용합니다. 번역투 표현을 피하고 실제 순회점검일지에 바로 수정해 쓸 수 있는 문장으로 작성하세요.\n\n[현장 메모]\n${context||'없음'}\n\nJSON 객체만 반환하세요. inspectionItem은 사진에서 확인되는 점검사항 1~3문장, observation은 사진에서 직접 확인되는 근거, improvement는 현실적인 개선조치, accidentType은 지정된 재해유형 중 하나, hazardScenario는 재해 발생 시나리오 한 문장, riskAssessmentRecommended는 수시 위험성평가 연계 필요 여부, urgency는 조치 우선순위, reason은 연계 판단 근거, confidence는 0~100 숫자입니다.`;
+  const models=currentVisionModels(env);
+  let lastStatus=502;
+  for(let i=0;i<models.length;i++){
     try{
-      const r=await fetchTimed('https://api.groq.com/openai/v1/chat/completions',{
-        method:'POST',headers:{'content-type':'application/json','authorization':'Bearer '+env.GROQ_API_KEY},body:JSON.stringify(payload)
-      },45000);
-      lastStatus=r.status;
-      const text=await r.text();
-      if(!r.ok)continue;
-      let data;try{data=JSON.parse(text)}catch(e){continue}
-      const content=data?.choices?.[0]?.message?.content;
-      const parsed=safeInspectionJson(content);
-      if(!parsed)continue;
-      let result=normalizeInspectionResult(parsed);
+      let result=await callInspectionVision(models[i],prompt,image,env,i===0?18000:12000);
       if(inspectionHasForbidden(result)){
-        const fixed=await rewriteInspectionKorean(result,env);
-        if(fixed&&!inspectionHasForbidden(fixed))result=fixed;
-        else{lastLanguageCandidate=result;continue}
+        // 별도 번역/교정 API를 또 호출하지 않고 최신 비전 모델로 한 번만 재생성합니다.
+        if(i+1<models.length)continue;
       }
-      return json({ok:true,result});
-    }catch(e){lastStatus=e?.name==='AbortError'?504:502}
+      result=finalKoreanInspection(result);
+      return json({ok:true,result},200);
+    }catch(e){
+      lastStatus=Number(e?.status)||((e?.name==='AbortError')?504:502);
+      continue;
+    }
   }
-  // 두 비전 모델 모두 언어 혼용이 남은 드문 경우에도 외국문자를 화면에 노출하지 않습니다.
-  if(lastLanguageCandidate)return json({ok:true,result:scrubInspectionResult(lastLanguageCandidate)});
-  return genericAiError(lastStatus===429?429:lastStatus);
+  return json({ok:false,error:lastStatus===429?'AI 요청이 많습니다. 자동 재시도 후에도 연결되지 않았습니다. 잠시 후 다시 시도해 주세요.':'사진 분석을 완료하지 못했습니다. 잠시 후 다시 시도해 주세요.'},lastStatus===429?429:502);
 }

@@ -51,3 +51,6 @@
 .patrol-preview-empty[hidden],.patrol-preview-wrap>img[hidden],.patrol-remove-image[hidden]{display:none!important}
 @media(max-width:900px){.patrol-preview-wrap{aspect-ratio:16/10;max-height:440px}}
 @media(max-width:600px){.patrol-preview-wrap{aspect-ratio:4/3;max-height:360px}}
+
+/* 위험성평가 탭 내부의 작은 실무가이드 바로가기 */
+.risk-title-row{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:14px}.risk-title-row h2{margin-top:0}.risk-title-row .desc{margin-bottom:0}.risk-inline-guide{display:inline-flex;align-items:center;gap:8px;flex:0 0 auto;padding:8px 11px;border:1px solid #cfe3e4;border-radius:12px;background:#f6fbfb;color:#0b6f76;text-decoration:none;font-size:.72rem;font-weight:900}.risk-inline-guide span{display:inline-flex;align-items:center;justify-content:center;min-width:44px;height:24px;padding:0 7px;border-radius:8px;background:#e8f5f4;color:#087c79;font-size:.64rem;letter-spacing:.04em}.risk-inline-guide:hover{background:#edf8f7;border-color:#9ed2d0}@media(max-width:680px){.risk-title-row{flex-direction:column}.risk-inline-guide{align-self:flex-start}}
