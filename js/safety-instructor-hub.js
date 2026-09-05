@@ -1,313 +1,158 @@
-/* 산업안전지도사 기계안전 학습실
- * - 중복기출 잠금영역 내부에만 노출
- * - 2025~2019 사용자 제공 기출/면접 메모 141문항
- * - 2·3차 대비 주제 재구성, KOSHA 공식 근거 검색, 랜덤 구술연습
+/* 산업안전지도사 학습실 V23
+ * 핵심전략: 2차 = 기출 답안 암기 X / 기출 소진지도 + 최신 고시·별표 + 인접 미출제 논점
+ * 기존 중복기출 비밀번호 잠금영역 내부에만 노출
  */
 (function(){
   'use strict';
   const DATA_URL='data/safety-instructor-study.json';
   const UNLOCK_KEY='dup-access-ok';
-  const MASTER_KEY='si-mastered-v1';
-  const GRADE_KEY='si-random-grades-v1';
-  let data=null, root=null, currentTab='roadmap', randomPool='all', randomItem=null, timerId=null, timerLeft=0, voiceRec=null;
-  const mastered=loadJson(MASTER_KEY,{}), grades=loadJson(GRADE_KEY,{good:0,maybe:0,again:0});
+  const MASTER_KEY='si-mastered-v23';
+  const GRADE_KEY='si-interview-grades-v23';
+  let data=null,root=null,currentTab='strategy',timerId=null,timerLeft=0,voiceRec=null,writeItem=null,interviewItem=null;
+  const mastered=loadJson(MASTER_KEY,{}),grades=loadJson(GRADE_KEY,{good:0,maybe:0,again:0});
 
-  document.addEventListener('DOMContentLoaded',()=>waitForPanel());
-  window.addEventListener('dup-unlocked',()=>showHub());
+  document.addEventListener('DOMContentLoaded',waitForPanel);
+  window.addEventListener('dup-unlocked',showHub);
 
   function waitForPanel(){
-    let tries=0;
-    const t=setInterval(()=>{
-      tries++;
-      const panel=document.getElementById('panel-dup');
-      if(panel){ clearInterval(t); mount(panel); }
-      if(tries>80) clearInterval(t);
-    },100);
+    let tries=0;const t=setInterval(()=>{tries++;const panel=document.getElementById('panel-dup');if(panel){clearInterval(t);mount(panel)}if(tries>100)clearInterval(t)},100);
   }
-
   async function mount(panel){
-    if(document.getElementById('safety-instructor-hub')) return;
-    root=document.createElement('section');
-    root.id='safety-instructor-hub';
-    root.hidden=sessionStorage.getItem(UNLOCK_KEY)!=='1';
-    root.innerHTML='<div class="si-empty">산업안전지도사 학습자료를 불러오는 중입니다.</div>';
-    panel.appendChild(root);
-    try{
-      const r=await fetch(DATA_URL,{cache:'no-store'});
-      if(!r.ok) throw new Error('HTTP '+r.status);
-      data=await r.json();
-      renderShell();
-    }catch(e){
-      root.innerHTML='<div class="si-empty">학습자료를 불러오지 못했습니다. 새로고침 후 다시 확인해 주세요.</div>';
-      console.error(e);
-    }
+    if(document.getElementById('safety-instructor-hub'))return;
+    root=document.createElement('section');root.id='safety-instructor-hub';root.hidden=sessionStorage.getItem(UNLOCK_KEY)!=='1';
+    root.innerHTML='<div class="si-empty">산업안전지도사 V23 학습자료를 불러오는 중입니다.</div>';panel.appendChild(root);
+    try{const r=await fetch(DATA_URL,{cache:'no-store'});if(!r.ok)throw new Error('HTTP '+r.status);data=await r.json();renderShell()}catch(e){console.error(e);root.innerHTML='<div class="si-empty">학습자료를 불러오지 못했습니다. 새로고침 후 다시 확인해 주세요.</div>'}
   }
-
-  function showHub(){ if(root) root.hidden=false; }
+  function showHub(){if(root)root.hidden=false}
 
   function renderShell(){
-    const total=(data.writtenQuestions||[]).length+(data.interviewQuestions||[]).length+(data.part2Extra||[]).length;
-    const done=Object.keys(mastered).filter(k=>mastered[k]).length;
-    const pct=total?Math.round(done/total*100):0;
-    root.innerHTML=`
-      <div class="si-shell">
-        <section class="si-hero">
-          <span class="si-kicker">🦺 산업안전지도사 · 기계안전</span>
-          <h2>기출 → 근거 → 암기 → 말하기까지 한 화면에서</h2>
-          <p>상업 교재의 문장과 모범답안은 전재하지 않고, 사용자가 제공한 기출 메모와 공개 법령·고시·KOSHA GUIDE를 기준으로 학습 구조를 다시 만들었습니다. 숫자·대상·예외는 아래 <b>공식 근거 찾기</b>로 최신 기준을 확인하면서 외우는 방식입니다.</p>
-          <div class="si-hero-actions">
-            <button class="si-btn primary" data-go="written">2025~2019 기출 141문항</button>
-            <button class="si-btn dark" data-go="random">3차 랜덤 면접 연습</button>
-            <button class="si-btn" data-go="evidence">법령·고시·KOSHA 검색</button>
-          </div>
-          <div class="si-progress-wrap">
-            <div class="si-progress-card"><span>사용자 제공 기출</span><b>${data.writtenQuestions.length}문항</b></div>
-            <div class="si-progress-card"><span>3차 면접 주제</span><b>${data.interviewQuestions.length}개</b></div>
-            <div class="si-progress-card"><span>내 암기 완료</span><b id="si-done-count">${done}개</b></div>
-            <div class="si-progress-card"><span>전체 진도</span><b id="si-progress-pct">${pct}%</b></div>
-          </div>
-        </section>
-        <nav class="si-tabs" aria-label="산업안전지도사 학습 메뉴">
-          ${tabBtn('roadmap','🧭 합격 로드맵')}
-          ${tabBtn('written','📝 기출 141')}
-          ${tabBtn('interview','🎤 3차 전체 문답')}
-          ${tabBtn('random','🎲 랜덤 면접')}
-          ${tabBtn('evidence','⚖️ 법·고시·KOSHA')}
-          ${tabBtn('stats','📊 사고·통계')}
-        </nav>
-        <div id="si-panel-roadmap" class="si-panel active"></div>
-        <div id="si-panel-written" class="si-panel"></div>
-        <div id="si-panel-interview" class="si-panel"></div>
-        <div id="si-panel-random" class="si-panel"></div>
-        <div id="si-panel-evidence" class="si-panel"></div>
-        <div id="si-panel-stats" class="si-panel"></div>
-        <div class="si-disclaimer"><b>학습 원칙</b> · 교재는 출제범위와 학습 흐름을 파악하는 내부 참고자료로만 사용했습니다. 사이트 답변은 독립적으로 재작성했습니다. 법령 개정이 잦은 수치·대상·주기는 KOSHA 스마트검색과 국가법령정보센터 원문을 최종 기준으로 확인하세요.</div>
-      </div>`;
-    bindTabs();
-    renderRoadmap(); renderQuestionPanel('written'); renderQuestionPanel('interview'); renderRandom(); renderEvidence(); renderStats();
+    const total=(data.writtenQuestions?.length||0)+(data.interviewQuestions?.length||0)+(data.newQuestionRadar?.length||0);
+    const done=Object.values(mastered).filter(Boolean).length;const pct=total?Math.min(100,Math.round(done/total*100)):0;
+    root.innerHTML=`<div class="si-shell">
+      <section class="si-hero si-v23-hero">
+        <div class="si-version">V23 · 2027 대비 전략형</div>
+        <span class="si-kicker">🦺 산업안전지도사 · 전 차수 / 4개 분야</span>
+        <h2>2차는 <mark>기출답안 암기</mark>가 아니라<br><b>“다음에 뽑을 고시·별표”를 먼저 외웁니다.</b></h2>
+        <p>기출은 버리지 않습니다. 다만 <b>답안을 외우는 자료가 아니라 출제된 세부논점을 지우는 ‘소진 지도’</b>로 씁니다. 같은 원문에서 아직 안 나온 조항·별표·예외와 최신 개정을 우선순위로 올렸습니다. 동일문항 재출제를 금지하는 공식 규정이 있다는 뜻은 아닙니다.</p>
+        <div class="si-alert-hot"><b>🔥 2027 첫 확인 포인트</b><span>2026년 2차(6/6) 뒤인 <b>2026.6.26</b>부터 혼합기·파쇄기·분쇄기가 안전검사 대상으로 편입. 예전 ‘13종’ 암기는 현재 <b>15종</b>으로 업데이트해야 합니다.</span><button class="si-mini-btn inverted" data-go="radar">신출 레이더 보기</button></div>
+        <div class="si-hero-actions"><button class="si-btn primary" data-go="radar">🔥 2차 신출 레이더 ${data.newQuestionRadar.length}</button><button class="si-btn dark" data-go="write">✍️ 2차 백지쓰기</button><button class="si-btn" data-go="notices">📚 고시 암기장</button><button class="si-btn" data-go="random">🎲 3차 랜덤면접</button></div>
+        <div class="si-progress-wrap"><div class="si-progress-card"><span>기출 소진지도</span><b>${data.writtenQuestions.length}문항</b></div><div class="si-progress-card"><span>2차 신출 레이더</span><b>${data.newQuestionRadar.length}개</b></div><div class="si-progress-card"><span>3차 말하기 주제</span><b>${data.interviewQuestions.length}개</b></div><div class="si-progress-card"><span>내 학습 체크</span><b id="si-progress-pct">${pct}%</b></div></div>
+      </section>
+      <nav class="si-tabs" aria-label="산업안전지도사 V23 학습 메뉴">
+        ${tabBtn('strategy','🧭 차수별 합격전략')}${tabBtn('radar','🔥 2차 신출 레이더')}${tabBtn('notices','📚 고시 암기장')}${tabBtn('mnemonics','🧩 암기코드')}${tabBtn('written','🗺️ 기출 소진지도')}${tabBtn('write','✍️ 2차 백지쓰기')}${tabBtn('interview','🎤 3차 전체문답')}${tabBtn('random','🎲 3차 랜덤면접')}${tabBtn('evidence','⚖️ 법·고시·KOSHA')}${tabBtn('stats','📊 사고·통계')}
+      </nav>
+      ${['strategy','radar','notices','mnemonics','written','write','interview','random','evidence','stats'].map(k=>`<div id="si-panel-${k}" class="si-panel ${k==='strategy'?'active':''}"></div>`).join('')}
+      <div class="si-disclaimer"><b>중요</b> · ‘신출 레이더 점수’는 공식 출제확률이 아니라 <b>최신개정 + 공식범위 적합성 + 기출 인접성 + 목록/별표형 출제 용이성</b>을 합친 학습 우선순위입니다. 시험 직전에는 반드시 KOSHA API/국가법령정보센터의 현행 시행일·별표를 최종 확인하세요.</div>
+    </div>`;
+    bindTabs();renderStrategy();renderRadar();renderNotices();renderMnemonics();renderWritten();renderWrite();renderInterview();renderRandom();renderEvidence();renderStats();
+  }
+  function tabBtn(k,label){return `<button type="button" class="si-tab ${k==='strategy'?'active':''}" data-si-tab="${k}">${label}</button>`}
+  function bindTabs(){root.querySelectorAll('[data-si-tab]').forEach(b=>b.addEventListener('click',()=>activate(b.dataset.siTab)));root.querySelectorAll('[data-go]').forEach(b=>b.addEventListener('click',()=>activate(b.dataset.go)))}
+  function activate(k){currentTab=k;root.querySelectorAll('.si-tab').forEach(x=>x.classList.toggle('active',x.dataset.siTab===k));root.querySelectorAll('.si-panel').forEach(x=>x.classList.toggle('active',x.id===`si-panel-${k}`));document.getElementById(`si-panel-${k}`)?.scrollIntoView({behavior:'smooth',block:'nearest'})}
+
+  function renderStrategy(){
+    const p=document.getElementById('si-panel-strategy');
+    const stages=data.examStrategy.map(s=>`<article class="si-strategy-card stage-${s.stage[0]}"><div class="si-stage-head"><span class="si-stage">${esc(s.stage)}</span><span class="si-stage-tag">${esc(s.tag)}</span></div><h3>${esc(s.headline)}</h3><p>${esc(s.principle)}</p><div class="si-two-col"><div><h4>이렇게 공부</h4>${s.do.map(x=>`<div class="si-check good">✓ ${esc(x)}</div>`).join('')}</div><div><h4>피할 것</h4>${s.avoid.map(x=>`<div class="si-check bad">× ${esc(x)}</div>`).join('')}</div></div></article>`).join('');
+    const fields=Object.entries(data.officialScope).map(([f,v])=>{const fs=data.fieldStrategy.find(x=>x.field===f);return `<article class="si-field-card ${fs?.color||''}"><div class="si-field-top"><b>${esc(f)}</b><span>${esc(v.subject)}</span></div><ul>${v.scope.map(x=>`<li>${esc(x)}</li>`).join('')}</ul><div class="si-source-stack"><strong>2차 원문 스택</strong>${(fs?.sourceStack||[]).map(x=>`<span>${esc(x)}</span>`).join('')}</div><div class="si-examiner"><b>2차 출제위원 시점</b> ${esc(fs?.examiner||'')}</div><div class="si-interview-focus"><b>3차 현장면접</b> ${esc(fs?.interviewFocus||'')}</div><button class="si-mini-btn" data-scope-query="${attr(v.sourceQuery)}">공식 범위 확인</button></article>`}).join('');
+    const plan=data.studyPlan.map(x=>`<article class="si-plan"><span>${esc(x.phase)}</span><h4>${esc(x.title)}</h4>${x.tasks.map(t=>`<p>• ${esc(t)}</p>`).join('')}</article>`).join('');
+    p.innerHTML=`<div class="si-section-head"><div><span>시험 구조부터 다르게</span><h3>1·2·3차는 같은 방식으로 공부하면 손해입니다.</h3></div><button class="si-btn primary" data-go="radar">2차부터 보기</button></div><div class="si-strategy-grid">${stages}</div>
+      <div class="si-callout"><b>수험자 관점 한 줄</b><span><strong>1차</strong>는 “보자마자 구분”, <strong>2차</strong>는 “백지에서 근거를 생산”, <strong>3차</strong>는 “짧게 판단하고 지도”하는 시험으로 분리해서 연습합니다.</span></div>
+      <div class="si-section-head compact"><div><span>산업안전보건법 시행령 별표32 기준</span><h3>2차 4개 분야 공식범위 + 실제 원문 스택</h3></div></div><div class="si-field-grid">${fields}</div>
+      <div class="si-section-head compact"><div><span>2차 90일 운영</span><h3>기출 → 원문 → 백지 → 개정 잠금</h3></div></div><div class="si-plan-grid">${plan}</div>`;
+    p.querySelectorAll('[data-go]').forEach(b=>b.addEventListener('click',()=>activate(b.dataset.go)));
+    p.querySelectorAll('[data-scope-query]').forEach(b=>b.addEventListener('click',()=>openEvidence(b.dataset.scopeQuery)));
   }
 
-  function tabBtn(key,label){ return `<button type="button" class="si-tab ${key==='roadmap'?'active':''}" data-si-tab="${key}">${label}</button>`; }
-  function bindTabs(){
-    root.querySelectorAll('[data-si-tab]').forEach(b=>b.addEventListener('click',()=>activate(b.dataset.siTab)));
-    root.querySelectorAll('[data-go]').forEach(b=>b.addEventListener('click',()=>activate(b.dataset.go)));
+  function renderRadar(){
+    const p=document.getElementById('si-panel-radar');const fields=['전체',...new Set(data.newQuestionRadar.map(x=>x.field))];
+    p.innerHTML=`<div class="si-section-head"><div><span>기출 제외 ‘옆칸’ + 최신개정 우선</span><h3>🔥 2차 신출 레이더</h3><p>문제를 맞히는 예언이 아니라, <b>지금 외울 순서를 정하는 도구</b>입니다. S부터 백지에 써보세요.</p></div></div>
+      <div class="si-radar-rule"><b>출제위원처럼 고르는 4조건</b><span>① 공식범위 안인가 → ② 최근 개정됐나 → ③ 조문/별표에서 3~5개 뽑기 쉬운가 → ④ 기출 세부항목의 바로 옆칸인가</span></div>
+      <div class="si-filterbar"><input class="si-search" id="si-radar-search" placeholder="예: 안전검사, 프레스, PSM"><select class="si-select" id="si-radar-field">${fields.map(f=>`<option value="${f==='전체'?'':attr(f)}">${esc(f)}</option>`).join('')}</select><select class="si-select" id="si-radar-grade"><option value="">전체 등급</option><option>S</option><option>A</option><option>B</option></select><span id="si-radar-count" class="si-count"></span></div><div class="si-radar-grid" id="si-radar-list"></div>`;
+    ['si-radar-search','si-radar-field','si-radar-grade'].forEach(id=>document.getElementById(id).addEventListener(id.includes('search')?'input':'change',paintRadar));paintRadar();
   }
-  function activate(key){
-    currentTab=key;
-    root.querySelectorAll('.si-tab').forEach(x=>x.classList.toggle('active',x.dataset.siTab===key));
-    root.querySelectorAll('.si-panel').forEach(x=>x.classList.toggle('active',x.id===`si-panel-${key}`));
-    const target=document.getElementById(`si-panel-${key}`);
-    if(target) target.scrollIntoView({behavior:'smooth',block:'nearest'});
+  function paintRadar(){
+    const q=(document.getElementById('si-radar-search')?.value||'').toLowerCase().trim(),f=document.getElementById('si-radar-field')?.value||'',g=document.getElementById('si-radar-grade')?.value||'';
+    const items=data.newQuestionRadar.filter(x=>(!q||(`${x.title} ${x.question} ${x.source} ${x.memorize.join(' ')}`).toLowerCase().includes(q))&&(!f||x.field===f)&&(!g||x.grade===g));
+    document.getElementById('si-radar-count').textContent=`${items.length}개`;
+    const list=document.getElementById('si-radar-list');list.innerHTML=items.map(r=>radarCard(r)).join('')||'<div class="si-empty">조건에 맞는 레이더가 없습니다.</div>';
+    list.querySelectorAll('[data-r-evidence]').forEach(b=>b.addEventListener('click',()=>openEvidence(data.newQuestionRadar.find(x=>x.id===b.dataset.rEvidence)?.sourceQuery)));
+    list.querySelectorAll('[data-r-write]').forEach(b=>b.addEventListener('click',()=>{writeItem=data.newQuestionRadar.find(x=>x.id===b.dataset.rWrite);activate('write');paintWriteItem()}));
+    list.querySelectorAll('[data-r-master]').forEach(b=>b.addEventListener('click',()=>toggleMaster(`radar:${b.dataset.rMaster}`,b)));
+  }
+  function radarCard(r){const on=!!mastered[`radar:${r.id}`];return `<article class="si-radar-card grade-${r.grade}"><div class="si-radar-top"><span class="si-grade-badge">${r.grade}</span><span class="si-field-badge">${esc(r.field)}</span><span class="si-score">우선순위 ${r.score}</span><button class="si-master ${on?'on':''}" data-r-master="${r.id}" title="학습완료">${on?'⭐':'☆'}</button></div><h3>${esc(r.title)}</h3><div class="si-predicted-q">Q. ${esc(r.question)}</div><div class="si-why"><b>왜 지금?</b> ${esc(r.why)}</div><div class="si-memorize"><b>백지에 쓸 것</b>${r.memorize.map((x,i)=>`<span><i>${i+1}</i>${esc(x)}</span>`).join('')}</div>${r.mnemonic?`<div class="si-code-inline"><b>암기코드</b> ${esc(r.mnemonic)}</div>`:''}<div class="si-source-line"><b>근거</b> ${esc(r.source)}</div><div class="si-card-actions"><button class="si-mini-btn" data-r-evidence="${r.id}">공식 원문 검색</button><button class="si-mini-btn strong" data-r-write="${r.id}">이 문제 백지쓰기</button></div></article>`}
+
+  function renderNotices(){
+    const p=document.getElementById('si-panel-notices');const fields=['전체',...new Set(data.notices.map(x=>x.field))];
+    p.innerHTML=`<div class="si-section-head"><div><span>고시를 통째로 읽지 말고 “출제 단위”로</span><h3>📚 고시 암기장</h3><p>각 고시에서 <b>정의 → 대상 → 제외 → 숫자/조건 → 별표 → 개정점</b>만 먼저 뽑습니다.</p></div></div><div class="si-notice-method"><b>15분 1고시 루틴</b><span>3분 목차 · 5분 대상/제외 · 4분 숫자/별표 · 3분 눈 감고 첫글자 복원</span></div><div class="si-filterbar"><select id="si-notice-field" class="si-select">${fields.map(f=>`<option value="${f==='전체'?'':attr(f)}">${esc(f)}</option>`).join('')}</select><span class="si-count">검증기준 2026-09-06</span></div><div class="si-notice-grid" id="si-notice-list"></div>`;
+    document.getElementById('si-notice-field').addEventListener('change',paintNotices);paintNotices();
+  }
+  function paintNotices(){const f=document.getElementById('si-notice-field')?.value||'';const items=data.notices.filter(x=>!f||x.field===f);const list=document.getElementById('si-notice-list');list.innerHTML=items.map((n,i)=>`<article class="si-notice-card"><div class="si-notice-head"><span class="si-grade-badge ${n.importance}">${n.importance}</span><div><h3>${esc(n.title)}</h3><p>${esc(n.version)} · 시행 ${esc(n.effective)}</p></div></div><div class="si-memorize compact"><b>시험장에서 꺼낼 것</b>${n.memorize.map((x,j)=>`<span><i>${j+1}</i>${esc(x)}</span>`).join('')}</div><div class="si-exam-form"><b>문제 만드는 방식</b> ${esc(n.examForm)}</div><div class="si-card-actions"><a class="si-mini-btn link" href="${attr(n.url)}" target="_blank" rel="noopener">국가법령정보센터</a><button class="si-mini-btn" data-notice-query="${attr(n.query)}">KOSHA API 검색</button></div></article>`).join('');list.querySelectorAll('[data-notice-query]').forEach(b=>b.addEventListener('click',()=>openEvidence(b.dataset.noticeQuery)))}
+
+  function renderMnemonics(){
+    const p=document.getElementById('si-panel-mnemonics');p.innerHTML=`<div class="si-section-head"><div><span>첫글자는 정답이 아니라 “회상 손잡이”</span><h3>🧩 암기코드</h3><p>코드만 외우고 끝내지 말고, <b>코드 → 원문 항목 전체 복원</b>이 되어야 점수가 됩니다.</p></div><button class="si-btn primary" id="si-mem-random">랜덤 가리기</button></div><div class="si-mnemonic-grid">${data.mnemonics.map((m,i)=>`<article class="si-mnemonic" data-mem="${i}"><span class="si-memory-label">${esc(m.title)}</span><div class="si-memory-code">${esc(m.code)}</div><div class="si-memory-map">${m.map.map(x=>`<span>${esc(x)}</span>`).join('')}</div><p>${esc(m.tip)}</p><button class="si-mini-btn" data-hide-mem="${i}">뜻 가리고 테스트</button></article>`).join('')}</div>`;
+    p.querySelectorAll('[data-hide-mem]').forEach(b=>b.addEventListener('click',()=>{const c=p.querySelector(`[data-mem="${b.dataset.hideMem}"]`);c.classList.toggle('hidden-map');b.textContent=c.classList.contains('hidden-map')?'정답 보기':'뜻 가리고 테스트'}));document.getElementById('si-mem-random').addEventListener('click',()=>{const cards=[...p.querySelectorAll('.si-mnemonic')];cards.forEach(c=>c.classList.remove('focus','hidden-map'));const c=cards[Math.floor(Math.random()*cards.length)];c.classList.add('focus','hidden-map');c.scrollIntoView({behavior:'smooth',block:'center'})});
   }
 
-  function renderRoadmap(){
-    const p=document.getElementById('si-panel-roadmap');
-    const road=(data.roadmap||[]).map(r=>`<article class="si-card"><div class="si-road-step"><strong>${esc(r.step)}</strong><em>${esc(r.title)}</em></div><h3>${esc(r.focus)}</h3><div class="si-checklist">${r.items.map(x=>`<div class="si-check">✓ ${esc(x)}</div>`).join('')}</div></article>`).join('');
-    const refs=(data.references||[]).map(x=>`<a href="${attr(x.url)}" target="_blank" rel="noopener">${esc(x.label)}</a>`).join('');
-    p.innerHTML=`<div class="si-grid">${road}</div>
-      <div class="si-card" style="margin-top:12px"><h3>📌 제가 추천하는 회독 순서</h3><p><b>1회독:</b> 기출 질문만 보고 아는 만큼 말하기 → <b>2회독:</b> 핵심답변 뼈대 확인 → <b>3회독:</b> KOSHA 공식 근거에서 숫자·예외 체크 → <b>4회독:</b> 랜덤 면접에서 60~90초 내 말하기 → <b>마지막:</b> 모르는 문항만 다시 돌리기.</p><div class="si-source-links" style="margin-top:10px">${refs}</div></div>
-      <div class="si-card" style="margin-top:12px"><h3>🧠 3차 답변 공식</h3><p><b>결론 1문장 → 핵심항목 3~5개 → 법령/고시/KOSHA 근거 → 현장 예방 포인트 → “이상입니다.”</b> 순으로 연습하세요. 면접 후기 자료에서도 짧은 시간에 질문 요지부터 말하고 법령·기준규칙·고시·KOSHA GUIDE의 조건을 정확히 붙이는 연습이 반복적으로 강조됩니다.</p></div>`;
+  function renderWritten(){
+    const p=document.getElementById('si-panel-written');const years=[...new Set(data.writtenQuestions.map(x=>x.year))].sort((a,b)=>b-a),cats=[...new Set(data.writtenQuestions.map(x=>x.category))].sort();const max=Math.max(...data.themeFrequency.map(x=>x.count),1);
+    p.innerHTML=`<div class="si-section-head"><div><span>외울 답안 141개가 아닙니다</span><h3>🗺️ 기출 소진지도 · 2019~2025</h3><p>기출에서 “무엇이 나왔는지”만 표시하고, <b>다음 공부는 해당 원문의 안 나온 옆칸으로 이동</b>합니다.</p></div></div><div class="si-frequency-card"><h4>반복된 출제영역</h4><div class="si-frequency-bars">${data.themeFrequency.map(x=>`<div><span>${esc(x.theme)}</span><i><b style="width:${Math.max(6,x.count/max*100)}%"></b></i><strong>${x.count}</strong></div>`).join('')}</div><p>횟수는 사용자가 제공한 141문항의 키워드 집계입니다. <b>빈출 = 같은 문제 암기</b>가 아니라, 그 원문 묶음이 출제재료로 반복됐다는 신호로 보세요.</p></div>
+      ${data.part2Extra?.length?`<div class="si-extra-strip"><b>추가 2부 복원 3문항</b>${data.part2Extra.map(x=>`<span>${esc(x.question)}</span>`).join('')}</div>`:''}
+      <div class="si-filterbar"><input class="si-search" id="si-written-q" placeholder="기출 키워드 검색"><select class="si-select" id="si-written-cat"><option value="">전체 분야</option>${cats.map(c=>`<option>${esc(c)}</option>`).join('')}</select><select class="si-select" id="si-written-year"><option value="">전체 연도</option>${years.map(y=>`<option value="${y}">${y}년</option>`).join('')}</select><span id="si-written-count" class="si-count"></span></div><div id="si-written-list" class="si-question-list"></div>`;
+    ['si-written-q','si-written-cat','si-written-year'].forEach(id=>document.getElementById(id).addEventListener(id.endsWith('-q')?'input':'change',paintWritten));paintWritten();
   }
+  function paintWritten(){const q=(document.getElementById('si-written-q')?.value||'').toLowerCase().trim(),c=document.getElementById('si-written-cat')?.value||'',y=document.getElementById('si-written-year')?.value||'';const items=data.writtenQuestions.filter(x=>(!q||(`${x.question} ${x.category}`).toLowerCase().includes(q))&&(!c||x.category===c)&&(!y||String(x.year)===y));document.getElementById('si-written-count').textContent=`${items.length}개`;const list=document.getElementById('si-written-list');list.innerHTML=items.map(x=>writtenCard(x)).join('')||'<div class="si-empty">조건에 맞는 문제가 없습니다.</div>';list.querySelectorAll('[data-w-evidence]').forEach(b=>b.addEventListener('click',()=>openEvidence(data.writtenQuestions.find(x=>x.id===b.dataset.wEvidence)?.sourceQuery)));list.querySelectorAll('[data-w-master]').forEach(b=>b.addEventListener('click',()=>toggleMaster(`written:${b.dataset.wMaster}`,b)))}
+  function writtenCard(x){const on=!!mastered[`written:${x.id}`];return `<article class="si-q"><div class="si-q-head"><span class="si-q-no">${x.year}<br>${x.no}</span><div><div class="si-q-title">${esc(x.question)}</div><div class="si-q-meta"><span class="si-pill">${esc(x.category)}</span><span class="si-pill year">출제됨</span></div><div class="si-adjacent"><b>→ 다음에 볼 옆칸</b> ${esc(adjacentHint(x))}</div></div><button class="si-master ${on?'on':''}" data-w-master="${x.id}">${on?'⭐':'☆'}</button></div><div class="si-q-actions"><button class="si-mini-btn" data-w-evidence="${x.id}">이 문제의 원문 찾기</button><button class="si-mini-btn" data-toggle-frame>답변 구조만 보기</button></div><div class="si-answer"><h4>기출 답안이 아니라 답변 구조</h4><p>${esc(x.answer)}</p><div class="si-note">이 문장을 통째로 외우지 말고, 공식 원문에서 이미 출제된 세부항목을 표시한 뒤 바로 옆 조항·별표를 학습하세요.</div></div></article>`}
+  function adjacentHint(x){const s=x.question; if(/안전검사/.test(s))return '해당 기계의 안전검사 고시 별표 → 적용제외 → 검사절차/주기';if(/자율안전/.test(s))return '자율안전확인 별표2의 세부규격 → 면제 → 안전검사와 경계';if(/프레스|노.?핸드|양수/.test(s))return '주요구조부 → 정지성능/방호장치 → 금형교환·정비 안전';if(/크레인/.test(s))return '안전검사 별표2 → 과부하방지/권과방지 → 지지·줄걸이';if(/위험성평가/.test(s))return '근로자 참여 → 상시평가 → 공유·기록 → 인정제도';if(/컨베이어/.test(s))return '안전검사 별표11 → 비상정지 → 덮개/방호 → 정비 시 동력차단';if(/로봇/.test(s))return '방책/출입문 → 감응형 방호 → 교시·동작허가 → 재기동 방지';if(/와이어/.test(s))return '폐기기준 → 단말처리 → 안전율 → 줄걸이/훅과 연결';if(/승강기|리프트/.test(s))return '방호장치 기능 → 검사대상 구분 → 안전검사 별표3';if(/용접/.test(s))return '결함/변형 다음 → 검사법 → 화재·가스/전격 방지';return `${x.category}의 동일 법·고시·KOSHA 원문에서 미출제 목록·예외·수치 2개 찾기`}
 
-  function panelItems(kind){
-    if(kind==='written') return data.writtenQuestions;
-    if(kind==='extra') return data.part2Extra||[];
-    return data.interviewQuestions;
+  function renderWrite(){
+    const p=document.getElementById('si-panel-write');p.innerHTML=`<div class="si-write-room"><div class="si-random-status"><span><b>2차 백지훈련</b> · 답 보기 전에 목차부터 씁니다.</span><span class="si-timer" id="si-write-timer">00:00</span></div><div class="si-filterbar"><select class="si-select" id="si-write-field"><option value="">전체 분야</option>${[...new Set(data.newQuestionRadar.map(x=>x.field))].map(f=>`<option>${esc(f)}</option>`).join('')}</select><select class="si-select" id="si-write-grade"><option value="">S/A/B 전체</option><option>S</option><option>A</option><option>B</option></select><button class="si-btn primary" id="si-write-next">새 신출문제</button><button class="si-btn" data-write-time="300">⏱ 단답 5분</button><button class="si-btn" data-write-time="1200">⏱ 논술 20분</button></div><div class="si-write-question" id="si-write-question">새 신출문제를 눌러 시작하세요.</div><div class="si-answer-frame"><span>정</span><span>대</span><span>기</span><span>수</span><span>예</span><span>근</span><small>정의 · 대상 · 기준 · 수치/예외 · 예방 · 근거</small></div><textarea class="si-self-answer tall" id="si-write-answer" placeholder="답을 보지 말고 목차부터 적으세요.\n예) 1. 정의  2. 대상  3. 기준 ..."></textarea><div class="si-random-tools"><button class="si-btn dark" id="si-write-show">채점포인트 보기</button><button class="si-btn" id="si-write-evidence">공식 근거</button><button class="si-btn primary" id="si-write-eval">AI 첨삭</button></div><div class="si-answer-box" id="si-write-key"><h4>채점 포인트</h4><div id="si-write-key-list" class="si-memorize"></div><div class="si-source-line" id="si-write-source"></div><div class="si-evidence" id="si-write-evidence-box"></div><div class="si-ai-out" id="si-write-ai" hidden></div></div></div>`;
+    document.getElementById('si-write-next').addEventListener('click',nextWrite);p.querySelectorAll('[data-write-time]').forEach(b=>b.addEventListener('click',()=>startTimer(+b.dataset.writeTime,'si-write-timer')));document.getElementById('si-write-show').addEventListener('click',showWriteKey);document.getElementById('si-write-evidence').addEventListener('click',async()=>{if(!writeItem)return;showWriteKey();await loadEvidenceQuery(writeItem.sourceQuery,document.getElementById('si-write-evidence-box'))});document.getElementById('si-write-eval').addEventListener('click',e=>evaluateWrite(e.currentTarget));nextWrite();
   }
-  function renderQuestionPanel(kind){
-    const p=document.getElementById(`si-panel-${kind}`);
-    const title=kind==='written'?'2025~2019 기출·복원 141문항':'3차 면접 전체 문답 연습';
-    const desc=kind==='written'?'사용자가 제공한 문제를 연도·분야별로 분류했습니다. 같은 주제가 반복되면 빈출 표시처럼 활용하세요.':'상업 교재의 답안을 복제하지 않고, 출제범위의 주제를 질문형으로 다시 구성했습니다. 각 문항은 핵심답변 뼈대 + 공식 근거 검색으로 학습합니다.';
-    const cats=[...new Set(panelItems(kind).map(x=>x.category))].sort();
-    const years=kind==='written'?[...new Set(panelItems(kind).map(x=>x.year))].sort((a,b)=>b-a):[];
-    const extraHtml=kind==='written'&&data.part2Extra?.length?`<div class="si-card" style="margin-bottom:11px"><h3>📌 추가 복원 · 2부 3문항</h3><p>사용자가 별도로 기억한 2부 문항입니다. 세부 문구가 불확실한 부분은 KOSHA 공식 근거 검색으로 확인하도록 구성했습니다.</p><div class="si-question-list" id="si-list-extra" style="margin-top:10px">${data.part2Extra.map(x=>questionCard(x,'extra')).join('')}</div></div>`:'';
-    p.innerHTML=`<div class="si-card" style="margin-bottom:11px"><h3>${title}</h3><p>${desc}</p></div>${extraHtml}
-      <div class="si-filterbar"><input class="si-search" id="si-search-${kind}" placeholder="질문·키워드 검색"><select class="si-select" id="si-cat-${kind}"><option value="">전체 분야</option>${cats.map(c=>`<option>${esc(c)}</option>`).join('')}</select>${kind==='written'?`<select class="si-select" id="si-year-${kind}"><option value="">전체 연도</option>${years.map(y=>`<option value="${y}">${y}년</option>`).join('')}</select>`:''}<span class="si-count" id="si-count-${kind}"></span></div><div class="si-question-list" id="si-list-${kind}"></div>`;
-    if(kind==='written'){const ex=document.getElementById('si-list-extra');if(ex)bindQuestionActions(ex,'extra');}
-    const rerender=()=>paintQuestions(kind);
-    p.querySelector(`#si-search-${kind}`).addEventListener('input',rerender);
-    p.querySelector(`#si-cat-${kind}`).addEventListener('change',rerender);
-    if(kind==='written') p.querySelector(`#si-year-${kind}`).addEventListener('change',rerender);
-    paintQuestions(kind);
-  }
+  function writeCandidates(){const f=document.getElementById('si-write-field')?.value||'',g=document.getElementById('si-write-grade')?.value||'';return data.newQuestionRadar.filter(x=>(!f||x.field===f)&&(!g||x.grade===g))}
+  function nextWrite(){const a=writeCandidates();if(!a.length)return;let n=a[Math.floor(Math.random()*a.length)];if(writeItem&&a.length>1&&n.id===writeItem.id)n=a[(a.indexOf(n)+1)%a.length];writeItem=n;paintWriteItem()}
+  function paintWriteItem(){if(!writeItem)return;document.getElementById('si-write-question').innerHTML=`<span class="si-grade-badge">${writeItem.grade}</span><small>${esc(writeItem.field)}</small>${esc(writeItem.question)}`;document.getElementById('si-write-answer').value='';document.getElementById('si-write-key').classList.remove('show');document.getElementById('si-write-key-list').innerHTML='';document.getElementById('si-write-evidence-box').classList.remove('show');document.getElementById('si-write-ai').hidden=true;stopTimer();paintTimer('si-write-timer')}
+  function showWriteKey(){if(!writeItem)return;const box=document.getElementById('si-write-key');box.classList.add('show');document.getElementById('si-write-key-list').innerHTML=`<b>이 항목이 백지에서 나와야 합니다.</b>${writeItem.memorize.map((x,i)=>`<span><i>${i+1}</i>${esc(x)}</span>`).join('')}${writeItem.mnemonic?`<div class="si-code-inline"><b>암기코드</b> ${esc(writeItem.mnemonic)}</div>`:''}`;document.getElementById('si-write-source').innerHTML=`<b>근거</b> ${esc(writeItem.source)}`}
+  async function evaluateWrite(btn){if(!writeItem)return;const user=document.getElementById('si-write-answer').value.trim();if(!user){alert('먼저 백지답안을 적어 주세요.');return}showWriteKey();const out=document.getElementById('si-write-ai');out.hidden=false;out.textContent='공식 근거를 확인하면서 첨삭 중입니다.';btn.disabled=true;let ev=[];try{ev=await fetchEvidence(writeItem.sourceQuery,8)}catch(e){}const prompt=`산업안전지도사 2차 ${writeItem.field} 답안을 첨삭하세요.\n문제: ${writeItem.question}\n수험자 답안:\n${user}\n\n학습 체크포인트: ${writeItem.memorize.join(' / ')}\n공식 검색근거: ${JSON.stringify(ev.slice(0,5))}\n\n[평가] 20점 만점\n[빠진 목차] 정-대-기-수-예-근 기준\n[수정해야 할 숫자/법적 표현] 근거 있는 것만\n[시험장 답안 골격] 8~12줄\n[다음에 외울 옆칸] 2개\n근거에 없는 숫자는 만들지 마세요.`;try{const t=await callAI('산업안전지도사 2차 논술 첨삭위원처럼 채점하되, 공식 근거 없는 수치를 만들지 않습니다.',prompt,1800);out.textContent=t}catch(e){out.textContent='AI 첨삭 연결이 지연되고 있습니다. 체크포인트와 공식 근거를 먼저 대조해 주세요.'}finally{btn.disabled=false;btn.textContent='AI 첨삭'}}
 
-  function paintQuestions(kind){
-    const items=panelItems(kind);
-    const q=(document.getElementById(`si-search-${kind}`)?.value||'').trim().toLowerCase();
-    const cat=document.getElementById(`si-cat-${kind}`)?.value||'';
-    const yr=document.getElementById(`si-year-${kind}`)?.value||'';
-    const filtered=items.filter(x=>(!q||(`${x.question} ${x.category} ${(x.keywords||[]).join(' ')}`).toLowerCase().includes(q))&&(!cat||x.category===cat)&&(!yr||String(x.year)===yr));
-    document.getElementById(`si-count-${kind}`).textContent=`${filtered.length}개`;
-    const list=document.getElementById(`si-list-${kind}`);
-    list.innerHTML=filtered.length?filtered.map((x,i)=>questionCard(x,kind)).join(''):'<div class="si-empty">조건에 맞는 질문이 없습니다.</div>';
-    bindQuestionActions(list,kind);
+  function renderInterview(){
+    const p=document.getElementById('si-panel-interview');const cats=[...new Set(data.interviewQuestions.map(x=>x.category))].sort();p.innerHTML=`<div class="si-section-head"><div><span>면접관은 “전·제·상”을 봅니다</span><h3>🎤 3차 전체 문답 ${data.interviewQuestions.length}</h3><p><b>전문지식·응용 / 제도 이해 / 상담·지도</b> 세 축으로 60~90초 답변을 만듭니다.</p></div><button class="si-btn primary" data-go="random">랜덤 면접 시작</button></div><div class="si-filterbar"><input class="si-search" id="si-interview-q" placeholder="면접 주제 검색"><select class="si-select" id="si-interview-cat"><option value="">전체 분야</option>${cats.map(c=>`<option>${esc(c)}</option>`).join('')}</select><span id="si-interview-count" class="si-count"></span></div><div id="si-interview-list" class="si-question-list"></div>`;p.querySelector('[data-go]').addEventListener('click',()=>activate('random'));document.getElementById('si-interview-q').addEventListener('input',paintInterview);document.getElementById('si-interview-cat').addEventListener('change',paintInterview);paintInterview();
   }
-
-  function questionCard(x,kind){
-    const key=`${kind}:${x.id}`; const on=!!mastered[key];
-    const num=kind==='written'?`${x.year} · ${x.no}번`:(kind==='extra'?'2부 복원':`면접 ${x.topicNo||x.id}`);
-    return `<article class="si-q" data-id="${attr(x.id)}" data-kind="${kind}">
-      <div class="si-q-head"><span class="si-q-no">${esc(num)}</span><div><div class="si-q-title">${esc(x.question)}</div><div class="si-q-meta"><span class="si-pill">${esc(x.category)}</span>${x.year?`<span class="si-pill year">${x.year}년</span>`:''}<span class="si-pill source">근거검색: ${esc(x.sourceQuery||'')}</span></div></div><button class="si-master ${on?'on':''}" title="암기 완료" aria-label="암기 완료" data-master>${on?'⭐':'☆'}</button></div>
-      <div class="si-q-actions"><button class="si-mini-btn" data-answer>핵심답변 보기</button><button class="si-mini-btn" data-evidence>공식 근거 찾기</button><button class="si-mini-btn" data-ai>AI 최신 답변</button><button class="si-mini-btn" data-speak>질문 읽기</button></div>
-      <div class="si-answer"><h4>암기용 답변 뼈대 <button class="si-mini-btn si-copy" data-copy>복사</button></h4><p>${esc(x.answer)}</p><div class="si-keywords">${(x.keywords||[]).map(k=>`<span>${esc(k)}</span>`).join('')}</div>${x.note?`<div class="si-note">${esc(x.note)}</div>`:''}<div class="si-evidence"></div><div class="si-ai-out" hidden></div></div>
-    </article>`;
-  }
-
-  function bindQuestionActions(list,kind){
-    list.querySelectorAll('.si-q').forEach(card=>{
-      const x=panelItems(kind).find(v=>String(v.id)===card.dataset.id); if(!x) return;
-      const ans=card.querySelector('.si-answer');
-      card.querySelector('[data-answer]')?.addEventListener('click',()=>ans.classList.toggle('open'));
-      card.querySelector('[data-master]')?.addEventListener('click',e=>toggleMaster(`${kind}:${x.id}`,e.currentTarget));
-      card.querySelector('[data-evidence]')?.addEventListener('click',async()=>{ans.classList.add('open'); await loadEvidence(x,card.querySelector('.si-evidence'));});
-      card.querySelector('[data-ai]')?.addEventListener('click',async e=>{ans.classList.add('open'); await generateAiAnswer(x,card.querySelector('.si-ai-out'),e.currentTarget);});
-      card.querySelector('[data-speak]')?.addEventListener('click',()=>speak(x.question));
-      card.querySelector('[data-copy]')?.addEventListener('click',()=>copyText(x.answer));
-    });
-  }
-
-  function toggleMaster(key,btn){
-    mastered[key]=!mastered[key]; saveJson(MASTER_KEY,mastered); btn.classList.toggle('on',mastered[key]); btn.textContent=mastered[key]?'⭐':'☆'; updateProgress();
-  }
-  function updateProgress(){
-    const total=data.writtenQuestions.length+data.interviewQuestions.length+data.part2Extra.length;
-    const done=Object.keys(mastered).filter(k=>mastered[k]).length;
-    const a=document.getElementById('si-done-count'),b=document.getElementById('si-progress-pct'); if(a)a.textContent=`${done}개`; if(b)b.textContent=`${Math.round(done/total*100)}%`;
-  }
-
-  async function loadEvidence(x,box){
-    box.classList.add('show'); box.innerHTML='<div class="si-empty">KOSHA 공식 검색 중...</div>';
-    try{
-      const q=encodeURIComponent(x.sourceQuery||x.question);
-      const r=await fetch(`/api/safety-law/search?q=${q}&limit=16`);
-      const j=await r.json();
-      if(!j.ok) throw new Error(j.error||'검색 실패');
-      const all=[...(j.law||[]),...(j.guide||[]),...(j.media||[])].slice(0,10);
-      box.innerHTML=all.length?all.map(e=>`<div class="si-evidence-card"><b>${esc(e.title||e.categoryName)} <span class="si-source-badge">${esc(e.categoryName||e.source||'')}</span></b><p>${esc((e.content||'').slice(0,560))}</p>${e.link?`<a href="${attr(e.link)}" target="_blank" rel="noopener">공식 원문/검색 열기 →</a>`:''}</div>`).join(''):'<div class="si-empty">검색 결과가 없습니다. 검색어를 줄여 다시 확인해 주세요.</div>';
-      return all;
-    }catch(e){box.innerHTML=`<div class="si-note">공식 검색 연결이 지연되고 있습니다. ${esc(e.message||'')}</div>`;return[];}
-  }
-
-  async function generateAiAnswer(x,out,btn){
-    if(btn) {btn.disabled=true;btn.textContent='답변 만드는 중...';}
-    out.hidden=false;out.textContent='최신 법령·KOSHA 근거를 확인해 답변을 정리하고 있습니다.';
-    let evidence=[];
-    try{
-      const r=await fetch(`/api/safety-law/search?q=${encodeURIComponent(x.sourceQuery||x.question)}&limit=12`); const j=await r.json();
-      evidence=[...(j.law||[]),...(j.guide||[])].slice(0,8).map(e=>({title:e.title,category:e.categoryName,content:(e.content||'').slice(0,1200)}));
-    }catch(e){}
-    const prompt=`산업안전지도사 기계안전 3차 면접 연습 답변을 작성하세요.\n질문: ${x.question}\n\n공식 검색 근거:\n${evidence.length?JSON.stringify(evidence,null,2):'공식 검색 결과를 불러오지 못했습니다.'}\n\n규칙:\n- 60~90초 구술 답변 분량.\n- 첫 문장은 결론부터.\n- 핵심 항목은 3~6개로 번호를 매김.\n- 검색 근거에 숫자·대상·예외가 있으면 정확히 사용하고, 근거가 없으면 숫자를 추정하지 말고 “최신 고시 확인 필요”라고 표시.\n- 상업 교재 문구를 인용하거나 흉내 내지 말 것.\n- 마지막에 [암기키워드] 5개와 [근거] 제목을 짧게 표시.\n- 자연스러운 한국어로 작성.`;
-    try{
-      const r=await fetch('/api/ai',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:[{role:'system',content:'당신은 대한민국 산업안전지도사 시험 대비를 돕는 안전공학 튜터입니다. 공식 근거와 질문 범위 안에서만 정확하게 답합니다.'},{role:'user',content:prompt}],temperature:.2,max_tokens:2200})});
-      const j=await r.json();
-      const text=j?.choices?.[0]?.message?.content||j?.error||'AI 답변을 불러오지 못했습니다.'; out.textContent=text;
-    }catch(e){out.textContent='AI 연결이 지연되고 있습니다. 핵심답변 뼈대와 공식 근거 검색을 먼저 활용해 주세요.';}
-    if(btn){btn.disabled=false;btn.textContent='AI 최신 답변';}
-  }
+  function paintInterview(){const q=(document.getElementById('si-interview-q')?.value||'').toLowerCase().trim(),c=document.getElementById('si-interview-cat')?.value||'';const items=data.interviewQuestions.filter(x=>(!q||(`${x.question} ${x.category}`).toLowerCase().includes(q))&&(!c||x.category===c));document.getElementById('si-interview-count').textContent=`${items.length}개`;const list=document.getElementById('si-interview-list');list.innerHTML=items.slice(0,100).map(x=>interviewCard(x)).join('')+(items.length>100?`<div class="si-empty">검색 성능을 위해 상위 100개만 표시합니다. 키워드로 좁혀주세요.</div>`:'');bindInterviewCards(list)}
+  function interviewCard(x){const on=!!mastered[`interview:${x.id}`];return `<article class="si-q" data-i="${x.id}"><div class="si-q-head"><span class="si-q-no">3차<br>${x.topicNo||''}</span><div><div class="si-q-title">${esc(x.question)}</div><div class="si-q-meta"><span class="si-pill">${esc(x.category)}</span><span class="si-pill source">전·제·상</span></div></div><button class="si-master ${on?'on':''}" data-i-master="${x.id}">${on?'⭐':'☆'}</button></div><div class="si-q-actions"><button class="si-mini-btn" data-i-frame>답변 프레임</button><button class="si-mini-btn" data-i-ai>AI 최신 Q&A</button><button class="si-mini-btn" data-i-evidence>공식 근거</button><button class="si-mini-btn" data-i-speak>질문 읽기</button></div><div class="si-answer"><h4>60초 답변 뼈대</h4><p>${esc(x.answer)}</p><div class="si-evidence"></div><div class="si-ai-out" hidden></div></div></article>`}
+  function bindInterviewCards(list){list.querySelectorAll('.si-q').forEach(c=>{const x=data.interviewQuestions.find(v=>v.id===c.dataset.i),ans=c.querySelector('.si-answer');if(!x)return;c.querySelector('[data-i-frame]').addEventListener('click',()=>ans.classList.toggle('open'));c.querySelector('[data-i-master]').addEventListener('click',e=>toggleMaster(`interview:${x.id}`,e.currentTarget));c.querySelector('[data-i-evidence]').addEventListener('click',async()=>{ans.classList.add('open');await loadEvidenceQuery(x.sourceQuery,c.querySelector('.si-evidence'))});c.querySelector('[data-i-ai]').addEventListener('click',async e=>{ans.classList.add('open');await generateInterviewAnswer(x,c.querySelector('.si-ai-out'),e.currentTarget)});c.querySelector('[data-i-speak]').addEventListener('click',()=>speak(x.question))})}
 
   function renderRandom(){
-    const p=document.getElementById('si-panel-random');
-    p.innerHTML=`<div class="si-random"><div class="si-random-status"><span>면접관 질문 → 3초 생각 → 결론부터 답하기</span><span class="si-timer" id="si-timer">00:00</span></div>
-      <div class="si-filterbar"><select class="si-select" id="si-random-pool"><option value="all">전체 문제</option><option value="written">기출 141</option><option value="interview">3차 주제</option><option value="law">법령·제도/위험성평가</option><option value="machine">기계안전 기술</option></select><button class="si-btn primary" id="si-next-random">새 질문</button><button class="si-btn" id="si-read-random">🔊 읽기</button><button class="si-btn" id="si-voice-answer">🎙 음성답변</button><button class="si-btn" id="si-start-timer">⏱ 90초 시작</button></div>
-      <div class="si-random-question" id="si-random-question">새 질문을 눌러 면접 연습을 시작하세요.</div>
-      <textarea class="si-self-answer" id="si-self-answer" placeholder="말로 먼저 답한 뒤, 필요하면 핵심 키워드를 메모하세요."></textarea>
-      <div class="si-random-tools"><button class="si-btn dark" id="si-show-random">모범답변 확인</button><button class="si-btn" id="si-evidence-random">공식 근거</button><button class="si-btn" id="si-ai-random">AI 최신 답변</button><button class="si-btn primary" id="si-eval-random">내 답변 AI 채점</button></div>
-      <div class="si-answer-box" id="si-random-answer"><h4>답변 확인</h4><p id="si-random-answer-text"></p><div class="si-keywords" id="si-random-keywords"></div><div class="si-evidence" id="si-random-evidence"></div><div class="si-ai-out" id="si-random-ai" hidden></div></div>
-      <div class="si-grade-row"><button class="si-btn good" data-grade="good">✅ 바로 답함 <span id="g-good">${grades.good||0}</span></button><button class="si-btn warn" data-grade="maybe">△ 일부 기억 <span id="g-maybe">${grades.maybe||0}</span></button><button class="si-btn" data-grade="again">↻ 다시 봐야 함 <span id="g-again">${grades.again||0}</span></button></div></div>`;
-    document.getElementById('si-random-pool').addEventListener('change',e=>{randomPool=e.target.value;nextRandom();});
-    document.getElementById('si-next-random').addEventListener('click',nextRandom);
-    document.getElementById('si-read-random').addEventListener('click',()=>randomItem&&speak(randomItem.question));
-    document.getElementById('si-voice-answer').addEventListener('click',startVoiceAnswer);
-    document.getElementById('si-start-timer').addEventListener('click',()=>startTimer(90));
-    document.getElementById('si-show-random').addEventListener('click',showRandomAnswer);
-    document.getElementById('si-evidence-random').addEventListener('click',async()=>{if(!randomItem)return;showRandomAnswer();await loadEvidence(randomItem,document.getElementById('si-random-evidence'));});
-    document.getElementById('si-ai-random').addEventListener('click',async e=>{if(!randomItem)return;showRandomAnswer();await generateAiAnswer(randomItem,document.getElementById('si-random-ai'),e.currentTarget);});
-    document.getElementById('si-eval-random').addEventListener('click',async e=>evaluateRandom(e.currentTarget));
-    p.querySelectorAll('[data-grade]').forEach(b=>b.addEventListener('click',()=>gradeRandom(b.dataset.grade)));
-    nextRandom();
+    const p=document.getElementById('si-panel-random');p.innerHTML=`<div class="si-random si-interview-room"><div class="si-random-status"><span><b>3차 랜덤면접</b> · 결론부터 말하고 현장지도 한 문장까지</span><span class="si-timer" id="si-int-timer">00:00</span></div><div class="si-filterbar"><select class="si-select" id="si-int-cat"><option value="">전체 주제</option>${[...new Set(data.interviewQuestions.map(x=>x.category))].sort().map(c=>`<option>${esc(c)}</option>`).join('')}</select><button class="si-btn primary" id="si-int-next">새 질문</button><button class="si-btn" id="si-int-read">🔊 질문 읽기</button><button class="si-btn" id="si-int-voice">🎙 음성답변</button><button class="si-btn" data-int-time="30">30초</button><button class="si-btn" data-int-time="60">60초</button><button class="si-btn" data-int-time="90">90초</button></div><div class="si-random-question" id="si-int-question">새 질문을 눌러 시작하세요.</div><div class="si-followup" id="si-int-followup"></div><textarea class="si-self-answer" id="si-int-answer" placeholder="먼저 말하고, 필요하면 음성인식/키워드 메모를 남기세요."></textarea><div class="si-random-tools"><button class="si-btn dark" id="si-int-show">답변 프레임</button><button class="si-btn" id="si-int-evidence">공식 근거</button><button class="si-btn primary" id="si-int-eval">AI 면접채점</button></div><div class="si-answer-box" id="si-int-key"><h4>답변 프레임</h4><p id="si-int-key-text"></p><div class="si-evidence" id="si-int-evidence-box"></div><div class="si-ai-out" id="si-int-ai" hidden></div></div><div class="si-grade-row"><button class="si-btn good" data-int-grade="good">✅ 바로 답함 <span id="g-good">${grades.good||0}</span></button><button class="si-btn warn" data-int-grade="maybe">△ 일부 기억 <span id="g-maybe">${grades.maybe||0}</span></button><button class="si-btn" data-int-grade="again">↻ 다시 <span id="g-again">${grades.again||0}</span></button></div></div>`;
+    document.getElementById('si-int-next').addEventListener('click',nextInterview);document.getElementById('si-int-cat').addEventListener('change',nextInterview);document.getElementById('si-int-read').addEventListener('click',()=>interviewItem&&speak(interviewItem.question));document.getElementById('si-int-voice').addEventListener('click',()=>startVoice('si-int-answer','si-int-voice'));p.querySelectorAll('[data-int-time]').forEach(b=>b.addEventListener('click',()=>startTimer(+b.dataset.intTime,'si-int-timer')));document.getElementById('si-int-show').addEventListener('click',showInterviewKey);document.getElementById('si-int-evidence').addEventListener('click',async()=>{if(!interviewItem)return;showInterviewKey();await loadEvidenceQuery(interviewItem.sourceQuery,document.getElementById('si-int-evidence-box'))});document.getElementById('si-int-eval').addEventListener('click',e=>evaluateInterview(e.currentTarget));p.querySelectorAll('[data-int-grade]').forEach(b=>b.addEventListener('click',()=>gradeInterview(b.dataset.intGrade)));nextInterview();
   }
-  function randomCandidates(){
-    let arr=[...data.writtenQuestions,...data.interviewQuestions,...data.part2Extra];
-    if(randomPool==='written')arr=data.writtenQuestions;
-    if(randomPool==='interview')arr=data.interviewQuestions;
-    if(randomPool==='law')arr=arr.filter(x=>['법령·제도','위험성평가','인증·검사·계획서'].includes(x.category));
-    if(randomPool==='machine')arr=arr.filter(x=>!['법령·제도','위험성평가'].includes(x.category));
-    return arr;
-  }
-  function nextRandom(){
-    const arr=randomCandidates(); if(!arr.length)return; let next=arr[Math.floor(Math.random()*arr.length)]; if(randomItem&&arr.length>1&&next.question===randomItem.question)next=arr[(arr.indexOf(next)+1)%arr.length]; randomItem=next;
-    document.getElementById('si-random-question').textContent=next.question; document.getElementById('si-self-answer').value='';
-    document.getElementById('si-random-answer').classList.remove('show'); document.getElementById('si-random-answer-text').textContent=''; document.getElementById('si-random-keywords').innerHTML=''; document.getElementById('si-random-evidence').classList.remove('show'); document.getElementById('si-random-evidence').innerHTML=''; document.getElementById('si-random-ai').hidden=true; document.getElementById('si-random-ai').textContent='';
-    stopTimer(); document.getElementById('si-timer').textContent='00:00';
-  }
-
-  function startVoiceAnswer(){
-    const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-    if(!SR){alert('이 브라우저에서는 음성인식을 지원하지 않습니다. Chrome 최신 버전에서 이용해 주세요.');return;}
-    const btn=document.getElementById('si-voice-answer'),ta=document.getElementById('si-self-answer');
-    if(voiceRec){try{voiceRec.stop()}catch(e){};return;}
-    const rec=new SR();voiceRec=rec;rec.lang='ko-KR';rec.continuous=true;rec.interimResults=true;
-    let finalText=ta.value?ta.value+' ':'';
-    rec.onstart=()=>{btn.textContent='⏹ 듣는 중 · 종료';btn.classList.add('primary');};
-    rec.onresult=e=>{let interim='';for(let i=e.resultIndex;i<e.results.length;i++){const t=e.results[i][0].transcript;if(e.results[i].isFinal)finalText+=t+' ';else interim+=t;}ta.value=(finalText+interim).trim();};
-    rec.onerror=()=>{voiceRec=null;btn.textContent='🎙 음성답변';btn.classList.remove('primary');};
-    rec.onend=()=>{voiceRec=null;btn.textContent='🎙 음성답변';btn.classList.remove('primary');};
-    try{rec.start()}catch(e){voiceRec=null;}
-  }
-  async function evaluateRandom(btn){
-    if(!randomItem)return;
-    const user=(document.getElementById('si-self-answer').value||'').trim();
-    if(!user){alert('먼저 말하거나 답변 메모를 입력해 주세요.');return;}
-    showRandomAnswer();
-    const out=document.getElementById('si-random-ai');out.hidden=false;out.textContent='답변을 채점하고 있습니다.';
-    btn.disabled=true;btn.textContent='AI 채점 중...';
-    const prompt=`산업안전지도사 3차 면접 연습 답변을 채점하세요.
-질문: ${randomItem.question}
-수험자 답변: ${user}
-학습용 핵심답변: ${randomItem.answer}
-핵심키워드: ${(randomItem.keywords||[]).join(', ')}
-
-출력은 다음 형식으로 짧고 구체적으로 작성하세요.
-[점수] 10점 만점
-[잘한 점] 2~3개
-[빠진 핵심] 2~5개
-[고쳐 말하면] 60초 이내의 두괄식 답변
-법령 수치나 예외가 학습용 핵심답변에 없으면 임의로 만들지 말고 공식 근거 확인 필요라고 표시하세요.`;
-    try{const r=await fetch('/api/ai',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:[{role:'system',content:'대한민국 산업안전지도사 3차 면접 채점 튜터입니다. 과장하지 말고 질문에 포함된 핵심 키워드의 충족 여부를 기준으로 평가합니다.'},{role:'user',content:prompt}],temperature:.15,max_tokens:1800})});const j=await r.json();out.textContent=j?.choices?.[0]?.message?.content||j?.error||'채점 결과를 불러오지 못했습니다.';}catch(e){out.textContent='AI 채점 연결이 지연되고 있습니다.';}finally{btn.disabled=false;btn.textContent='내 답변 AI 채점';}
-  }
-
-  function showRandomAnswer(){ if(!randomItem)return; const box=document.getElementById('si-random-answer');box.classList.add('show');document.getElementById('si-random-answer-text').textContent=randomItem.answer;document.getElementById('si-random-keywords').innerHTML=(randomItem.keywords||[]).map(k=>`<span>${esc(k)}</span>`).join(''); }
-  function gradeRandom(k){grades[k]=(grades[k]||0)+1;saveJson(GRADE_KEY,grades);const el=document.getElementById('g-'+k);if(el)el.textContent=grades[k];if(randomItem){const id=`random:${randomItem.id||randomItem.question}`;if(k==='good')mastered[id]=true;saveJson(MASTER_KEY,mastered);}setTimeout(nextRandom,250);}
-  function startTimer(sec){stopTimer();timerLeft=sec;paintTimer();timerId=setInterval(()=>{timerLeft--;paintTimer();if(timerLeft<=0){stopTimer();}},1000)}
-  function stopTimer(){if(timerId){clearInterval(timerId);timerId=null;}}
-  function paintTimer(){const m=Math.floor(timerLeft/60),s=timerLeft%60;const el=document.getElementById('si-timer');if(el)el.textContent=`${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;}
+  function nextInterview(){const cat=document.getElementById('si-int-cat')?.value||'';const arr=data.interviewQuestions.filter(x=>!cat||x.category===cat);if(!arr.length)return;let n=arr[Math.floor(Math.random()*arr.length)];if(interviewItem&&arr.length>1&&n.id===interviewItem.id)n=arr[(arr.indexOf(n)+1)%arr.length];interviewItem=n;document.getElementById('si-int-question').textContent=n.question;document.getElementById('si-int-followup').textContent='';document.getElementById('si-int-answer').value='';document.getElementById('si-int-key').classList.remove('show');document.getElementById('si-int-evidence-box').classList.remove('show');document.getElementById('si-int-ai').hidden=true;stopTimer();paintTimer('si-int-timer');setTimeout(()=>{document.getElementById('si-int-followup').textContent='꼬리질문 후보: '+followupFor(n)},150)}
+  function followupFor(x){const opts=[`그 기준이 필요한 이유는 무엇입니까?`,`예외 또는 적용 제외가 있다면 설명해 보세요.`,`현장에서 위반을 발견하면 지도사로서 무엇부터 조치하겠습니까?`,`관련 고시나 기준규칙의 근거를 말해보세요.`,`사고가 이미 발생했다면 재발방지대책을 어떻게 지도하겠습니까?`];if(/위험성평가/.test(x.question))opts.push('근로자 참여를 어떻게 확보하겠습니까?');return opts[Math.floor(Math.random()*opts.length)]}
+  function showInterviewKey(){if(!interviewItem)return;document.getElementById('si-int-key').classList.add('show');document.getElementById('si-int-key-text').textContent=interviewItem.answer}
+  async function evaluateInterview(btn){if(!interviewItem)return;const user=document.getElementById('si-int-answer').value.trim();if(!user){alert('먼저 답변을 말하거나 입력해 주세요.');return}showInterviewKey();const out=document.getElementById('si-int-ai');out.hidden=false;out.textContent='전·제·상 기준으로 면접 답변을 채점 중입니다.';btn.disabled=true;let ev=[];try{ev=await fetchEvidence(interviewItem.sourceQuery,6)}catch(e){}const prompt=`산업안전지도사 3차 면접을 채점하세요.\n질문: ${interviewItem.question}\n수험자답변: ${user}\n공식근거 검색결과: ${JSON.stringify(ev.slice(0,4))}\n평가기준은 ① 전문지식과 응용능력 ② 산업안전·보건제도 이해/인식 ③ 상담·지도능력 입니다.\n[총점] 10\n[전문지식] /4\n[제도이해] /3\n[상담지도] /3\n[빠진 핵심]\n[60초로 고쳐 말하기]\n[꼬리질문 1개]\n근거에 없는 숫자는 만들지 마세요.`;try{out.textContent=await callAI('산업안전지도사 3차 면접위원 관점의 엄격한 튜터입니다.',prompt,1700)}catch(e){out.textContent='AI 면접채점 연결이 지연되고 있습니다.'}finally{btn.disabled=false;btn.textContent='AI 면접채점'}}
+  function gradeInterview(k){grades[k]=(grades[k]||0)+1;saveJson(GRADE_KEY,grades);document.getElementById('g-'+k).textContent=grades[k];if(interviewItem&&k==='good'){mastered[`interview:${interviewItem.id}`]=true;saveJson(MASTER_KEY,mastered)}setTimeout(nextInterview,200)}
 
   function renderEvidence(){
-    const p=document.getElementById('si-panel-evidence');
-    p.innerHTML=`<div class="si-law-search"><h3 style="margin:0 0 7px">KOSHA 안전보건법령 스마트검색</h3><p style="margin:0 0 10px;color:#627786;font-size:.75rem;line-height:1.6">Cloudflare Secret에 등록된 기존 KOSHA API를 그대로 사용합니다. 산업안전보건법·시행령·시행규칙·기준규칙·고시·KOSHA GUIDE를 한 번에 확인합니다.</p><div class="si-law-row"><input class="si-search" id="si-law-q" value="안전검사"><button class="si-btn primary" id="si-law-go">공식 근거 검색</button></div><div class="si-law-results" id="si-law-results"></div></div>
-      <div class="si-topic-grid">${data.coreTopics.map((x,i)=>`<article class="si-topic"><h3>${esc(x.title)}</h3><div class="memory">${esc(x.memory)}</div><div class="si-topic-actions"><button class="si-mini-btn" data-topic-search="${i}">근거 확인</button><button class="si-mini-btn" data-topic-random="${i}">말하기 연습</button></div></article>`).join('')}</div>`;
-    const go=()=>standaloneLawSearch(document.getElementById('si-law-q').value);
-    document.getElementById('si-law-go').addEventListener('click',go);document.getElementById('si-law-q').addEventListener('keydown',e=>{if(e.key==='Enter')go()});
-    p.querySelectorAll('[data-topic-search]').forEach(b=>b.addEventListener('click',()=>{const t=data.coreTopics[+b.dataset.topicSearch];document.getElementById('si-law-q').value=t.query;standaloneLawSearch(t.query)}));
-    p.querySelectorAll('[data-topic-random]').forEach(b=>b.addEventListener('click',()=>{const t=data.coreTopics[+b.dataset.topicRandom];randomItem={id:'topic-'+b.dataset.topicRandom,question:`${t.title}에 대해 면접답변 형식으로 설명해 보세요.`,answer:t.memory,keywords:t.memory.split('→').map(s=>s.trim()).filter(Boolean),sourceQuery:t.query,category:'핵심주제'};activate('random');document.getElementById('si-random-question').textContent=randomItem.question;showRandomAnswer();}));
+    const p=document.getElementById('si-panel-evidence');p.innerHTML=`<div class="si-law-search"><div class="si-section-head compact"><div><span>Cloudflare Secret의 기존 KOSHA API 재사용</span><h3>⚖️ 법·고시·KOSHA GUIDE 원문검색</h3></div></div><div class="si-law-row"><input class="si-search" id="si-law-q" value="안전검사 혼합기 분쇄기"><button class="si-btn primary" id="si-law-go">공식 근거 검색</button></div><div class="si-quick-queries">${['안전검사 고시 2026-49','안전검사 절차 2026-50','자율안전확인 별표2','위험기계 기구 방호조치','사업장 위험성평가 지침','프레스 안전인증','산업용 로봇 안전검사'].map(q=>`<button data-quick="${attr(q)}">${esc(q)}</button>`).join('')}</div><div class="si-law-results" id="si-law-results"></div></div>`;
+    const go=()=>standaloneLawSearch(document.getElementById('si-law-q').value);document.getElementById('si-law-go').addEventListener('click',go);document.getElementById('si-law-q').addEventListener('keydown',e=>{if(e.key==='Enter')go()});p.querySelectorAll('[data-quick]').forEach(b=>b.addEventListener('click',()=>{document.getElementById('si-law-q').value=b.dataset.quick;go()}));
   }
-  async function standaloneLawSearch(q){
-    const out=document.getElementById('si-law-results'); if(!q.trim())return;out.innerHTML='<div class="si-empty">검색 중...</div>';
-    try{const r=await fetch(`/api/safety-law/search?q=${encodeURIComponent(q)}&limit=30`);const j=await r.json();if(!j.ok)throw new Error(j.error||'검색 실패');const groups=[['법령·고시',j.law||[]],['KOSHA GUIDE',j.guide||[]],['미디어 자료',j.media||[]]];out.innerHTML=groups.map(([name,items])=>items.length?`<div class="si-card" style="margin-top:8px"><h3>${name} · ${items.length}건</h3>${items.slice(0,12).map(e=>`<div class="si-evidence-card"><b>${esc(e.title||'자료')}</b><p>${esc((e.content||'').slice(0,600))}</p>${e.link?`<a href="${attr(e.link)}" target="_blank" rel="noopener">공식 원문/검색 →</a>`:''}</div>`).join('')}</div>`:'').join('')||'<div class="si-empty">검색 결과가 없습니다.</div>';}
-    catch(e){out.innerHTML=`<div class="si-note">${esc(e.message||'공식 검색 연결이 지연되고 있습니다.')}</div>`;}
-  }
+  function openEvidence(q){if(!q)return;activate('evidence');const inp=document.getElementById('si-law-q');if(inp){inp.value=q;standaloneLawSearch(q)}}
+  async function standaloneLawSearch(q){const out=document.getElementById('si-law-results');if(!q?.trim())return;out.innerHTML='<div class="si-empty">KOSHA 공식 검색 중...</div>';try{const r=await fetch(`/api/safety-law/search?q=${encodeURIComponent(q)}&limit=30`),j=await r.json();if(!j.ok)throw new Error(j.error||'검색 실패');const groups=[['법령·고시',j.law||[]],['KOSHA GUIDE',j.guide||[]],['미디어',j.media||[]]];out.innerHTML=groups.filter(([,a])=>a.length).map(([n,a])=>`<div class="si-card si-result-group"><h3>${n} · ${a.length}건</h3>${a.slice(0,12).map(e=>evidenceCard(e)).join('')}</div>`).join('')||'<div class="si-empty">검색 결과가 없습니다. 검색어를 줄여보세요.</div>'}catch(e){out.innerHTML=`<div class="si-note">공식 검색 연결이 지연되고 있습니다. ${esc(e.message||'')}</div>`}}
+  async function loadEvidenceQuery(q,box){box.classList.add('show');box.innerHTML='<div class="si-empty">공식 근거 검색 중...</div>';try{const all=await fetchEvidence(q,10);box.innerHTML=all.length?all.map(e=>evidenceCard(e)).join(''):'<div class="si-empty">검색 결과가 없습니다.</div>'}catch(e){box.innerHTML=`<div class="si-note">${esc(e.message||'검색 지연')}</div>`}}
+  async function fetchEvidence(q,limit=10){const r=await fetch(`/api/safety-law/search?q=${encodeURIComponent(q||'')}&limit=${limit}`),j=await r.json();if(!j.ok)throw new Error(j.error||'검색 실패');return [...(j.law||[]),...(j.guide||[]),...(j.media||[])].slice(0,limit).map(e=>({title:e.title||e.categoryName,category:e.categoryName||e.source||'',content:(e.content||'').slice(0,1000),link:e.link||''}))}
+  function evidenceCard(e){return `<div class="si-evidence-card"><b>${esc(e.title||'자료')} <span class="si-source-badge">${esc(e.category||e.categoryName||'')}</span></b><p>${esc((e.content||'').slice(0,650))}</p>${e.link?`<a href="${attr(e.link)}" target="_blank" rel="noopener">공식 원문/검색 →</a>`:''}</div>`}
 
-  function renderStats(){
-    const p=document.getElementById('si-panel-stats'); const types=data.stats?.accidentTypes2024||[];const max=Math.max(1,...types.map(x=>x.value));const cases=(data.stats?.constructionCases||[]).slice(0,12);const age=data.stats?.ageFatalities2025||[];const ageMax=Math.max(1,...age.map(x=>x.value));
-    p.innerHTML=`<div class="si-grid"><div class="si-card"><h3>2024 발생형태별 사고재해자수</h3><p style="margin-bottom:10px">KOSHA 공개데이터를 합산한 학습용 요약입니다.</p><div class="si-bars">${types.map(x=>bar(x.type,x.value,max)).join('')}</div></div><div class="si-card"><h3>2025 연령별 사망자수</h3><p style="margin-bottom:10px">연령대별 위험 특성을 말할 때 통계 근거로 활용하세요.</p><div class="si-bars">${age.map(x=>bar(x.group,x.value,ageMax)).join('')}</div></div><div class="si-card"><h3>사고사례 활용법</h3><p><b>사고경위 → 직접원인 → 관리적 배경원인 → 재발방지대책 → 적용 법령/기준 → 위험성평가 반영</b> 순서로 정리하면 2·3차 서술과 실무형 면접에 동시에 도움이 됩니다.</p></div></div>
-      <h3 style="margin:18px 0 9px">건설안전 사고사례 · 원인/대책 읽기</h3><div class="si-case-grid">${cases.map(c=>`<article class="si-case"><h4>${esc(c.date)} · ${esc(c.accidentType||'사고')}</h4><p>${esc(c.facility)} · ${esc(c.process)} · ${esc(c.object)}</p><p class="bad"><b>원인:</b> ${esc(c.cause||'공개자료 확인 필요')}</p><p class="good"><b>재발방지:</b> ${esc(c.prevention||'공개자료 확인 필요')}</p><p>사망 ${c.deaths||0}명 · 부상 ${c.injuries||0}명</p></article>`).join('')}</div>`;
-  }
-  function bar(label,val,max){return `<div class="si-bar-row"><span>${esc(label)}</span><div class="si-bar-track"><div class="si-bar-fill" style="width:${Math.max(1,Math.round(val/max*100))}%"></div></div><b>${Number(val).toLocaleString()}</b></div>`;}
+  async function generateInterviewAnswer(x,out,btn){if(btn){btn.disabled=true;btn.textContent='근거 확인 중...'}out.hidden=false;out.textContent='최신 공식 근거를 확인해 60초 답변을 만들고 있습니다.';let ev=[];try{ev=await fetchEvidence(x.sourceQuery||x.question,7)}catch(e){}const prompt=`산업안전지도사 3차 면접 답변을 작성하세요. 질문: ${x.question}\n공식 검색근거: ${JSON.stringify(ev.slice(0,6))}\n60~90초 분량, 결론부터, 핵심 3~5개, 근거, 현장 지도 한 문장 순서. 숫자/예외는 근거가 있을 때만. 마지막 [암기키워드]와 [꼬리질문] 1개.`;try{out.textContent=await callAI('산업안전지도사 3차 구술 튜터입니다. 공식 근거를 우선합니다.',prompt,1700)}catch(e){out.textContent='AI 연결이 지연되고 있습니다.'}finally{if(btn){btn.disabled=false;btn.textContent='AI 최신 Q&A'}}}
+  async function callAI(system,prompt,max_tokens=1800){const r=await fetch('/api/ai',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:[{role:'system',content:system},{role:'user',content:prompt}],temperature:.15,max_tokens})}),j=await r.json();return j?.choices?.[0]?.message?.content||j?.error||'AI 응답을 불러오지 못했습니다.'}
 
-  function speak(text){ if(!('speechSynthesis' in window))return alert('이 브라우저에서는 질문 읽기를 지원하지 않습니다.');window.speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang='ko-KR';u.rate=.92;window.speechSynthesis.speak(u); }
-  function copyText(t){ navigator.clipboard?.writeText(t).then(()=>{}).catch(()=>{}); }
-  function loadJson(k,f){try{return JSON.parse(localStorage.getItem(k)||'')||f}catch(e){return f}}
-  function saveJson(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
-  function esc(v){return String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;')}
-  function attr(v){return esc(v).replace(/`/g,'&#096;')}
+  function renderStats(){const p=document.getElementById('si-panel-stats');const types=data.stats?.accidentTypes2024||[],age=data.stats?.ageFatalities2025||[],cases=(data.stats?.constructionCases||[]).slice(0,12),max=Math.max(1,...types.map(x=>x.value)),ageMax=Math.max(1,...age.map(x=>x.value));p.innerHTML=`<div class="si-section-head"><div><span>3차 현장형 답변에 숫자 한 줄</span><h3>📊 사고·통계 근거</h3></div></div><div class="si-grid"><div class="si-card"><h3>2024 발생형태별 사고재해자수</h3><div class="si-bars">${types.map(x=>bar(x.type,x.value,max)).join('')}</div></div><div class="si-card"><h3>2025 연령별 사망자수</h3><div class="si-bars">${age.map(x=>bar(x.group,x.value,ageMax)).join('')}</div></div><div class="si-card"><h3>시험에 쓰는 법</h3><p><b>사고경위 → 직접원인 → 관리적 원인 → 예방대책 → 법/고시 → 위험성평가 환류</b> 순으로 사고사례 하나를 90초에 말해 보세요.</p></div></div><h3 class="si-subtitle">건설안전 사고사례</h3><div class="si-case-grid">${cases.map(c=>`<article class="si-case"><h4>${esc(c.date)} · ${esc(c.accidentType||'사고')}</h4><p>${esc(c.facility)} · ${esc(c.process)} · ${esc(c.object)}</p><p class="bad"><b>원인:</b> ${esc(c.cause||'공개자료 확인 필요')}</p><p class="good"><b>재발방지:</b> ${esc(c.prevention||'공개자료 확인 필요')}</p><p>사망 ${c.deaths||0} · 부상 ${c.injuries||0}</p></article>`).join('')}</div>`}
+  function bar(label,val,max){return `<div class="si-bar-row"><span>${esc(label)}</span><div class="si-bar-track"><div class="si-bar-fill" style="width:${Math.max(1,Math.round(val/max*100))}%"></div></div><b>${Number(val).toLocaleString()}</b></div>`}
+
+  function toggleMaster(key,btn){mastered[key]=!mastered[key];saveJson(MASTER_KEY,mastered);btn.classList.toggle('on',mastered[key]);btn.textContent=mastered[key]?'⭐':'☆';const total=(data.writtenQuestions.length+data.interviewQuestions.length+data.newQuestionRadar.length),done=Object.values(mastered).filter(Boolean).length;const p=document.getElementById('si-progress-pct');if(p)p.textContent=`${Math.min(100,Math.round(done/total*100))}%`}
+  function startTimer(sec,id){stopTimer();timerLeft=sec;paintTimer(id);timerId=setInterval(()=>{timerLeft--;paintTimer(id);if(timerLeft<=0)stopTimer()},1000)}
+  function stopTimer(){if(timerId){clearInterval(timerId);timerId=null}}
+  function paintTimer(id){const el=document.getElementById(id);if(!el)return;const t=Math.max(0,timerLeft);el.textContent=`${String(Math.floor(t/60)).padStart(2,'0')}:${String(t%60).padStart(2,'0')}`}
+  function startVoice(textareaId,btnId){const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR){alert('Chrome 최신 버전의 음성인식을 이용해 주세요.');return}const ta=document.getElementById(textareaId),btn=document.getElementById(btnId);if(voiceRec){try{voiceRec.stop()}catch(e){}return}const rec=new SR();voiceRec=rec;rec.lang='ko-KR';rec.continuous=true;rec.interimResults=true;let final=ta.value?ta.value+' ':'';rec.onstart=()=>{btn.textContent='⏹ 듣는 중 · 종료';btn.classList.add('primary')};rec.onresult=e=>{let interim='';for(let i=e.resultIndex;i<e.results.length;i++){const t=e.results[i][0].transcript;if(e.results[i].isFinal)final+=t+' ';else interim+=t}ta.value=(final+interim).trim()};rec.onend=()=>{voiceRec=null;btn.textContent='🎙 음성답변';btn.classList.remove('primary')};rec.onerror=rec.onend;try{rec.start()}catch(e){voiceRec=null}}
+  function speak(t){if(!('speechSynthesis'in window))return;speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang='ko-KR';u.rate=.95;speechSynthesis.speak(u)}
+  document.addEventListener('click',e=>{const b=e.target.closest('[data-toggle-frame]');if(b)b.closest('.si-q')?.querySelector('.si-answer')?.classList.toggle('open')});
+  function loadJson(k,f){try{return JSON.parse(localStorage.getItem(k)||'')||f}catch(e){return f}}function saveJson(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}function esc(v){return String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;')}function attr(v){return esc(v).replace(/`/g,'&#096;')}
 })();
