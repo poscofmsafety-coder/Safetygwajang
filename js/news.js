@@ -15,7 +15,7 @@
   function render(data,stale=false){
     const items=(data&&data.items)||[];
     if(!items.length){grid.innerHTML='<div class="news-loading">현재 불러온 안전 뉴스가 없습니다. 잠시 후 다시 시도해 주세요.</div>';return;}
-    grid.innerHTML=items.slice(0,12).map((x,i)=>`<a class="news-card" href="${esc(x.link)}" target="_blank" rel="noopener noreferrer"><span class="news-rank">${String(i+1).padStart(2,'0')}</span><div><h3>${esc(x.title)}</h3><p><b>${esc(x.source||x.provider||'뉴스')}</b><span>${relDate(x.pubDate)}</span></p></div></a>`).join('');
+    grid.innerHTML=items.slice(0,18).map((x,i)=>`<a class="news-card" href="${esc(x.link)}" target="_blank" rel="noopener noreferrer"><span class="news-rank">${String(i+1).padStart(2,'0')}</span><div><h3>${esc(x.title)}</h3><p><b>${esc(x.source||x.provider||'뉴스')}</b><span>${relDate(x.pubDate)}</span></p></div></a>`).join('');
     const when=data.updatedAt?new Date(data.updatedAt):new Date();
     updated.textContent=(stale?'저장된 뉴스 · ':'업데이트 ')+when.toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'});
   }

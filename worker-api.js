@@ -392,6 +392,55 @@ function dedupeSafetyJobs(items){
   return out;
 }
 
+// 한 곳의 게시판만 의존하면 해당 사이트 장애/HTML 변경 시 시드 공고만 남습니다.
+// 사람인 검색결과도 직접 읽어 두 번째 실시간 원천으로 사용합니다.
+const SARAMIN_SAFETY_SEARCHES=[
+  'https://www.saramin.co.kr/zf_user/search?searchType=search&searchword='+encodeURIComponent('안전관리'),
+  'https://www.saramin.co.kr/zf_user/search?searchType=search&searchword='+encodeURIComponent('EHS')
+];
+function htmlAttr(attrs,name){const m=String(attrs||'').match(new RegExp('(?:^|\\s)'+name+'=["\\\']([^"\\\']+)["\\\']','i'));return m?decodeXml(m[1]):''}
+function saraminBlockText(block,re){const m=String(block||'').match(re);return m?jobText(m[1]):''}
+function parseSaraminSafetyJobs(html){
+  const out=[];
+  // item_recruit 단위가 가장 안정적이지만 클래스명이 바뀌어도 rec_idx 링크 주변을 보조 탐색합니다.
+  const source=String(html||'');
+  let blocks=source.split(/<div\b[^>]*class=["'][^"']*\bitem_recruit\b[^"']*["'][^>]*>/i).slice(1);
+  if(!blocks.length){
+    const hits=[...source.matchAll(/<a\b([^>]*)>([\s\S]*?)<\/a>/gi)].filter(m=>/rec_idx=\d+/i.test(htmlAttr(m[1],'href')));
+    blocks=hits.map(m=>source.slice(Math.max(0,m.index-3500),Math.min(source.length,m.index+6500)));
+  }
+  for(const raw of blocks.slice(0,100)){
+    const b=raw.slice(0,14000);let title='',link='';
+    for(const m of b.matchAll(/<a\b([^>]*)>([\s\S]*?)<\/a>/gi)){
+      const href=htmlAttr(m[1],'href');if(!/rec_idx=\d+/i.test(href))continue;
+      const text=jobText(m[2]);if(text.length<3)continue;
+      if(safetyJobTitle(text)){title=text;link=jobAbsoluteUrl(href,'https://www.saramin.co.kr/');break}
+      if(!title){title=text;link=jobAbsoluteUrl(href,'https://www.saramin.co.kr/')}
+    }
+    if(!title||!link||!safetyJobTitle(title))continue;
+    let company=saraminBlockText(b,/class=["'][^"']*(?:corp_name|company_name)[^"']*["'][^>]*>([\s\S]*?)<\/(?:strong|div|span)>/i);
+    if(!company)company=saraminBlockText(b,/data-(?:company_nm|corp-name)=["']([^"']+)["']/i);
+    if(!company){
+      const cm=b.match(/<a\b[^>]*href=["'][^"']*(?:company-info|company\/)[^"']*["'][^>]*>([\s\S]*?)<\/a>/i);company=cm?jobText(cm[1]):'';
+    }
+    if(!company)continue;
+    const cond=saraminBlockText(b,/class=["'][^"']*job_condition[^"']*["'][^>]*>([\s\S]*?)<\/div>/i);
+    const spans=cond?[...String(b.match(/class=["'][^"']*job_condition[^"']*["'][^>]*>([\s\S]*?)<\/div>/i)?.[1]||'').matchAll(/<span\b[^>]*>([\s\S]*?)<\/span>/gi)].map(x=>jobText(x[1])).filter(Boolean):[];
+    const location=spans[0]||'';const career=spans[1]||'';
+    let deadline=saraminBlockText(b,/class=["'][^"']*(?:date|job_date)[^"']*["'][^>]*>([\s\S]*?)<\/(?:span|div)>/i);
+    deadline=deadline.replace(/^(?:마감일\s*)?/,'').trim();
+    const reg=(jobText(b).match(/(?:등록일|수정일)\s*(\d{2,4}[./-]\d{1,2}[./-]\d{1,2})/)||[])[1]||'';
+    const id=(link.match(/[?&]rec_idx=(\d+)/)||[])[1]||'';
+    out.push({id:id?'saramin-'+id:'saramin-'+out.length,company,position:title,category:'안전·EHS',career,location,deadline,registered:reg,detailUrl:link,link,provider:'사람인',portalDirect:true});
+  }
+  return dedupeSafetyJobs(out);
+}
+async function fetchSaraminSafetyJobs(timeoutMs=4800){
+  const settled=await Promise.allSettled(SARAMIN_SAFETY_SEARCHES.map(url=>fetchTimed(url,{redirect:'follow',headers:{'user-agent':SAFETY_JOB_UA,'accept':'text/html,application/xhtml+xml','accept-language':'ko-KR,ko;q=0.9'},cf:{cacheTtl:180,cacheEverything:true}},timeoutMs).then(async r=>{if(!r.ok)throw new Error('사람인 '+r.status);return parseSaraminSafetyJobs(await r.text())})));
+  let items=[];for(const r of settled)if(r.status==='fulfilled')items.push(...r.value);
+  items=dedupeSafetyJobs(items);if(!items.length)throw new Error('사람인 검색결과를 읽지 못했습니다.');return items;
+}
+
 // 화면이 비어 보이지 않도록 최근 확인한 대기업 공고를 최소 시드로 유지합니다.
 // 마감일이 지나면 자동 제외되며, 실시간 수집 결과와 합쳐서 중복 제거합니다.
 const CURATED_MAJOR_JOBS=[
@@ -418,6 +467,38 @@ const CURATED_MAJOR_JOBS=[
     link:'https://m.saramin.co.kr/job-search/view?rec_idx=54914131',
     detailUrl:'https://m.saramin.co.kr/job-search/view?rec_idx=54914131',
     provider:'사람인',curated:true,expiresAt:'2026-09-27T23:59:00+09:00'
+  },
+  {
+    id:'curated-hyundai-ulsan-safety-20260914',company:'현대자동차',
+    position:'현대자동차 9월 신입 채용 (안전/환경·울산공장)',category:'안전·환경',career:'신입',
+    location:'울산',deadline:'2026-09-14',registered:'2026-09-01',
+    link:'https://www.saramin.co.kr/zf_user/jobs/view?rec_idx=54824973',
+    detailUrl:'https://www.saramin.co.kr/zf_user/jobs/view?rec_idx=54824973',
+    provider:'사람인',curated:true,expiresAt:'2026-09-14T17:00:00+09:00'
+  },
+  {
+    id:'curated-gscaltex-safety-20260915',company:'GS칼텍스',
+    position:'2026년 하반기 신입사원 채용(안전)',category:'안전',career:'신입',
+    location:'전남 여수시',deadline:'2026-09-15',registered:'2026-09-02',
+    link:'https://m.saramin.co.kr/job-search/view?rec_idx=54927251',
+    detailUrl:'https://m.saramin.co.kr/job-search/view?rec_idx=54927251',
+    provider:'사람인',curated:true,expiresAt:'2026-09-15T23:59:00+09:00'
+  },
+  {
+    id:'curated-kyeryong-safety-20260910',company:'계룡건설산업',
+    position:'2026년 9월 안전직, 보건관리자 모집공고',category:'안전·보건',career:'신입·경력',
+    location:'대전 외 전국 현장',deadline:'2026-09-10',registered:'2026-09-03',
+    link:'https://lab.incruit.com/jobs/2609030004669',
+    detailUrl:'https://lab.incruit.com/jobs/2609030004669',
+    provider:'인크루트',curated:true,expiresAt:'2026-09-10T23:59:00+09:00'
+  },
+  {
+    id:'curated-doosanfuel-safety-20260910',company:'두산퓨얼셀',
+    position:'기술 계약직 채용_안전/환경(군산)',category:'안전·환경',career:'신입·경력',
+    location:'전북 군산시',deadline:'2026-09-10',registered:'2026-09-02',
+    link:'https://lab.incruit.com/jobs/2609020000032',
+    detailUrl:'https://lab.incruit.com/jobs/2609020000032',
+    provider:'인크루트',curated:true,expiresAt:'2026-09-10T23:59:00+09:00'
   }
 ];
 function activeCuratedMajorJobs(now=Date.now()){
@@ -425,7 +506,7 @@ function activeCuratedMajorJobs(now=Date.now()){
 }
 
 // 너무 작은 업체가 화면을 채우지 않도록 대기업·중견기업·공공기관 계열을 우선합니다.
-const MAJOR_EMPLOYER_RE=/(삼성|현대|기아|포스코|POSCO|SK|LG|롯데|한화|두산|CJ|GS|LS|DL|LX|효성|코오롱|금호|KT|네이버|NAVER|카카오|셀트리온|아모레|한솔|동국제강|세아|고려아연|풍산|OCI|한국타이어|넥센|HL만도|현대모비스|현대제철|현대건설|현대엔지니어링|삼성E&A|삼성물산|삼성SDI|삼성전기|삼성중공업|삼성바이오|에쓰오일|S-OIL|대한항공|아시아나|HMM|현대글로비스|HD현대|두산에너빌리티|LS ELECTRIC|LS전선|삼양|대상|SPC|오뚜기|농심|동원|하림|유한양행|종근당|한미약품|녹십자|대웅|코스맥스|한국콜마|성우하이텍|동진쎄미켐|솔브레인|DB하이텍|LX세미콘|한온시스템|대한전선|한국항공우주|KAI|LIG넥스원|현대로템|BGF|신세계|이마트|쿠팡|한진|대한유화|KCC|에코프로|금호석유|금호타이어|롯데케미칼|롯데정밀화학|SKC|한화오션|한화에어로|한화시스템|한화솔루션|SK하이닉스|SK온|SK이노베이션|SK에코플랜트|SK실트론|LG화학|LG에너지솔루션|LG전자|LG디스플레이|LG이노텍|포스코퓨처엠|CJ대한통운)/i;
+const MAJOR_EMPLOYER_RE=/(삼성|현대|기아|포스코|POSCO|SK|LG|롯데|한화|두산|CJ|GS|LS|DL|LX|효성|코오롱|금호|KT|네이버|NAVER|카카오|셀트리온|아모레|한솔|동국제강|세아|고려아연|풍산|OCI|한국타이어|넥센|HL만도|현대모비스|현대제철|현대건설|현대엔지니어링|삼성E&A|삼성물산|삼성SDI|삼성전기|삼성중공업|삼성바이오|에쓰오일|S-OIL|대한항공|아시아나|HMM|현대글로비스|HD현대|두산에너빌리티|LS ELECTRIC|LS전선|삼양|대상|SPC|오뚜기|농심|동원|하림|유한양행|종근당|한미약품|녹십자|대웅|코스맥스|한국콜마|성우하이텍|동진쎄미켐|솔브레인|DB하이텍|LX세미콘|한온시스템|대한전선|한국항공우주|KAI|LIG넥스원|현대로템|BGF|신세계|이마트|쿠팡|한진|대한유화|KCC|에코프로|금호석유|금호타이어|롯데케미칼|롯데정밀화학|SKC|한화오션|한화에어로|한화시스템|한화솔루션|SK하이닉스|SK온|SK이노베이션|SK에코플랜트|SK실트론|LG화학|LG에너지솔루션|LG전자|LG디스플레이|LG이노텍|포스코퓨처엠|CJ대한통운|계룡건설|SGC|반도건설|HL디앤아이한라|현대프라퍼티|킨텍스|국도화학|HYBE|두산퓨얼셀|GS칼텍스)/i;
 const PUBLIC_EMPLOYER_RE=/(한국.*(?:공사|공단|연구원|발전)|공항공사|도로공사|철도공사|수자원공사|가스공사|전력공사|한국수력원자력|한전|남동발전|남부발전|동서발전|서부발전|중부발전)/i;
 function preferredJobEmployer(item){
   if(item?.curated)return true;
@@ -496,36 +577,58 @@ async function jobMapLimit(items,limit,fn){
   async function run(){while(true){const i=next++;if(i>=items.length)return;try{out[i]=await fn(items[i],i)}catch(e){out[i]=items[i]}}}
   await Promise.all(Array.from({length:Math.min(limit,items.length)},run));return out;
 }
-function safetyJobsPayload(items,extra={}){const merged=mergePreferredSafetyJobs(items||[]).slice(0,12);return {ok:Boolean(merged.length),items:merged,updatedAt:new Date().toISOString(),...extra}}
+function safetyJobsPayload(items,extra={}){const merged=mergePreferredSafetyJobs(items||[]).slice(0,16);return {ok:Boolean(merged.length),items:merged,updatedAt:new Date().toISOString(),...extra}}
 function safetyJobsJson(data,status=200){return new Response(JSON.stringify(data),{status,headers:applySecurityHeaders({'content-type':'application/json; charset=utf-8','cache-control':'public, max-age=20, s-maxage=300, stale-while-revalidate=21600'})})}
+async function collectSafetyJobSources(quick=false){
+  const defs=[
+    ['isafety-1',fetchSafetyJobPage(1,quick?3000:5200)],
+    ['saramin',fetchSaraminSafetyJobs(quick?3200:5000)]
+  ];
+  if(!quick)defs.splice(1,0,['isafety-2',fetchSafetyJobPage(2,5200)]);
+  const settled=await Promise.allSettled(defs.map(x=>x[1]));
+  let items=[];const sourceStats={},errors=[];
+  settled.forEach((r,i)=>{const name=defs[i][0];if(r.status==='fulfilled'){sourceStats[name]=r.value.length;items.push(...r.value)}else{sourceStats[name]=0;errors.push(name+': '+String(r.reason?.message||r.reason||'failed'))}});
+  return {items:dedupeSafetyJobs(items),sourceStats,errors};
+}
 async function buildEnrichedSafetyJobs(){
-  const settled=await Promise.allSettled([fetchSafetyJobPage(1,5200),fetchSafetyJobPage(2,5200)]);
-  let items=[];for(const r of settled)if(r.status==='fulfilled')items.push(...r.value);
-  items=dedupeSafetyJobs(items).filter(preferredJobEmployer).slice(0,18);
-  const enriched=items.length?await jobMapLimit(items,4,enrichSafetyJob):[];
-  return safetyJobsPayload(enriched,{source:items.length?'live+curated':'curated'});
+  const collected=await collectSafetyJobSources(false);
+  let items=collected.items.filter(preferredJobEmployer).slice(0,28);
+  // 직접 사람인에서 가져온 공고는 이미 원문 URL이므로, 중계 게시판 공고만 원문 링크를 보강합니다.
+  const enriched=items.length?await jobMapLimit(items,4,x=>x.portalDirect?Promise.resolve(x):enrichSafetyJob(x)):[];
+  const liveCount=enriched.length;
+  return safetyJobsPayload(enriched,{source:liveCount?'live+curated':'curated',liveCount,sourceStats:collected.sourceStats,sourceErrors:collected.errors});
 }
 async function refreshSafetyJobsCache(cache,key){
   try{const payload=await buildEnrichedSafetyJobs();if(payload.items.length&&cache&&key)await cache.put(key,safetyJobsJson(payload).clone());return payload}catch(e){return null}
 }
-async function quickSafetyJobs(){const items=await fetchSafetyJobPage(1,4200);return safetyJobsPayload(items,{refreshing:true,source:'quick+curated'})}
+async function quickSafetyJobs(){
+  const collected=await collectSafetyJobSources(true);
+  const items=collected.items.filter(preferredJobEmployer).slice(0,18);
+  return safetyJobsPayload(items,{refreshing:true,source:items.length?'quick+curated':'seed',liveCount:items.length,sourceStats:collected.sourceStats,sourceErrors:collected.errors});
+}
 async function safetyJobs(request,env,ctx){
   const url=new URL(request.url),force=url.searchParams.get('refresh')==='1';let cache=null,key=null,cached=null;
-  try{cache=caches.default;key=new Request(new URL('/api/jobs?cache=v2',request.url).toString(),{method:'GET'});cached=await cache.match(key)}catch(e){}
+  try{cache=caches.default;key=new Request(new URL('/api/jobs?cache=v3',request.url).toString(),{method:'GET'});cached=await cache.match(key)}catch(e){}
   if(cached){
     const data=await cached.clone().json().catch(()=>null);const age=data?.updatedAt?Math.max(0,Date.now()-Date.parse(data.updatedAt)):Infinity;
+    if(force){
+      // 수동 새로고침은 기존 3개 캐시만 즉시 돌려주지 않고 실제 수집을 한 번 기다립니다.
+      const fresh=await refreshSafetyJobsCache(cache,key);
+      if(fresh?.items?.length)return safetyJobsJson({...fresh,refreshing:false});
+      return safetyJobsJson({...data,refreshing:true,refreshError:'실시간 수집 실패'});
+    }
     const seedLike=!data?.items?.length||data?.source==='seed'||data?.source==='curated';
-    if(ctx&&cache&&key&&(force||age>3*60*1000||(seedLike&&age>20*1000)))ctx.waitUntil(refreshSafetyJobsCache(cache,key));
-    if(force&&data)return safetyJobsJson({...data,refreshing:true});
+    if(ctx&&cache&&key&&(age>3*60*1000||(seedLike&&age>20*1000)))ctx.waitUntil(refreshSafetyJobsCache(cache,key));
     return cached;
   }
 
-  // 첫 화면은 외부 사이트 응답을 기다리지 않고 최근 확인된 대기업 공고를 즉시 반환합니다.
-  const seed=safetyJobsPayload([], {refreshing:true,source:'seed'});
-  if(cache&&key)try{await cache.put(key,safetyJobsJson(seed).clone())}catch(e){}
+  // 첫 접속도 짧은 실시간 수집을 먼저 시도합니다. 실패할 때만 최근 확인 공고를 사용합니다.
+  let first=null;try{first=await quickSafetyJobs()}catch(e){}
+  const payload=first?.items?.length?first:safetyJobsPayload([], {refreshing:true,source:'seed',liveCount:0});
+  if(cache&&key)try{await cache.put(key,safetyJobsJson(payload).clone())}catch(e){}
   if(ctx&&cache&&key)ctx.waitUntil(refreshSafetyJobsCache(cache,key));
   else if(cache&&key)refreshSafetyJobsCache(cache,key).catch(()=>{});
-  return safetyJobsJson(seed,200);
+  return safetyJobsJson(payload,200);
 }
 
 // KOSHA Smart Search proxy: 인증키를 브라우저에 노출하지 않습니다.
