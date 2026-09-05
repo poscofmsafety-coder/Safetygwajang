@@ -73,16 +73,22 @@
                 </p>
             </div>
             <div class="bg-white rounded-lg p-4 border border-amber-200">
-                <label class="block text-xs font-bold text-gray-600 mb-2">
-                    <span class="emoji-icon mr-1" aria-hidden="true">📊</span>현장 작업 엑셀 데이터 붙여넣기
-                </label>
+                <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+                    <label class="block text-xs font-bold text-gray-600">
+                        <span class="emoji-icon mr-1" aria-hidden="true">📊</span>현장 작업 엑셀 데이터 붙여넣기
+                    </label>
+                    <a href="../assets/field-work-example.xlsx" download="현장작업_엑셀붙여넣기_예시.xlsx"
+                       class="inline-flex items-center gap-1 border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold px-3 py-1.5 rounded-lg text-xs">
+                        <span aria-hidden="true">⬇️</span> 예시 엑셀 다운로드
+                    </a>
+                </div>
                 <p class="text-[11px] text-gray-500 mb-2">
-                    엑셀에서 <b>헤더 포함 통째로 복사</b> OK. 헤더 행은 자동 스킵.<br>
-                    ※ 인원: <b>"47"</b>=주간만 / <b>"주 53↵야 47"</b>=주야 교대 자동 인식<br>
-                    ※ 위험/조치 4번만 있고 4-1이 조치에만 있으면 → 위험 셀 <b>자동 병합(rowSpan)</b>
+                    예시 엑셀 또는 기존 작업표에서 <b>헤더 포함 영역을 복사 → 아래 칸에 붙여넣기</b> 하면 즉시 자동 반영됩니다. 헤더 행은 자동 스킵합니다.<br>
+                    ※ 인원: <b>"47"</b>=주간만 / <b>"주 53↵야 47"</b>=주야 교대 자동 인식 · 고위험 <b>"O (밀폐)"</b>도 O로 인식<br>
+                    ※ 여러 줄이 들어간 잠재위험·조치사항도 Excel의 복사 형식을 그대로 해석합니다.
                 </p>
-                <textarea id="excelPaste" rows="6" placeholder="7/31&#9;1&#9;X&#9;..." 
-                    class="w-full border border-gray-300 rounded px-3 py-2 text-xs font-mono resize-y focus:outline-none focus:border-amber-500"></textarea>
+                <textarea id="excelPaste" rows="6" placeholder="예시 엑셀에서 표 전체를 복사한 뒤 여기에 Ctrl+V / ⌘V 하세요" 
+                    class="allow-select w-full border border-gray-300 rounded px-3 py-2 text-xs font-mono resize-y focus:outline-none focus:border-amber-500"></textarea>
                 <div class="flex flex-wrap gap-2 mt-3">
                     <button onclick="parseAndApply()" class="bg-[#00529C] hover:bg-blue-900 text-white font-bold px-4 py-2 rounded text-sm">
                         <span class="emoji-icon mr-1" aria-hidden="true">▶️</span>파싱 & 반영
@@ -406,11 +412,11 @@
             if(cells.length < 10){ skip++; return; }
             if(isHeaderRow(cells)){ skip++; return; }
             if(!isValidDataRow(cells)){ skip++; return; }
-            const isO = v => (v||'').trim().toUpperCase() === 'O';
+            const isO = v => { const t=String(v||'').replace(/\s+/g,' ').trim().toUpperCase(); return t==='O'||/^O(?:\s|\(|\[|\{|$)/.test(t)||t==='○'||t==='●'||t==='YES'; };
             const wf = parseWorkforce(cells[8]);
             parsed.push({
                 id: 'w' + Date.now() + '_' + idx,
-                date:(cells[0]||'').trim(), no:(cells[1]||'').trim(), highRisk:isO(cells[2]),
+                date:(cells[0]||'').trim(), no:(cells[1]||'').trim(), highRisk:isO(cells[2]), highRiskRaw:(cells[2]||'').trim(),
                 deptOwner:(cells[3]||'').trim(), factory:(cells[4]||'').trim(),
                 orderDept:(cells[5]||'').trim(), location:(cells[6]||'').trim().replace(/^\n+/,''),
                 workName:(cells[7]||'').trim(),
@@ -442,6 +448,23 @@
         resultEl.className = 'ml-2 self-center text-sm font-bold text-emerald-600';
         renderAll();
     }
+
+    // Excel/스프레드시트에서 붙여넣으면 버튼을 다시 누르지 않아도 자동 반영합니다.
+    // paste 이벤트 직후 브라우저가 textarea 값을 갱신한 뒤 파싱하도록 한 틱 늦춰 실행합니다.
+    let excelAutoParseTimer = 0;
+    function scheduleExcelAutoParse(){
+        clearTimeout(excelAutoParseTimer);
+        excelAutoParseTimer = setTimeout(()=>{
+            const box = document.getElementById('excelPaste');
+            if(!box || !box.value.trim()) return;
+            parseAndApply();
+        }, 120);
+    }
+    document.getElementById('excelPaste')?.addEventListener('paste', ()=>{
+        const resultEl = document.getElementById('parseResult');
+        if(resultEl){ resultEl.textContent='⏳ 붙여넣은 작업 데이터를 자동 반영 중...'; resultEl.className='ml-2 self-center text-sm font-bold text-amber-700'; }
+        scheduleExcelAutoParse();
+    });
 
     function clearWorkData(){
         if(!confirm('작업 데이터를 모두 삭제하시겠습니까?')) return;

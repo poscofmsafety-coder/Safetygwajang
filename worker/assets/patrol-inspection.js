@@ -18,9 +18,9 @@
     if(!file||!/^image\/(jpeg|png|webp)$/i.test(file.type)){alert('JPG, PNG 또는 WEBP 이미지를 선택해 주세요.');return}
     if(file.size>20*1024*1024){alert('20MB 이하 이미지를 사용해 주세요.');return}
     setState('사진을 최적화하는 중…');
-    try{imageData=await compress(file);thumbData=await makeThumb(imageData);const p=$('#patrolPreview');p.src=imageData;p.hidden=false;$('#patrolPreviewEmpty').hidden=true;$('#patrolRemoveImage').hidden=false;$('#patrolAnalyzeBtn').disabled=false;setState('사진 준비 완료 · 분석 버튼을 눌러 주세요.','ok')}catch(e){setState('사진을 읽지 못했습니다. 다른 사진을 선택해 주세요.','bad')}
+    try{imageData=await compress(file);thumbData=await makeThumb(imageData);const p=$('#patrolPreview'),empty=$('#patrolPreviewEmpty'),wrap=$('#patrolPreviewWrap');p.src=imageData;p.hidden=false;p.style.display='block';if(empty){empty.hidden=true;empty.style.display='none'}if(wrap)wrap.classList.add('has-image');$('#patrolRemoveImage').hidden=false;$('#patrolAnalyzeBtn').disabled=false;setState('사진 준비 완료 · 분석 버튼을 눌러 주세요.','ok')}catch(e){setState('사진을 읽지 못했습니다. 다른 사진을 선택해 주세요.','bad')}
   }
-  function removeImage(){imageData='';thumbData='';const p=$('#patrolPreview');p.hidden=true;p.removeAttribute('src');$('#patrolPreviewEmpty').hidden=false;$('#patrolRemoveImage').hidden=true;$('#patrolAnalyzeBtn').disabled=true;setState('사진을 먼저 입력해 주세요.')}
+  function removeImage(){imageData='';thumbData='';const p=$('#patrolPreview'),empty=$('#patrolPreviewEmpty'),wrap=$('#patrolPreviewWrap');p.hidden=true;p.style.display='none';p.removeAttribute('src');if(empty){empty.hidden=false;empty.style.removeProperty('display')}if(wrap)wrap.classList.remove('has-image');$('#patrolRemoveImage').hidden=true;$('#patrolAnalyzeBtn').disabled=true;setState('사진을 먼저 입력해 주세요.')}
   function applyAI(r){
     $('#patrolItem').value=r.inspectionItem||'';$('#patrolObservation').value=r.observation||'';$('#patrolImprovement').value=r.improvement||'';$('#patrolAccidentType').value=r.accidentType||'기타';$('#patrolScenario').value=r.hazardScenario||'';$('#patrolUrgency').value=r.urgency||'계획 개선';$('#patrolRiskReason').value=r.reason||'';radio(r.riskAssessmentRecommended?'O':'X');
   }

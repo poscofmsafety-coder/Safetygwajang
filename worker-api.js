@@ -14,7 +14,7 @@ export default {
     if (url.pathname === '/api/ai/inspection') return aiInspection(request, env);
     if (url.pathname === '/api/msds/lookup') return msdsLookup(request, env);
     if (url.pathname === '/api/msds/search') return msdsSearch(request, env);
-    if (url.pathname === '/api/news') return safetyNews(request, env);
+    if (url.pathname === '/api/news') return safetyNews(request, env, ctx);
     if (url.pathname === '/api/laws/search') return lawsSearch(request, env);
     if (url.pathname === '/api/safety-law/search') return safetyLawSearch(request, env);
     return secureResponse(await env.ASSETS.fetch(request));
@@ -211,13 +211,13 @@ function dedupeNews(items){
   return out;
 }
 function newsValidTitle(title){return /(안전|재해|산재|산업|중대|사고|보건|위험|화재|폭발|추락|끼임|질식|건설|고용노동부|산업안전보건)/.test(String(title||''));}
-async function googleNewsQuery(query){
+async function googleNewsQuery(query,timeoutMs=9000){
   const u=`https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=ko&gl=KR&ceid=KR:ko`;
   const r=await fetchTimed(u,{redirect:'follow',headers:{
     'user-agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/152.0 Safari/537.36',
     'accept':'application/rss+xml,application/xml,text/xml;q=0.9,*/*;q=0.8',
     'accept-language':'ko-KR,ko;q=0.9,en;q=0.5'
-  },cf:{cacheTtl:300,cacheEverything:true}},9000);
+  },cf:{cacheTtl:300,cacheEverything:true}},timeoutMs);
   const text=await r.text();
   if(!r.ok)throw new Error(`Google News RSS ${r.status}`);
   const items=parseGoogleNewsRss(text).filter(x=>newsValidTitle(x.title));
@@ -231,9 +231,9 @@ async function googleSafetyNews(){
   for(const x of settled){if(Array.isArray(x))items.push(...x);else if(x?.error)errors.push(x.error)}
   return {items:dedupeNews(items).slice(0,25),errors};
 }
-async function googleTopSafetyNews(){
+async function googleTopSafetyNews(timeoutMs=9000){
   const u=new URL('https://news.google.com/rss');u.searchParams.set('hl','ko');u.searchParams.set('gl','KR');u.searchParams.set('ceid','KR:ko');
-  const r=await fetchTimed(u,{headers:{'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/152 Safari/537.36','Accept':'application/rss+xml,application/xml,text/xml;q=0.9,*/*;q=0.8'},cf:{cacheTtl:300,cacheEverything:true}},9000);
+  const r=await fetchTimed(u,{headers:{'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/152 Safari/537.36','Accept':'application/rss+xml,application/xml,text/xml;q=0.9,*/*;q=0.8'},cf:{cacheTtl:300,cacheEverything:true}},timeoutMs);
   const text=await r.text();if(!r.ok)throw new Error(`Google News top RSS ${r.status}`);
   return parseGoogleNewsRss(text).filter(x=>newsValidTitle(x.title)).slice(0,20);
 }
@@ -296,18 +296,54 @@ async function koshaDisasterNews(env){
     return {title,link,pubDate:date,source:'안전보건공단 재해사례',provider:'KOSHA'};
   }).filter(x=>x.title&&newsValidTitle(x.title));
 }
-async function safetyNews(request,env){
-  const errors=[];let items=[];
-  const tasks=[
+function newsJson(data,status=200){
+  return new Response(JSON.stringify(data),{status,headers:applySecurityHeaders({
+    'content-type':'application/json; charset=utf-8',
+    'cache-control':'public, max-age=20, s-maxage=600, stale-while-revalidate=86400'
+  })});
+}
+function newsProviders(env){
+  return [
     googleSafetyNews().then(async x=>{let its=x.items||[],errs=x.errors||[];if(!its.length){try{its=await googleTopSafetyNews()}catch(e){errs.push(e.message)}}return{name:'google',items:its,errors:errs}}).catch(async e=>{try{return{name:'google',items:await googleTopSafetyNews(),errors:[e.message]}}catch(e2){return{name:'google',items:[],errors:[e.message,e2.message]}}}),
     kakaoKey(env)?kakaoSafetyNews(env).then(x=>({name:'kakao',items:x,errors:[]})).catch(e=>({name:'kakao',items:[],errors:[e.message]})):Promise.resolve({name:'kakao',items:[],errors:[]}),
     koshaGeneralKey(env)?koshaFatalityNews(env).then(x=>({name:'kosha-fatality',items:x,errors:[]})).catch(e=>({name:'kosha-fatality',items:[],errors:[e.message]})):Promise.resolve({name:'kosha-fatality',items:[],errors:[]}),
     koshaGeneralKey(env)?koshaDisasterNews(env).then(x=>({name:'kosha-disaster',items:x,errors:[]})).catch(e=>({name:'kosha-disaster',items:[],errors:[e.message]})):Promise.resolve({name:'kosha-disaster',items:[],errors:[]}),
     ((env.NAVER_API_HUB_CLIENT_ID&&env.NAVER_API_HUB_CLIENT_SECRET)||(env.NAVER_CLIENT_ID&&env.NAVER_CLIENT_SECRET))?naverSafetyNews(env).then(x=>({name:'naver',items:x,errors:[]})).catch(e=>({name:'naver',items:[],errors:[e.message]})):Promise.resolve({name:'naver',items:[],errors:[]})
   ];
-  const results=await Promise.all(tasks);results.forEach(x=>{items.push(...(x.items||[]));errors.push(...(x.errors||[]))});
+}
+function newsPayload(results,env){
+  const errors=[];let items=[];(results||[]).forEach(x=>{items.push(...(x?.items||[]));errors.push(...(x?.errors||[]))});
   items=dedupeNews(items).sort((a,b)=>Date.parse(b.pubDate||0)-Date.parse(a.pubDate||0)).slice(0,18);
-  return json({ok:items.length>0,items,updatedAt:new Date().toISOString(),providers:{google:true,kakao:Boolean(kakaoKey(env)),kosha:Boolean(koshaGeneralKey(env)),naver:Boolean(env.NAVER_CLIENT_ID||env.NAVER_API_HUB_CLIENT_ID)},errors});
+  return {ok:items.length>0,items,updatedAt:new Date().toISOString(),providers:{google:true,kakao:Boolean(kakaoKey(env)),kosha:Boolean(koshaGeneralKey(env)),naver:Boolean(env.NAVER_CLIENT_ID||env.NAVER_API_HUB_CLIENT_ID)},errors};
+}
+async function refreshNewsCache(cache,key,env){
+  try{const results=await Promise.all(newsProviders(env));const payload=newsPayload(results,env);if(payload.items.length)await cache.put(key,newsJson(payload).clone());return payload}catch(e){return null}
+}
+async function quickSafetyNews(env){
+  // 첫 방문은 검색 RSS와 종합 RSS를 동시에 요청해 먼저 성공한 쪽으로 즉시 화면을 채웁니다.
+  const q='산업안전 OR 중대재해 OR 산업재해 OR 안전보건 when:14d';
+  const candidates=[
+    googleNewsQuery(q,4200).then(items=>items.length?items:Promise.reject(new Error('검색 RSS 결과 없음'))),
+    googleTopSafetyNews(4200).then(items=>items.length?items:Promise.reject(new Error('종합 RSS 결과 없음')))
+  ];
+  try{const items=(await Promise.any(candidates)).slice(0,18);return newsPayload([{name:'google-fast',items,errors:[]}],env)}catch(e){return newsPayload([{name:'google',items:[],errors:['뉴스 빠른 연결 실패']}],env)}
+}
+async function safetyNews(request,env,ctx){
+  const url=new URL(request.url),force=url.searchParams.get('refresh')==='1';
+  let cache=null,key=null,cached=null;
+  try{cache=caches.default;key=new Request(new URL('/api/news?cache=v4',request.url).toString(),{method:'GET'});cached=await cache.match(key)}catch(e){}
+  if(cached){
+    // 캐시가 있으면 즉시 반환합니다. 5분 이상 지난 캐시 또는 수동 새로고침일 때만 뒤에서 갱신합니다.
+    const data=await cached.clone().json().catch(()=>null);
+    const age=data?.updatedAt?Math.max(0,Date.now()-Date.parse(data.updatedAt)):Infinity;
+    if(ctx&&cache&&key&&(force||age>5*60*1000))ctx.waitUntil(refreshNewsCache(cache,key,env));
+    if(force&&data)return newsJson({...data,refreshing:true});
+    return cached;
+  }
+  const quick=await quickSafetyNews(env);
+  if(ctx&&cache&&key)ctx.waitUntil(refreshNewsCache(cache,key,env));
+  else if(cache&&key&&quick.items.length)try{await cache.put(key,newsJson(quick).clone())}catch(e){}
+  return newsJson(quick,quick.items.length?200:502);
 }
 
 // KOSHA Smart Search proxy: 인증키를 브라우저에 노출하지 않습니다.
@@ -406,6 +442,26 @@ function totalMessageChars(messages){
   return n;
 }
 function genericAiError(status=502){return json({ok:false,error:'AI 처리 중 연결이 지연되었습니다. 잠시 후 다시 시도해 주세요.'},status)}
+const KOREAN_OUTPUT_GUARD='[최우선 언어 규칙] 사용자에게 보이는 자연어는 반드시 자연스러운 한국어로 작성합니다. 한자·중국어·일본어·러시아어·아랍어·태국어·베트남어식 확장문자를 섞지 않습니다. 영어는 회사명, 제품명, 법정 약어, CCTV·MSDS·AI 같은 통용 약어와 URL에만 허용합니다. 한자어도 한글로 풀어 씁니다. 뜻이 어색한 직역문이나 깨진 문자를 만들지 않습니다.';
+const FORBIDDEN_SCRIPT_RE=/[\u3040-\u30ff\u31f0-\u31ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\u0400-\u052f\u0600-\u06ff\u0e00-\u0e7f\u00c0-\u02af]/u;
+const FORBIDDEN_SCRIPT_RE_GLOBAL=/[\u3040-\u30ff\u31f0-\u31ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\u0400-\u052f\u0600-\u06ff\u0e00-\u0e7f\u00c0-\u02af]+/gu;
+function hasForbiddenScript(v){return FORBIDDEN_SCRIPT_RE.test(String(v||''))}
+function scrubForbiddenScripts(v){return String(v||'').replace(FORBIDDEN_SCRIPT_RE_GLOBAL,' ').replace(/[ \t]{2,}/g,' ').replace(/\s+([,.!?。])/g,'$1').trim()}
+function guardKoreanMessages(messages){
+  const out=(messages||[]).map(m=>({...m}));
+  const i=out.findIndex(m=>m?.role==='system'&&typeof m.content==='string');
+  if(i>=0)out[i]={...out[i],content:KOREAN_OUTPUT_GUARD+'\n\n'+out[i].content};
+  else out.unshift({role:'system',content:KOREAN_OUTPUT_GUARD});
+  return out;
+}
+async function rewriteKoreanText(text,env,maxTokens=5000){
+  const original=String(text||'').trim();if(!original||!env?.GROQ_API_KEY)return '';
+  const payload={model:String(env.GROQ_TEXT_MODEL||'openai/gpt-oss-120b'),temperature:0.05,max_completion_tokens:Math.max(800,Math.min(6000,maxTokens)),messages:[
+    {role:'system',content:KOREAN_OUTPUT_GUARD+' 원문의 의미·사실·숫자·마크다운 구조는 변경하거나 추가하지 말고 언어 표기와 어색한 문장만 바로잡습니다.'},
+    {role:'user',content:'다음 내용을 자연스러운 한국어로 다시 쓰세요. 한자나 다른 문자권 글자가 한 글자도 남지 않게 하세요.\n\n'+original}
+  ]};
+  try{const r=await fetchTimed('https://api.groq.com/openai/v1/chat/completions',{method:'POST',headers:{'content-type':'application/json','authorization':'Bearer '+env.GROQ_API_KEY},body:JSON.stringify(payload)},22000);if(!r.ok)return '';const j=await r.json();return String(j?.choices?.[0]?.message?.content||'').trim()}catch(e){return ''}
+}
 async function aiGateway(request,env){
   const ready=Boolean(env&&env.GROQ_API_KEY);
   if(request.method==='GET')return json({ok:true,ready});
@@ -421,7 +477,7 @@ async function aiGateway(request,env){
   const model=research?'groq/compound':String(env.GROQ_TEXT_MODEL||'openai/gpt-oss-120b');
   const payload={
     model,
-    messages,
+    messages:guardKoreanMessages(messages),
     temperature:Math.max(0,Math.min(1.2,Number(body?.temperature??0.55))),
     max_completion_tokens:Math.max(800,Math.min(8000,Number(body?.max_tokens||body?.max_completion_tokens||5000)))
   };
@@ -435,6 +491,8 @@ async function aiGateway(request,env){
     const text=await r.text();
     if(!r.ok)return genericAiError(r.status===429?429:502);
     let data;try{data=JSON.parse(text)}catch(e){return genericAiError()}
+    const msg=data?.choices?.[0]?.message;let content=String(msg?.content||'');
+    if(content&&hasForbiddenScript(content)){const fixed=await rewriteKoreanText(content,env,Math.min(6000,payload.max_completion_tokens));content=fixed&&!hasForbiddenScript(fixed)?fixed:scrubForbiddenScripts(fixed||content);if(msg)msg.content=content}
     return json(data,200);
   }catch(e){return genericAiError(e?.name==='AbortError'?504:502)}
 }
@@ -455,7 +513,7 @@ function normalizeAccidentType(v){
 function normalizeInspectionResult(x){
   x=x&&typeof x==='object'?x:{};
   const urgency=['즉시 조치','당일 개선','계획 개선','관찰 유지'].includes(x.urgency)?x.urgency:'계획 개선';
-  const risk=typeof x.riskAssessmentRecommended==='boolean'?x.riskAssessmentRecommended:Boolean(x.riskAssessmentRecommended);
+  const rv=x.riskAssessmentRecommended;const risk=typeof rv==='boolean'?rv:/^(?:true|1|o|yes)$/i.test(String(rv||'').trim());
   return {
     inspectionItem:String(x.inspectionItem||'').slice(0,700),
     observation:String(x.observation||'').slice(0,1200),
@@ -468,6 +526,15 @@ function normalizeInspectionResult(x){
     confidence:Math.max(0,Math.min(100,Number(x.confidence)||0))
   };
 }
+function inspectionTextValues(x){return [x.inspectionItem,x.observation,x.improvement,x.hazardScenario,x.reason].map(v=>String(v||''))}
+function inspectionHasForbidden(x){return inspectionTextValues(x).some(hasForbiddenScript)}
+function scrubInspectionResult(x){const y={...x};for(const k of ['inspectionItem','observation','improvement','hazardScenario','reason'])y[k]=scrubForbiddenScripts(y[k]);return normalizeInspectionResult(y)}
+async function rewriteInspectionKorean(x,env){
+  if(!env?.GROQ_API_KEY)return null;
+  const prompt='다음 순회점검 JSON의 사실과 판단을 절대 추가·삭제하지 말고, 문자열 값의 언어만 자연스러운 한국어로 교정하세요. 한자·중국어·일본어·러시아어·아랍어·태국어·베트남어식 확장문자는 한 글자도 사용하지 마세요. CCTV, MSDS, AI 같은 통용 영문 약어는 허용합니다. 키 이름과 불리언·숫자는 그대로 유지하세요. JSON 객체만 반환하세요.\n\n'+JSON.stringify(x);
+  const payload={model:String(env.GROQ_TEXT_MODEL||'openai/gpt-oss-120b'),temperature:0.03,max_completion_tokens:1600,response_format:{type:'json_object'},messages:[{role:'system',content:KOREAN_OUTPUT_GUARD},{role:'user',content:prompt}]};
+  try{const r=await fetchTimed('https://api.groq.com/openai/v1/chat/completions',{method:'POST',headers:{'content-type':'application/json','authorization':'Bearer '+env.GROQ_API_KEY},body:JSON.stringify(payload)},18000);if(!r.ok)return null;const j=await r.json();const parsed=safeInspectionJson(j?.choices?.[0]?.message?.content);return parsed?normalizeInspectionResult(parsed):null}catch(e){return null}
+}
 async function aiInspection(request,env){
   if(request.method!=='POST')return json({ok:false,error:'허용되지 않은 요청입니다.'},405);
   if(!sameOriginRequest(request))return json({ok:false,error:'허용되지 않은 요청입니다.'},403);
@@ -477,14 +544,14 @@ async function aiInspection(request,env){
   const context=String(body?.context||'').slice(0,2500);
   if(!/^data:image\/(?:jpeg|jpg|png|webp);base64,/i.test(image))return json({ok:false,error:'JPG, PNG 또는 WEBP 이미지를 선택해 주세요.'},400);
   if(image.length>12_000_000)return json({ok:false,error:'이미지가 너무 큽니다. 더 작은 사진으로 다시 시도해 주세요.'},413);
-  const prompt=`당신은 대한민국 제조·건설 현장을 점검하는 숙련된 안전관리자입니다. 사진에 실제로 보이는 사실만 근거로 순회점검일지 초안을 만드세요. 보이지 않는 설비나 행동을 추측해 사실처럼 쓰지 마세요.\n\n추가 현장정보:\n${context||'(없음)'}\n\n다음 JSON 객체만 반환하세요.\n{\n  "inspectionItem":"점검 사항. 사진에서 확인되는 상태를 구체적으로 1~3문장",\n  "observation":"근거가 되는 관찰 사실",\n  "improvement":"개선조치 필요사항. 제거·대체→공학적→관리적→보호구 순으로 실현 가능한 조치",\n  "accidentType":"추락|넘어짐|끼임|맞음|부딪힘|깔림·뒤집힘|무너짐|감전|화재·폭발|질식·중독|절단·베임·찔림|교통·운반|화학물질 노출|기타 중 하나",\n  "hazardScenario":"누가 어떤 상황에서 어떤 재해를 당할 수 있는지 한 문장",\n  "riskAssessmentRecommended":true 또는 false,\n  "urgency":"즉시 조치|당일 개선|계획 개선|관찰 유지 중 하나",\n  "reason":"위험성평가 연계 여부의 근거",\n  "confidence":0부터100 숫자\n}\n\n중대한 위험이 명확하지 않으면 위험성평가 권고를 과도하게 true로 두지 말고, 사진만으로 판단이 어려우면 confidence를 낮추세요.`;
-  const models=[String(env.GROQ_VISION_MODEL||'qwen/qwen3.6-27b'),'meta-llama/llama-4-scout-17b-16e-instruct'];
-  let lastStatus=502;
+  const prompt=`당신은 대한민국 제조·건설 현장을 점검하는 숙련된 안전관리자입니다. 사진에 실제로 보이는 사실만 근거로 순회점검일지 초안을 만드세요. 보이지 않는 설비나 행동을 추측해 사실처럼 쓰지 마세요.\n\n[언어 규칙 - 최우선]\n모든 문자열 값은 자연스러운 한국어로 작성하세요. 한자·중국어·일본어·러시아어·아랍어·태국어·베트남어식 확장문자는 절대 사용하지 마세요. 한자 표기나 다른 문자권 글자를 출력하지 말고 같은 뜻을 한글로 풀어 쓰세요. CCTV, MSDS, AI 같은 통용 약어만 영문을 허용합니다. 사진 속 외국어 표기를 그대로 베끼지 말고 필요한 의미만 한국어로 설명하세요. '지면이 불평' 같은 직역 비문 대신 '지면이 고르지 않아 넘어질 위험이 있음'처럼 현장 안전 문장으로 자연스럽게 쓰세요.\n\n추가 현장정보:\n${context||'(없음)'}\n\n다음 JSON 객체만 반환하세요.\n{\n  "inspectionItem":"점검 사항. 사진에서 확인되는 상태를 구체적으로 1~3문장",\n  "observation":"근거가 되는 관찰 사실",\n  "improvement":"개선조치 필요사항. 제거·대체→공학적→관리적→보호구 순으로 실현 가능한 조치",\n  "accidentType":"추락|넘어짐|끼임|맞음|부딪힘|깔림·뒤집힘|무너짐|감전|화재·폭발|질식·중독|절단·베임·찔림|교통·운반|화학물질 노출|기타 중 하나",\n  "hazardScenario":"누가 어떤 상황에서 어떤 재해를 당할 수 있는지 한 문장",\n  "riskAssessmentRecommended":true 또는 false,\n  "urgency":"즉시 조치|당일 개선|계획 개선|관찰 유지 중 하나",\n  "reason":"위험성평가 연계 여부의 근거",\n  "confidence":0부터100 숫자\n}\n\n중대한 위험이 명확하지 않으면 위험성평가 권고를 과도하게 true로 두지 말고, 사진만으로 판단이 어려우면 confidence를 낮추세요.`;
+  const models=[String(env.GROQ_VISION_MODEL||'meta-llama/llama-4-scout-17b-16e-instruct'),'qwen/qwen3.6-27b'];
+  let lastStatus=502,lastLanguageCandidate=null;
   for(const model of [...new Set(models)]){
     const payload={
       model,
       messages:[{role:'user',content:[{type:'text',text:prompt},{type:'image_url',image_url:{url:image}}]}],
-      temperature:0.15,
+      temperature:0.05,
       max_completion_tokens:1800,
       response_format:{type:'json_object'}
     };
@@ -499,8 +566,16 @@ async function aiInspection(request,env){
       const content=data?.choices?.[0]?.message?.content;
       const parsed=safeInspectionJson(content);
       if(!parsed)continue;
-      return json({ok:true,result:normalizeInspectionResult(parsed)});
+      let result=normalizeInspectionResult(parsed);
+      if(inspectionHasForbidden(result)){
+        const fixed=await rewriteInspectionKorean(result,env);
+        if(fixed&&!inspectionHasForbidden(fixed))result=fixed;
+        else{lastLanguageCandidate=result;continue}
+      }
+      return json({ok:true,result});
     }catch(e){lastStatus=e?.name==='AbortError'?504:502}
   }
+  // 두 비전 모델 모두 언어 혼용이 남은 드문 경우에도 외국문자를 화면에 노출하지 않습니다.
+  if(lastLanguageCandidate)return json({ok:true,result:scrubInspectionResult(lastLanguageCandidate)});
   return genericAiError(lastStatus===429?429:lastStatus);
 }
