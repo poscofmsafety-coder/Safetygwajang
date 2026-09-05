@@ -242,6 +242,8 @@
       min = Math.max(10, Math.ceil(count * 1.5));
     } else if (/중복기출/.test(text)) {
       min = Math.max(30, Math.ceil(count * 1.5));
+    } else if (/위험물산업기사/.test(text)) {
+      min = 90;
     } else if (/위험물기능장/.test(text)) {
       min = 60;
     } else if (/산업위생관리기사/.test(text)) {

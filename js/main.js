@@ -29,6 +29,7 @@
     { key: 'construction', label: '🏗 건설안전기사' },
     { key: 'hygiene',      label: '🩺 산업위생관리기사' },
     { key: 'ergonomics',   label: '🧠 인간공학기사' },
+    { key: 'hazmatIndustry', label: '🧯 위험물산업기사' },
     { key: 'hazmat',       label: '🧪 위험물기능장' },
     { key: 'dup',          label: '중복기출 모음집', locked: true, alwaysShow: true },
     { key: 'etc',          label: '📂 기타' }
@@ -85,7 +86,8 @@
     if (/건설안전기사/.test(text)) return 'construction';
     if (/산업위생관리기사|산업위생/.test(text)) return 'hygiene';
     if (/인간공학기사/.test(text)) return 'ergonomics';
-    if (/위험물기능장|위험물/.test(text)) return 'hazmat';
+    if (/위험물산업기사/.test(text)) return 'hazmatIndustry';
+    if (/위험물기능장/.test(text)) return 'hazmat';
     if (/산업안전기사/.test(text)) return 'safety';
     if (/^\d{4}-\d{2}-\d{2}$/.test(String(exam.id || '').trim())) return 'safety';
     return 'etc';
@@ -100,6 +102,11 @@
 
     if (/중복기출/.test(text)) {
       if (out.questions) out.duration = Math.max(30, Math.ceil(out.questions * 1.5));
+      return out;
+    }
+    if (/위험물산업기사/.test(text)) {
+      out.questions = 60;
+      out.duration = 90;
       return out;
     }
     if (/위험물기능장/.test(text)) {

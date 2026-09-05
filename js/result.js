@@ -61,6 +61,15 @@
         desc: '연습용 모음집입니다. 60점 이상을 목표로 하세요.'
       };
     }
+    if (/위험물산업기사/.test(t)) {
+      return {
+        name: '위험물산업기사',
+        pass: 60,
+        cutoff: 40,
+        useSubject: true,
+        desc: '총 60문항(3과목) · 90분<br><b>전 과목 평균 60점 이상 + 과목별 40점 이상</b>'
+      };
+    }
     if (/위험물기능장/.test(t)) {
       return {
         name: '위험물기능장',
