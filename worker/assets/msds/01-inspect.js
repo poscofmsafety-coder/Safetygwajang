@@ -5,7 +5,7 @@
    - API 미연결 시 가짜/데모 판정을 생성하지 않음
    ========================================================= */
 const INSPECT_CONFIG={
-  lookup:'/api/msds/lookup', health:'/api/health', timeout:12000,
+  lookup:'/api/msds/lookup', health:'/api/health?probe=1', timeout:8000,
   cacheTTL:{success:7*24*60*60*1000,failure:4*60*60*1000}
 };
 const InspectCache={
@@ -16,7 +16,15 @@ const InspectCache={
 };
 let apiConnected=false, apiStatusDetail='';
 async function checkApiHealth(){
-  try{const ctrl=new AbortController();setTimeout(()=>ctrl.abort(),3500);const r=await fetch(INSPECT_CONFIG.health,{signal:ctrl.signal});const j=await r.json().catch(()=>({}));apiConnected=r.ok&&j.configured!==false;apiStatusDetail=j.message||'';}catch(e){apiConnected=false;apiStatusDetail=e.message||''} updateApiStatusPill();
+  try{
+    const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),5000);
+    const r=await fetch(INSPECT_CONFIG.health,{signal:ctrl.signal,cache:'no-store'});clearTimeout(timer);
+    const j=await r.json().catch(()=>({}));
+    const msdsProbe=j?.probes?.msds;
+    apiConnected=Boolean(r.ok&&j.msdsConfigured!==false&&(msdsProbe==='ok'||!msdsProbe));
+    apiStatusDetail=msdsProbe==='ok'?'KOSHA MSDS 실제 응답 확인':(msdsProbe||j.message||'');
+  }catch(e){apiConnected=false;apiStatusDetail=e.message||''}
+  updateApiStatusPill();
 }
 function updateApiStatusPill(){
   const el=document.getElementById('apiStatusPill');if(!el)return;

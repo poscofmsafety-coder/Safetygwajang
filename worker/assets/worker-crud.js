@@ -17,7 +17,7 @@
   function save(){ localStorage.setItem(key, JSON.stringify(rows)); }
   function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,8); }
   function labelFor(field){ return field.label || field.name; }
-  function valueOf(row, field){ const v = row[field.name]; return v == null || v === '' ? '-' : String(v); }
+  function valueOf(row, field){ const v = row[field.name]; if(v == null || v === '') return '-'; if(Array.isArray(v)) return v.length?v.join(', '):'-'; if(field.type==='file'&&typeof v==='object') return v.name||'첨부파일'; return String(v); }
   function visibleFields(){ return (cfg.fields || []).filter(f => f.table !== false); }
   function filteredRows(){
     if(!search) return rows.slice();
@@ -99,10 +99,15 @@
       control=`<textarea id="fld_${esc(f.name)}" name="${esc(f.name)}" placeholder="${ph}" ${req}></textarea>`;
     }else if(f.type==='select'){
       control=`<select id="fld_${esc(f.name)}" name="${esc(f.name)}" ${req}><option value="">선택</option>${(f.options||[]).map(o=>`<option value="${esc(o)}">${esc(o)}</option>`).join('')}</select>`;
+    }else if(f.type==='checkboxes'){
+      control=`<div id="fld_${esc(f.name)}" class="worker-checkbox-grid">${(f.options||[]).map((o,i)=>`<label><input type="checkbox" name="${esc(f.name)}" value="${esc(o)}"> <span>${esc(o)}</span></label>`).join('')}</div>`;
+    }else if(f.type==='file'){
+      control=`<input id="fld_${esc(f.name)}" name="${esc(f.name)}" type="file" ${f.accept?`accept="${esc(f.accept)}"`:''}><div class="worker-file-current" id="fld_${esc(f.name)}_current"></div>`;
     }else{
       control=`<input id="fld_${esc(f.name)}" name="${esc(f.name)}" type="${esc(f.type || 'text')}" placeholder="${ph}" ${req}${f.min!=null?` min="${esc(f.min)}"`:''}${f.max!=null?` max="${esc(f.max)}"`:''}>`;
     }
-    return `<div class="worker-field ${full?'full':''}"><label for="fld_${esc(f.name)}">${esc(labelFor(f))}${f.required?' *':''}</label>${control}</div>`;
+    const help=f.help?`<small class="worker-field-help">${esc(f.help)}</small>`:'';
+    return `<div class="worker-field ${full?'full':''}"><label for="fld_${esc(f.name)}">${esc(labelFor(f))}${f.required?' *':''}</label>${control}${help}</div>`;
   }
 
   function openModal(id){
@@ -110,7 +115,13 @@
     const row = editingId ? rows.find(r=>r.id===editingId) : null;
     document.getElementById('recordModalTitle').textContent = row ? '기록 수정' : '새 기록 추가';
     (cfg.fields||[]).forEach(f=>{
-      const el=document.getElementById('fld_'+f.name); if(el) el.value=row ? (row[f.name] ?? '') : '';
+      const el=document.getElementById('fld_'+f.name); if(!el)return;
+      const value=row ? row[f.name] : null;
+      if(f.type==='checkboxes'){
+        const selected=new Set(Array.isArray(value)?value:[]);el.querySelectorAll('input[type="checkbox"]').forEach(x=>x.checked=selected.has(x.value));
+      }else if(f.type==='file'){
+        el.value='';const current=document.getElementById('fld_'+f.name+'_current');if(current)current.textContent=value&&typeof value==='object'&&value.name?'현재 파일: '+value.name:'';
+      }else el.value=row ? (value ?? '') : '';
     });
     const m=document.getElementById('recordModal'); m.classList.add('open'); m.setAttribute('aria-hidden','false');
     const first=m.querySelector('input,select,textarea'); if(first) setTimeout(()=>first.focus(),30);
@@ -129,13 +140,28 @@
     document.querySelectorAll('[data-delete]').forEach(b=>b.addEventListener('click',()=>{
       if(confirm('이 기록을 삭제할까요?')){ rows=rows.filter(r=>r.id!==b.dataset.delete);save();render(); }
     }));
-    document.getElementById('recordForm')?.addEventListener('submit',e=>{
+    document.getElementById('recordForm')?.addEventListener('submit',async e=>{
       e.preventDefault();
+      const previous=editingId?rows.find(r=>r.id===editingId):null;
       const obj={id:editingId||uid(),updatedAt:new Date().toISOString()};
-      (cfg.fields||[]).forEach(f=>{ const el=document.getElementById('fld_'+f.name); obj[f.name]=el ? el.value.trim() : ''; });
+      for(const f of (cfg.fields||[])){
+        const el=document.getElementById('fld_'+f.name);
+        if(!el){obj[f.name]='';continue}
+        if(f.type==='checkboxes'){
+          obj[f.name]=[...el.querySelectorAll('input[type="checkbox"]:checked')].map(x=>x.value);
+        }else if(f.type==='file'){
+          const file=el.files&&el.files[0];
+          if(file){
+            if(file.size>8*1024*1024){alert('첨부파일은 8MB 이하로 올려 주세요.');return}
+            obj[f.name]=await new Promise((resolve,reject)=>{const r=new FileReader();r.onerror=()=>reject(new Error('파일 읽기 실패'));r.onload=()=>resolve({name:file.name,type:file.type,size:file.size,data:String(r.result||'')});r.readAsDataURL(file)}).catch(()=>null);
+            if(!obj[f.name]){alert('첨부파일을 읽지 못했습니다.');return}
+          }else obj[f.name]=previous?.[f.name]||'';
+        }else obj[f.name]=String(el.value||'').trim();
+      }
       if(editingId){ const i=rows.findIndex(r=>r.id===editingId); if(i>=0) rows[i]={...rows[i],...obj}; }
       else rows.unshift(obj);
-      save();closeModal();render();
+      try{save()}catch(err){alert('브라우저 저장공간이 부족합니다. 첨부파일 크기를 줄이거나 기존 기록을 백업·정리해 주세요.');return}
+      closeModal();render();
     });
     document.getElementById('clearData')?.addEventListener('click',()=>{
       if(!rows.length) return alert('삭제할 데이터가 없습니다.');

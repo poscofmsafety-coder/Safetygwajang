@@ -13,7 +13,7 @@
 <link rel="stylesheet" href="../css/responsive.css">
 </head>
 <body class="legacy-tool-page">
-<header class="legacy-brand-nav"><div class="legacy-brand-inner"><a class="legacy-brand-name" href="../index.html?audience=worker"><img src="../assets/jaeili-face-v4.png" alt="안전과장 제일이 로고" data-cheer-mascot><span>안전과장</span></a><nav class="legacy-worker-nav" aria-label="재직자 실무 메뉴"><a href="dashboard.html">현장 대시보드</a><a href="patrol-inspection.html">순회점검</a><a href="safety-education.html">안전교육</a><a href="risk-assessment.html">위험성평가</a><a href="risk-guide.html">실무가이드</a><a href="laws.html" aria-current="page">법령·지침</a><a href="msds-management.html">MSDS</a><a href="confined-space.html">밀폐공간</a><a href="incident-report.html">사고기록</a></nav><span class="live-clock legacy-live-clock" data-live-clock></span><a class="legacy-back" href="../index.html?audience=worker">재직자 홈</a></div></header>
+<header class="legacy-brand-nav"><div class="legacy-brand-inner"><a class="legacy-brand-name" href="../index.html?audience=worker"><img src="../assets/jaeili-face-v4.png" alt="안전과장 제일이 로고" data-cheer-mascot><span>안전과장</span></a><div class="legacy-audience-switch" aria-label="화면 선택"><a href="../index.html">홈</a><a href="../index.html?audience=jobseeker">취준생</a><a class="active" href="../index.html?audience=worker">재직자</a></div><nav class="legacy-worker-nav" aria-label="재직자 실무 메뉴"><a href="dashboard.html">현장 대시보드</a><a href="patrol-inspection.html">순회점검</a><a href="safety-education.html">안전교육</a><a href="risk-assessment.html">위험성평가</a><a href="risk-guide.html">실무가이드</a><a href="laws.html" aria-current="page">법령·지침</a><a href="msds-management.html">MSDS</a></nav><span class="live-clock legacy-live-clock" data-live-clock></span><a class="legacy-back" href="../index.html?audience=worker">재직자 홈</a></div></header>
 <main class="law-page">
 <section class="law-hero"><span class="eyebrow">SMART SAFETY LAW SEARCH</span><h1>스마트 안전보건법령 검색</h1><p>현장에서 바로 찾고 싶은 안전보건 법령·고시·KOSHA GUIDE를 공식 데이터에서 키워드로 검색합니다.</p><div class="law-examples" aria-label="예시 검색어"><button type="button" data-law-example="밀폐공간">밀폐공간</button><button type="button" data-law-example="적정공기">적정공기</button><button type="button" data-law-example="하역운반기계">하역운반기계</button><button type="button" data-law-example="접지">접지</button><button type="button" data-law-example="화재감시자">화재감시자</button></div><div class="law-search"><input id="searchInput" autocomplete="off" maxlength="80" placeholder="예: 밀폐공간, 적정공기, 하역운반기계"><button id="searchBtn" type="button">법령 검색</button></div><div id="dbStatus" class="law-status" hidden aria-live="polite"></div></section>
 <div id="lawSummary" class="law-summary" aria-live="polite"></div>
@@ -76,19 +76,20 @@ function cacheSet(q,data){
 }
 async function fetchLaw(q,limit=100){
   const cached=cacheGet(q);if(cached)return {...cached,_cached:true};
-  const urls=['/api/safety-law/search?q='+encodeURIComponent(q)+'&limit='+limit,'/api/laws/search?q='+encodeURIComponent(q)+'&limit='+limit];
-  let lastError=new Error('검색 연결이 지연되고 있습니다.');
-  for(const url of urls){
-    const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),16000);
-    try{const r=await fetch(url,{cache:'no-store',signal:ctrl.signal}),j=await r.json();clearTimeout(timer);if(r.ok&&j.ok){cacheSet(q,j);return j}lastError=new Error('검색 결과를 불러오지 못했습니다.');if(r.status!==404)break}catch(e){clearTimeout(timer);lastError=e?.name==='AbortError'?new Error('검색 시간이 길어지고 있습니다. 잠시 후 다시 시도해 주세요.'):new Error('검색 연결이 지연되고 있습니다. 잠시 후 다시 시도해 주세요.')}
-  }
-  throw lastError;
+  const url='/api/safety-law/search?q='+encodeURIComponent(q)+'&limit='+limit;
+  const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),7000);
+  try{
+    const r=await fetch(url,{cache:'no-store',signal:ctrl.signal}),j=await r.json();
+    if(r.ok&&j.ok){cacheSet(q,j);return j}
+    throw new Error(j.error||'검색 결과를 불러오지 못했습니다.');
+  }catch(e){throw e?.name==='AbortError'?new Error('공식자료 검색 응답이 늦어 대체검색으로 전환하지 못했습니다. 다시 시도해 주세요.'):e}
+  finally{clearTimeout(timer)}
 }
 async function doSearch(){
   const input=document.getElementById('searchInput'),q=input.value.trim();if(!q){input.focus();return}
   const btn=document.getElementById('searchBtn'),status=document.getElementById('dbStatus');
   btn.disabled=true;btn.textContent='검색 중';status.hidden=false;status.textContent='공식자료 검색 중 · '+q;status.className='law-status';document.getElementById('resultArea').classList.add('show');document.getElementById('fallback').hidden=true;
-  try{const data=await fetchLaw(q,100),total=renderResults(data,q);status.textContent=(data._cached?'빠른 검색 완료':'검색 완료')+' · '+total+'건 · '+(data.searchedAtLabel||'방금');status.className='law-status ok'}catch(e){document.getElementById('lawSummary').classList.remove('show');document.querySelectorAll('[data-law-group]').forEach(x=>x.hidden=true);const f=document.getElementById('fallback');f.hidden=false;f.innerHTML=`검색 연결이 원활하지 않습니다. 잠시 후 다시 시도해 주세요.<br><a target="_blank" rel="noopener" href="https://www.law.go.kr/lsSc.do?query=${encodeURIComponent(q)}">국가법령정보센터에서 직접 검색</a> · <a target="_blank" rel="noopener" href="https://smartsearch.kosha.or.kr/">안전보건 자료 직접 검색</a>`;status.textContent=String(e.message||'검색 연결이 지연되고 있습니다.');status.className='law-status bad'}finally{btn.disabled=false;btn.textContent='법령 검색'}
+  try{const data=await fetchLaw(q,100),total=renderResults(data,q);status.textContent=(data._cached?'빠른 검색 완료':data.fastFallback?'즉시 검색 완료':data.degraded?'공식 대체검색 완료':'검색 완료')+' · '+total+'건 · '+(data.searchedAtLabel||'방금')+(data.warning?' · '+data.warning:'');status.className='law-status ok'}catch(e){document.getElementById('lawSummary').classList.remove('show');document.querySelectorAll('[data-law-group]').forEach(x=>x.hidden=true);const f=document.getElementById('fallback');f.hidden=false;f.innerHTML=`검색 연결이 원활하지 않습니다. 잠시 후 다시 시도해 주세요.<br><a target="_blank" rel="noopener" href="https://www.law.go.kr/lsSc.do?query=${encodeURIComponent(q)}">국가법령정보센터에서 직접 검색</a> · <a target="_blank" rel="noopener" href="https://smartsearch.kosha.or.kr/">안전보건 자료 직접 검색</a>`;status.textContent=String(e.message||'검색 연결이 지연되고 있습니다.');status.className='law-status bad'}finally{btn.disabled=false;btn.textContent='법령 검색'}
 }
 document.querySelectorAll('[data-law-example]').forEach(b=>b.addEventListener('click',()=>{document.getElementById('searchInput').value=b.dataset.lawExample;doSearch()}));
 document.getElementById('searchBtn').addEventListener('click',doSearch);

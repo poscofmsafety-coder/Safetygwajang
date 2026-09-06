@@ -1,4 +1,4 @@
-/* 산업안전지도사 학습실 V28 - 문제 · 정답 · 원문 중심 */
+/* 산업안전지도사 학습실 V31 - 문제 · 정답 · 원문 중심 */
 (function(){
   'use strict';
 
@@ -138,7 +138,7 @@
   function paintSecond(){
     const view=$('si-second-list-view'), lib=$('si-source-library');
     if(secondMode==='sources'){
-      view.hidden=true; lib.hidden=false; paintSourceLibrary(); return;
+      view.hidden=true; lib.hidden=false; paintSourceLibrary('si-source-library','si-src2'); return;
     }
     view.hidden=false; lib.hidden=true;
     $('si-f2-year').hidden=secondMode!=='past'; $('si-f2-cat').hidden=secondMode!=='past';
@@ -203,16 +203,17 @@
     }).join('');
   }
 
-  function paintSourceLibrary(){
-    const p=$('si-source-library');
+  function paintSourceLibrary(hostId,prefix){
+    const p=$(hostId); if(!p)return;
+    const qId=prefix+'-query', btnId=prefix+'-btn', resultId=prefix+'-results';
     if(!p.dataset.ready){
       p.innerHTML=`
-        <div class="si-source-searchbar"><input id="si-src-live-query" class="si-input" placeholder="전체 원문 검색: 예) 제2차 금속산업, 프레스 덮개, 승강기 수시검사"><button id="si-src-live-btn" class="si-answer-btn" type="button">전체 원문 검색</button></div>
-        <div id="si-src-live-results" class="si-source-results" hidden></div>
+        <div class="si-source-searchbar"><input id="${qId}" class="si-input" placeholder="전체 원문 검색: 예) 밀폐공간, 위험성평가, 안전검사, 컨베이어"><button id="${btnId}" class="si-answer-btn" type="button">전체 원문 검색</button></div>
+        <div id="${resultId}" class="si-source-results" hidden></div>
         <div class="si-source-list">${data.sources.map(sourceLibraryLine).join('')}</div>`;
       p.dataset.ready='1';
-      $('si-src-live-btn').addEventListener('click',async()=>{const q=$('si-src-live-query').value.trim();if(q)await showSource($('si-src-live-results'),q,false)});
-      $('si-src-live-query').addEventListener('keydown',async e=>{if(e.key==='Enter'){e.preventDefault();const q=e.currentTarget.value.trim();if(q)await showSource($('si-src-live-results'),q,false)}});
+      $(btnId).addEventListener('click',async()=>{const q=$(qId).value.trim();if(q)await showSource($(resultId),q,false)});
+      $(qId).addEventListener('keydown',async e=>{if(e.key==='Enter'){e.preventDefault();const q=e.currentTarget.value.trim();if(q)await showSource($(resultId),q,false)}});
     }
   }
 
@@ -232,13 +233,15 @@
         <button data-third="new">신출 ${newCount}</button>
         <button data-third="random">랜덤 연습</button>
         <button data-third="live">최신 개정·뉴스</button>
+        <button data-third="sources">법·고시·지침·GUIDE</button>
       </div>
       <div id="si-third-list-view">
         <div class="si-toolbar"><input id="si-f3-search" class="si-input" placeholder="면접 질문 검색"><span id="si-f3-count" class="si-count"></span></div>
         <div id="si-f3-list" class="si-list"></div><button id="si-f3-more" class="si-more" type="button">더 보기</button>
       </div>
       <div id="si-third-random" hidden></div>
-      <div id="si-third-live" hidden></div>`;
+      <div id="si-third-live" hidden></div>
+      <div id="si-third-source-library" hidden></div>`;
     p.querySelectorAll('[data-third]').forEach(b=>b.addEventListener('click',()=>{
       thirdMode=b.dataset.third; thirdLimit=24;
       p.querySelectorAll('[data-third]').forEach(x=>x.classList.toggle('active',x===b)); paintThird();
@@ -249,10 +252,11 @@
   }
 
   function paintThird(){
-    const listView=$('si-third-list-view'), random=$('si-third-random'), live=$('si-third-live');
-    listView.hidden=true; random.hidden=true; live.hidden=true; stopTimer();
+    const listView=$('si-third-list-view'), random=$('si-third-random'), live=$('si-third-live'), sources=$('si-third-source-library');
+    listView.hidden=true; random.hidden=true; live.hidden=true; sources.hidden=true; stopTimer();
     if(thirdMode==='random'){random.hidden=false;paintRandom();return}
     if(thirdMode==='live'){live.hidden=false;paintLive();return}
+    if(thirdMode==='sources'){sources.hidden=false;paintSourceLibrary('si-third-source-library','si-src3');return}
     listView.hidden=false;
     const origin=thirdMode==='past'?'기출':'신출예상', q=$('si-f3-search').value.trim().toLowerCase();
     const arr=data.third.questions.filter(x=>x.origin===origin&&(!q||`${x.question} ${x.modelAnswer} ${x.reference||''}`.toLowerCase().includes(q)));
@@ -309,46 +313,40 @@
 
   async function loadLive(){
     const btn=$('si-live-refresh'); if(btn){btn.disabled=true;btn.textContent='확인 중…'}
-    $('si-live-law').innerHTML=loading('공식자료 확인 중…'); $('si-live-news').innerHTML=loading('뉴스 확인 중…'); $('si-live-expected').innerHTML=loading('질문 생성 중…');
+    $('si-live-law').innerHTML=loading('국가법령정보센터 공식자료 확인 중…');
+    $('si-live-news').innerHTML=loading('고용노동부·안전뉴스 확인 중…');
+    $('si-live-expected').innerHTML=loading('공식 개정사항 기반 질문 정리 중…');
     try{
-      const queries=(data.live.lawQueries||[]).slice(0,12);
-      const [lawSets,news]=await Promise.all([
-        Promise.all(queries.map(q=>fetchLaw(q,8).catch(()=>[]))),
-        fetch('/api/news?refresh=1&t='+Date.now(),{cache:'no-store'}).then(r=>r.json()).catch(()=>({items:[]}))
-      ]);
-      const laws=dedupe(lawSets.flat()).slice(0,20), newsItems=(news.items||[]).slice(0,10);
+      const ctrl=new AbortController(), timer=setTimeout(()=>ctrl.abort(),7500);
+      const r=await fetch('/api/safety-instructor/updates?refresh=1&t='+Date.now(),{cache:'no-store',signal:ctrl.signal});
+      clearTimeout(timer);const j=await r.json().catch(()=>({}));if(!r.ok||!j.ok)throw new Error(j.error||'업데이트 조회 실패');
+      const laws=(j.laws||[]).slice(0,20), newsItems=(j.news||[]).slice(0,10), expected=(j.questions||[]).slice(0,16);
       $('si-live-law').dataset.loaded='1';
-      $('si-live-law').innerHTML=laws.length?laws.map(x=>liveLawCard(x)).join(''):empty('검색 결과가 없습니다.');
-      $('si-live-news').innerHTML=newsItems.length?newsItems.map(liveNewsCard).join(''):empty('뉴스를 불러오지 못했습니다.');
-      const expected=[...laws.slice(0,10).map((x,i)=>({type:'law',title:x.title,query:x.title,question:makeLawQuestion(x,i)})),...newsItems.slice(0,4).map(x=>({type:'news',title:x.title,query:x.title,question:`${x.title} 사고와 관련해 산업안전지도사가 현장에서 확인할 예방조치를 말해보세요.`}))];
-      $('si-live-expected').innerHTML=expected.length?expected.map((x,i)=>liveExpectedCard(x,i)).join(''):empty('새 질문이 없습니다.');
+      $('si-live-law').innerHTML=laws.length?laws.map(liveLawCard).join(''):empty('최근 확인된 공식 개정자료가 없습니다.');
+      $('si-live-news').innerHTML=newsItems.length?newsItems.map(liveNewsCard).join(''):empty('최근 확인된 안전뉴스가 없습니다.');
+      $('si-live-expected').innerHTML=expected.length?expected.map((x,i)=>liveExpectedCard(x,i)).join(''):empty('최근 개정사항에서 추가된 질문이 없습니다.');
       bindLiveExpected(expected);
-      $('si-live-time').textContent='업데이트 '+new Date().toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'});
-    }catch(e){console.error(e);$('si-live-expected').innerHTML=empty('업데이트 연결이 지연되고 있습니다.');}
-    finally{if(btn){btn.disabled=false;btn.textContent='새로고침'}}
+      const when=j.checkedAt||new Date().toISOString();
+      $('si-live-time').textContent=(j.degraded?'공식자료 대체경로 확인 · ':'공식자료 확인 · ')+new Date(when).toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'});
+    }catch(e){
+      console.error(e);
+      $('si-live-law').innerHTML=empty('공식자료 연결이 지연되고 있습니다. 잠시 후 다시 확인해 주세요.');
+      $('si-live-news').innerHTML=empty('안전뉴스 연결이 지연되고 있습니다. 잠시 후 다시 확인해 주세요.');
+      $('si-live-expected').innerHTML=empty('공식 근거를 확인하지 못한 질문은 표시하지 않습니다.');
+    }finally{if(btn){btn.disabled=false;btn.textContent='새로고침'}}
   }
 
-  function makeLawQuestion(x,i){
-    const t=x.title||'해당 기준';
-    if(/안전검사/.test(t))return `${t}에서 최근 변경된 대상·검사기준을 설명해보세요.`;
-    if(/위험성평가/.test(t))return `${t}에서 평가 시기와 근로자 참여·공유 사항을 설명해보세요.`;
-    if(/교육/.test(t))return `${t}에서 현재 적용되는 교육대상·시간·내용의 핵심을 설명해보세요.`;
-    return `${t}에서 산업안전지도사가 외워야 할 정의·대상·절차·수치를 설명해보세요.`;
+  function liveLawCard(x){
+    const meta=[x.status,x.effectiveDate,x.basis].filter(Boolean).join(' · ');
+    return `<article class="si-live-row"><div><span>${esc(meta||x.source||'국가법령정보센터')}</span><b>${esc(x.title)}</b><p>${esc((x.summary||x.content||'').slice(0,420))}</p></div>${x.link?`<a href="${attr(x.link)}" target="_blank" rel="noopener">원문</a>`:''}</article>`;
   }
-
-  function liveLawCard(x){return `<article class="si-live-row"><div><span>${esc(x.categoryName||x.source||'공식자료')}</span><b>${esc(x.title)}</b><p>${highlightText((x.content||'').slice(0,260),x.title)}</p></div>${x.link?`<a href="${attr(x.link)}" target="_blank" rel="noopener">원문</a>`:''}</article>`}
-  function liveNewsCard(x){return `<article class="si-live-row"><div><span>${esc(x.source||'뉴스')}</span><b>${esc(x.title)}</b></div>${x.link?`<a href="${attr(x.link)}" target="_blank" rel="noopener">기사</a>`:''}</article>`}
-  function liveExpectedCard(x,i){return `<article class="si-live-q"><span class="si-badge ${x.type==='law'?'variant':'new'}">${x.type==='law'?'개정·원문':'뉴스'}</span><h4>${esc(x.question)}</h4><div class="si-actions"><button class="si-source-btn" data-live-source="${i}">근거</button><button class="si-answer-btn" data-live-ai="${i}">모범답변 생성</button></div><div class="si-source-results" data-live-box="${i}" hidden></div><div class="si-ai-answer" data-live-answer="${i}" hidden></div></article>`}
-
+  function liveNewsCard(x){return `<article class="si-live-row"><div><span>${esc([x.source,x.pubDate||x.date].filter(Boolean).join(' · ')||'공식 안전뉴스')}</span><b>${esc(x.title)}</b>${x.summary?`<p>${esc(x.summary)}</p>`:''}</div>${x.link?`<a href="${attr(x.link)}" target="_blank" rel="noopener">원문</a>`:''}</article>`}
+  function liveExpectedCard(x,i){
+    return `<article class="si-live-q"><span class="si-badge variant">공식 개정</span><h4>${esc(x.question)}</h4><div class="si-actions"><button class="si-answer-btn" data-live-answer-toggle="${i}">모범답변 접기</button>${x.link?`<a class="si-source-btn" href="${attr(x.link)}" target="_blank" rel="noopener">근거 원문</a>`:''}</div><div class="si-ai-answer" data-live-answer="${i}"><b>모범답변</b><p>${esc(x.answer||'')}</p>${x.basis?`<small>${esc(x.basis)}</small>`:''}</div></article>`;
+  }
   function bindLiveExpected(expected){
-    root.querySelectorAll('[data-live-source]').forEach(b=>b.addEventListener('click',async()=>{
-      const i=Number(b.dataset.liveSource),x=expected[i],box=root.querySelector(`[data-live-box="${i}"]`); await showSource(box,x.query,false);
-    }));
-    root.querySelectorAll('[data-live-ai]').forEach(b=>b.addEventListener('click',async()=>{
-      const i=Number(b.dataset.liveAi),x=expected[i],out=root.querySelector(`[data-live-answer="${i}"]`);out.hidden=false;out.textContent='작성 중…';b.disabled=true;
-      let evidence=[];try{evidence=await fetchLaw(x.query,6)}catch(e){}
-      const prompt=`산업안전지도사 3차 면접 질문의 모범답변을 작성하세요. 질문: ${x.question}\n공식 검색자료: ${JSON.stringify(evidence.slice(0,5).map(v=>({title:v.title,content:(v.content||'').slice(0,800)})))}\n60초 안에 말할 수 있게 결론부터 3~5개 항목으로 답하세요. 법령·고시의 정의, 대상, 절차, 수치가 확인되는 경우만 사용하고 확인되지 않은 숫자는 만들지 마세요.`;
-      try{out.textContent=await callAI(prompt)}catch(e){out.textContent='AI 연결이 지연되고 있습니다. 근거 원문을 확인해 주세요.'}finally{b.disabled=false}
+    root.querySelectorAll('[data-live-answer-toggle]').forEach(b=>b.addEventListener('click',()=>{
+      const i=Number(b.dataset.liveAnswerToggle),out=root.querySelector(`[data-live-answer="${i}"]`);if(!out)return;out.hidden=!out.hidden;b.textContent=out.hidden?'모범답변 펼치기':'모범답변 접기';
     }));
   }
 
@@ -386,8 +384,13 @@
     }catch(e){box.innerHTML=empty('공식자료 검색 연결이 지연되고 있습니다.')}
   }
   async function fetchLaw(q,limit=10){
-    const r=await fetch(`/api/safety-law/search?q=${encodeURIComponent(q||'')}&limit=${limit}`,{cache:'no-store'}); const j=await r.json();
-    if(!r.ok||!j.ok)throw new Error(j.error||'검색 실패'); return [...(j.law||[]),...(j.guide||[])];
+    const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),6500);
+    try{
+      const r=await fetch(`/api/safety-law/search?q=${encodeURIComponent(q||'')}&limit=${limit}`,{cache:'no-store',signal:ctrl.signal});
+      const j=await r.json().catch(()=>({}));if(!r.ok||!j.ok)throw new Error(j.error||'검색 실패');
+      return [...(j.law||[]),...(j.guide||[])];
+    }catch(e){throw e?.name==='AbortError'?new Error('공식자료 검색 시간이 초과되었습니다.'):e}
+    finally{clearTimeout(timer)}
   }
   function sourceRow(x,q,isPast){
     return `<div class="si-source-row"><div><span>${esc(x.categoryName||x.source||'공식자료')}${isPast?'<em>기출 근거</em>':''}</span><b>${highlightText(x.title||'검색 결과',q)}</b><p>${highlightText((x.content||'').slice(0,420),q)}</p></div>${x.link?`<a href="${attr(x.link)}" target="_blank" rel="noopener">원문</a>`:''}</div>`;
@@ -405,11 +408,6 @@
   function escapeRegExp(v){return String(v).replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}
   function dedupe(arr){const seen=new Set();return arr.filter(x=>{const k=`${x.category||''}|${x.title||''}`;if(!x.title||seen.has(k))return false;seen.add(k);return true})}
 
-  async function callAI(prompt){
-    const r=await fetch('/api/ai',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:[{role:'system',content:'산업안전지도사 3차 면접 튜터입니다. 공식 근거를 우선하고 짧고 정확한 모범답변만 작성합니다.'},{role:'user',content:prompt}],temperature:.1,max_tokens:1300})});
-    const j=await r.json(); return j?.choices?.[0]?.message?.content||j?.error||'응답을 불러오지 못했습니다.';
-  }
-
   function star(k){return `<button class="si-star ${mastered[k]?'on':''}" data-master="${attr(k)}" title="외움 체크">${mastered[k]?'★':'☆'}</button>`}
   function startTimer(sec){stopTimer();timerLeft=sec;updateTimer();timerId=setInterval(()=>{timerLeft--;updateTimer();if(timerLeft<=0)stopTimer()},1000)}
   function stopTimer(){if(timerId){clearInterval(timerId);timerId=null}}
@@ -418,7 +416,7 @@
   function empty(t){return `<div class="si-empty">${esc(t)}</div>`}
   function loading(t){return `<div class="si-loading">${esc(t)}</div>`}
   function $(id){return document.getElementById(id)}
-  function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+  function esc(v){return String(v??'').replace(/\*\*/g,'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
   function attr(v){return esc(v).replace(/`/g,'&#96;')}
   function loadJson(k,f){try{return JSON.parse(localStorage.getItem(k)||'null')||f}catch(e){return f}}
   function saveJson(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}

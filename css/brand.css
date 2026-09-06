@@ -444,3 +444,11 @@ body.community-modal-open{overflow:hidden}
 @media(max-width:360px){
   .audience-switch button,.audience-switch a{padding:6px 7px!important;font-size:.68rem!important}
 }
+
+/* V31 audience switch stability */
+.audience-switch{flex:0 0 auto!important;min-width:max-content;overflow:visible!important}.audience-switch button,.audience-switch a{box-sizing:border-box;white-space:nowrap!important;min-width:max-content;overflow:visible!important;line-height:1.15}.site-nav .nav-inner{flex-wrap:nowrap!important}body[data-audience="worker"] #settings-btn{display:none!important}
+
+/* V31 worker header: keep the active selector and worker menu on one row */
+body[data-audience="worker"] .site-nav nav{flex-wrap:nowrap!important;min-width:0!important}
+body[data-audience="worker"] .site-nav nav a{white-space:nowrap!important;padding:7px 9px!important;font-size:.80rem!important}
+body[data-audience="worker"] .site-nav .topbar-actions{margin-left:0!important}

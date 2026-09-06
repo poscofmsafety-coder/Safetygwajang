@@ -12,7 +12,7 @@ function publicDataKey(env){return publicDataSecret(env).value;}
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
-    if (url.pathname === '/api/health') return apiHealth(env);
+    if (url.pathname === '/api/health') return apiHealth(request, env);
     if (url.pathname === '/api/ai') return aiGateway(request, env);
     if (url.pathname === '/api/ai/inspection') return aiInspection(request, env);
     if (url.pathname === '/api/ai/kras') return aiKras(request, env);
@@ -23,6 +23,7 @@ export default {
     if (url.pathname.startsWith('/api/community/')) return communityGateway(request, env);
     if (url.pathname === '/api/laws/search') return lawsSearch(request, env);
     if (url.pathname === '/api/safety-law/search') return safetyLawSearch(request, env);
+    if (url.pathname === '/api/safety-instructor/updates') return safetyInstructorUpdates(request, env);
     if (url.pathname === '/api/public/safety-brief') return publicSafetyBrief(request, env);
     if (url.pathname === '/api/public/weather') return publicWeather(request, env);
     if (url.pathname === '/api/public/air') return publicAir(request, env);
@@ -197,16 +198,16 @@ function secureResponse(response){
 function json(data, status=200){
   return new Response(JSON.stringify(data,null,2),{status,headers:applySecurityHeaders({'content-type':'application/json; charset=utf-8','cache-control':'no-store'})});
 }
-function apiHealth(env){
-  // 공개 화면에서는 연동 방식/Secret 이름을 노출하지 않습니다.
-  return json({
-    ok:true,
-    configured:Boolean(koshaGeneralKey(env)),
-    msdsConfigured:Boolean(koshaMsdsKey(env)),
-    lawSearchConfigured:Boolean(koshaLawKey(env)),
-    aiConfigured:Boolean(env&&env.GROQ_API_KEY),
-    publicDataConfigured:Boolean(publicDataKey(env))
-  });
+async function apiHealth(request,env){
+  // 공개 화면에서는 Secret 이름/값을 노출하지 않습니다. probe=1일 때만 짧은 실제 연결 확인을 수행합니다.
+  const out={ok:true,checkedAt:new Date().toISOString(),configured:Boolean(koshaGeneralKey(env)),msdsConfigured:Boolean(koshaMsdsKey(env)),lawSearchConfigured:Boolean(koshaLawKey(env)),aiConfigured:Boolean(env&&env.GROQ_API_KEY),publicDataConfigured:Boolean(publicDataKey(env)),fallbackSearchReady:true};
+  const url=new URL(request.url);if(url.searchParams.get('probe')!=='1')return json(out);
+  const probes={law:'not-configured',msds:'not-configured',officialNews:'checking'};
+  const jobs=[];
+  if(koshaLawKey(env))jobs.push((async()=>{try{const u=new URL(KOSHA_SMART_SEARCH);u.searchParams.set('serviceKey',normalizeServiceKey(koshaLawKey(env)));u.searchParams.set('searchValue','밀폐공간');u.searchParams.set('pageNo','1');u.searchParams.set('numOfRows','1');u.searchParams.set('category','0');u.searchParams.set('dataType','JSON');const r=await fetchTimed(u,{headers:{accept:'application/json,text/plain,*/*'}},3200);probes.law=r.ok?'ok':'http-'+r.status}catch(e){probes.law='fallback-active'}})());
+  if(koshaMsdsKey(env))jobs.push((async()=>{try{const r=await fetchTimed(makeKoshaUrl('/getChemList',koshaMsdsKey(env),{searchWrd:'톨루엔',searchCnd:0,numOfRows:1,pageNo:1}),{headers:{accept:'application/xml,text/xml,*/*'}},3200);const text=await r.text();probes.msds=r.ok&&/<item[\s>]/i.test(text)?'ok':(r.ok?'empty':'http-'+r.status)}catch(e){probes.msds='error'}})());
+  jobs.push((async()=>{try{const n=await moelSafetyNews(3200);probes.officialNews=n.length?'ok':'fallback-active'}catch(e){probes.officialNews='fallback-active'}})());
+  await Promise.allSettled(jobs);return json({...out,probes});
 }
 function decodeXml(s){return String(s||'').replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g,'$1').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&amp;/g,'&').replace(/&quot;/g,'"').replace(/&#39;/g,"'");}
 function stripTags(s){return decodeXml(String(s||'').replace(/<[^>]+>/g,' ')).replace(/\s+/g,' ').trim();}
@@ -240,7 +241,7 @@ function makeKoshaUrl(path, key, params={}){
 }
 
 async function koshaFetch(path,key,params){
-  const r=await fetch(makeKoshaUrl(path,key,params),{headers:{accept:'application/xml,text/xml,*/*'}});
+  const r=await fetchTimed(makeKoshaUrl(path,key,params),{headers:{accept:'application/xml,text/xml,*/*'}},6500);
   const text=await r.text();
   if(!r.ok) throw new Error(`KOSHA API HTTP ${r.status}`);
   if(/SERVICE_KEY|APPLICATION_ERROR|ERROR/i.test(text)&&!/<item/i.test(text)){throw new Error(stripTags(text).slice(0,220)||'KOSHA API 오류');}
@@ -463,8 +464,26 @@ function newsJson(data,status=200){
     'cache-control':'public, max-age=20, s-maxage=600, stale-while-revalidate=86400'
   })});
 }
+const OFFICIAL_NEWS_FALLBACK=[
+  {title:'고용노동부 장관, 동일 반복 재해 근절을 위한 공공기관 점검 회의 개최',link:'https://www.moel.go.kr/news/enews/report/enewsView.do?news_seq=19865',pubDate:'2026-09-01T16:00:00+09:00',source:'고용노동부 보도자료',provider:'MOEL'},
+  {title:'제조업 “중대재해 고위험 기계·기구” 지게차, 크레인, 컨베이어 집중점검',link:'https://www.moel.go.kr/news/enews/report/enewsView.do?news_seq=19846',pubDate:'2026-08-30T09:00:00+09:00',source:'고용노동부 보도자료',provider:'MOEL'}
+];
+function absoluteMoelLink(href){try{return new URL(String(href||'').replace(/&amp;/g,'&'),'https://www.moel.go.kr/news/enews/report/enewsList.do').href}catch(e){return ''}}
+async function moelSafetyNews(timeoutMs=4500){
+  const r=await fetchTimed('https://www.moel.go.kr/news/enews/report/enewsList.do',{redirect:'follow',headers:{'user-agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/152.0 Safari/537.36','accept':'text/html,*/*;q=0.8','accept-language':'ko-KR,ko;q=0.9'}},timeoutMs);
+  const html=await r.text();if(!r.ok)throw new Error('고용노동부 보도자료 HTTP '+r.status);
+  const out=[];const seen=new Set();
+  for(const m of html.matchAll(/<a\b[^>]*href=["']([^"']*enewsView\.do\?[^"']*news_seq=\d+[^"']*)["'][^>]*>([\s\S]*?)<\/a>/gi)){
+    const title=cleanHtmlText(m[2]);if(!title||!newsValidTitle(title))continue;const link=absoluteMoelLink(m[1]);if(!link||seen.has(link))continue;seen.add(link);
+    const around=html.slice(Math.max(0,m.index-260),Math.min(html.length,m.index+m[0].length+420));const dm=cleanHtmlText(around).match(/20\d{2}[.\-/]\s?\d{1,2}[.\-/]\s?\d{1,2}/);const pubDate=dm?dm[0].replace(/[.]/g,'-').replace(/\s/g,''):'';
+    out.push({title,link,pubDate,source:'고용노동부 보도자료',provider:'MOEL'});if(out.length>=18)break;
+  }
+  return dedupeNews(out);
+}
+
 function newsProviders(env){
   return [
+    moelSafetyNews().then(x=>({name:'moel',items:x,errors:[]})).catch(e=>({name:'moel',items:[],errors:[e.message]})),
     googleSafetyNews().then(async x=>{let its=x.items||[],errs=x.errors||[];if(!its.length){try{its=await googleTopSafetyNews()}catch(e){errs.push(e.message)}}return{name:'google',items:its,errors:errs}}).catch(async e=>{try{return{name:'google',items:await googleTopSafetyNews(),errors:[e.message]}}catch(e2){return{name:'google',items:[],errors:[e.message,e2.message]}}}),
     kakaoKey(env)?kakaoSafetyNews(env).then(x=>({name:'kakao',items:x,errors:[]})).catch(e=>({name:'kakao',items:[],errors:[e.message]})):Promise.resolve({name:'kakao',items:[],errors:[]}),
     koshaGeneralKey(env)?koshaFatalityNews(env).then(x=>({name:'kosha-fatality',items:x,errors:[]})).catch(e=>({name:'kosha-fatality',items:[],errors:[e.message]})):Promise.resolve({name:'kosha-fatality',items:[],errors:[]}),
@@ -474,8 +493,9 @@ function newsProviders(env){
 }
 function newsPayload(results,env){
   const errors=[];let items=[];(results||[]).forEach(x=>{items.push(...(x?.items||[]));errors.push(...(x?.errors||[]))});
+  items.push(...OFFICIAL_NEWS_FALLBACK);
   items=dedupeNews(items).sort((a,b)=>Date.parse(b.pubDate||0)-Date.parse(a.pubDate||0)).slice(0,18);
-  return {ok:items.length>0,items,updatedAt:new Date().toISOString(),providers:{google:true,kakao:Boolean(kakaoKey(env)),kosha:Boolean(koshaGeneralKey(env)),naver:Boolean(env.NAVER_CLIENT_ID||env.NAVER_API_HUB_CLIENT_ID)},errors};
+  return {ok:items.length>0,items,updatedAt:new Date().toISOString(),providers:{moel:true,google:true,kakao:Boolean(kakaoKey(env)),kosha:Boolean(koshaGeneralKey(env)),naver:Boolean(env.NAVER_CLIENT_ID||env.NAVER_API_HUB_CLIENT_ID)},errors};
 }
 async function refreshNewsCache(cache,key,env){
   try{const results=await Promise.all(newsProviders(env));const payload=newsPayload(results,env);if(payload.items.length)await cache.put(key,newsJson(payload).clone());return payload}catch(e){return null}
@@ -484,6 +504,7 @@ async function quickSafetyNews(env){
   // 첫 방문은 검색 RSS와 종합 RSS를 동시에 요청해 먼저 성공한 쪽으로 즉시 화면을 채웁니다.
   const q='산업안전 OR 중대재해 OR 산업재해 OR 안전보건 when:14d';
   const candidates=[
+    moelSafetyNews(3600).then(items=>items.length?items:Promise.reject(new Error('고용노동부 결과 없음'))),
     googleNewsQuery(q,4200).then(items=>items.length?items:Promise.reject(new Error('검색 RSS 결과 없음'))),
     googleTopSafetyNews(4200).then(items=>items.length?items:Promise.reject(new Error('종합 RSS 결과 없음')))
   ];
@@ -867,6 +888,32 @@ async function safetyJobs(request,env,ctx){
   return safetyJobsJson(payload,200);
 }
 
+const SAFETY_INSTRUCTOR_LAW_UPDATES=[
+  {title:'산업안전보건법 · 2026년 위험성평가 제도 개선',status:'시행중',effectiveDate:'2026. 8. 1.',basis:'법률 제21374호 · 2026. 2. 19. 일부개정',summary:'위험성평가 과정에서 근로자대표의 참여를 보장하고, 위험성평가 관련 사항을 안전보건교육·설명회·게시·서면 또는 전자적 방법 등으로 근로자에게 알리도록 했습니다. 위험성평가 미실시에 대한 과태료 근거도 신설됐습니다.',link:'https://www.law.go.kr/LSW/lsRvsRsnListP.do?chrClsCd=010102&lsId=001766',keywords:'산업안전보건법 위험성평가 근로자대표 참여 공유 과태료 21374',question:'2026년 개정 산업안전보건법에서 위험성평가와 관련해 새로 강화된 사항을 말해보세요.',answer:'위험성평가 과정에 근로자대표의 참여를 보장하고, 위험성평가 관련 사항을 안전보건교육·설명회·사업장 게시·서면 또는 전자적 방법 등으로 근로자에게 알리도록 했습니다. 또한 위험성평가를 실시하지 않은 사업주에 대한 과태료 근거가 신설됐습니다.'},
+  {title:'산업안전보건법 · 명예산업안전감독관 제도 개정',status:'시행중',effectiveDate:'2026. 8. 1.',basis:'법률 제21374호 · 2026. 2. 19. 일부개정',summary:'근로자대표가 소속 사업장의 근로자 중에서 명예산업안전감독관을 추천하면 고용노동부장관이 추천된 사람을 위촉하도록 하는 규정이 신설됐습니다.',link:'https://www.law.go.kr/LSW/lsRvsRsnListP.do?chrClsCd=010102&lsId=001766',keywords:'명예산업안전감독관 근로자대표 추천 위촉 21374',question:'2026년 개정된 명예산업안전감독관 위촉 제도의 핵심을 말해보세요.',answer:'근로자대표가 소속 사업장의 근로자 중에서 명예산업안전감독관을 추천하는 경우 고용노동부장관은 추천된 사람을 명예산업안전감독관으로 위촉해야 합니다.'},
+  {title:'산업안전보건법 · 재해 원인조사 및 재해조사보고서 공개',status:'시행중',effectiveDate:'2026. 8. 1.',basis:'법률 제21374호 · 2026. 2. 19. 일부개정',summary:'일정한 화재·폭발·붕괴 등의 산업재해를 재해 원인조사 대상에 추가하고, 공단 또는 관계전문가의 별도 원인조사 근거와 재해조사보고서 작성·제출·공개 근거를 마련했습니다.',link:'https://www.law.go.kr/LSW/lsRvsRsnListP.do?chrClsCd=010102&lsId=001766',keywords:'재해 원인조사 화재 폭발 붕괴 재해조사보고서 공개 21374',question:'2026년 개정 산업안전보건법의 재해 원인조사 및 재해조사보고서 공개 강화 내용을 말해보세요.',answer:'일정한 요건의 화재·폭발·붕괴 등 산업재해를 재해 원인조사 대상에 추가했고, 한국산업안전보건공단 또는 관계전문가가 별도 원인조사를 할 수 있는 근거와 조사에 필요한 사업장 출입·면담·자료제출 등의 권한 근거를 마련했습니다. 별도 원인조사에 대해서는 재해조사보고서를 작성해 고용노동부장관에게 제출하고 공개하도록 하는 근거도 신설됐습니다.'},
+  {title:'산업안전보건법 시행령 제12조의2 · 안전보건 현황 공시대상',status:'시행중',effectiveDate:'2026. 8. 1.',basis:'대통령령 제36540호 · 2026. 7. 28. 일부개정',summary:'안전보건 현황 공시대상 사업주를 상시근로자 500명 이상으로 정하고, 건설업은 연간 건설공사 금액 1,200억원 이상인 사업주로 정했습니다.',link:'https://www.law.go.kr/LSW/lsLinkCommonInfo.do?chrClsCd=010202&lspttninfSeq=201035',keywords:'안전보건 현황 공시 500명 1200억원',question:'2026년 8월 1일부터 시행된 안전보건 현황 공시대상 사업주의 기준을 말해보세요.',answer:'안전보건 현황 공시대상은 상시근로자 수가 500명 이상인 사업주입니다. 건설업의 경우에는 연간 건설공사 금액이 1,200억원 이상인 사업주가 대상입니다.'},
+  {title:'산업안전보건법 시행규칙',status:'시행중',effectiveDate:'2026. 8. 1.',basis:'고용노동부령 제477호 · 2026. 7. 28. 일부개정',summary:'2026년 8월 1일부터 고용노동부령 제477호에 따른 현행 산업안전보건법 시행규칙이 시행 중입니다. 면접에서는 질문에 해당하는 세부 조문과 별표의 현재 시행 여부를 함께 확인하도록 구성했습니다.',link:'https://www.law.go.kr/lsLinkCommonInfo.do?chrClsCd=010202&lspttninfSeq=75301',keywords:'산업안전보건법 시행규칙 제477호 2026 8월 1일',question:'현재 산업안전보건법 시행규칙의 시행일과 개정번호를 말해보세요.',answer:'현재 산업안전보건법 시행규칙은 2026년 8월 1일 시행 중이며, 고용노동부령 제477호로 2026년 7월 28일 일부개정됐습니다.'},
+  {title:'재해원인조사 및 재해조사보고서 운영에 관한 규정',status:'시행중',effectiveDate:'2026. 6. 1.',basis:'고용노동부고시 제2026-38호 · 2026. 5. 29. 제정',summary:'산업안전보건법 제56조 및 제56조의2와 시행규칙 제71조 및 제71조의2에 따른 재해원인조사와 재해조사보고서의 작성·공개 등에 필요한 사항을 규정합니다.',link:'https://www.law.go.kr/LSW/admRulInfoP.do?admRulSeq=2100000280158',keywords:'재해원인조사 재해조사보고서 공개 2026-38',question:'2026년 제정된 재해원인조사 및 재해조사보고서 운영에 관한 규정의 목적을 말해보세요.',answer:'산업안전보건법 제56조 및 제56조의2와 시행규칙 제71조 및 제71조의2에 따른 재해원인조사와 재해조사보고서 작성·공개 등에 필요한 사항을 구체적으로 정하는 규정입니다.'},
+  {title:'화학물질의 분류·표시 및 물질안전보건자료에 관한 기준',status:'시행중',effectiveDate:'2026. 4. 24.',basis:'고용노동부고시 제2026-26호 · 2026. 4. 24. 일부개정',summary:'화학물질의 분류, 물질안전보건자료, 대체자료 기재 승인, 경고표시 및 근로자 교육 등에 필요한 사항을 정하는 현행 고시입니다.',link:'https://law.go.kr/LSW/admRulInfoP.do?admRulSeq=2100000278320',keywords:'MSDS 물질안전보건자료 화학물질 분류 표시 2026-26',question:'물질안전보건자료 관련 고용노동부고시가 규정하는 주요 범위를 말해보세요.',answer:'화학물질의 분류와 표시, 물질안전보건자료의 작성·제출과 관련 사항, 대체자료 기재 승인, 경고표시, 근로자 교육 등에 필요한 사항을 규정합니다.'},
+  {title:'안전검사 고시',status:'시행중',effectiveDate:'2026. 6. 26.',basis:'고용노동부고시 제2026-49호 · 2026. 6. 26. 일부개정',summary:'혼합기와 파쇄기 또는 분쇄기가 안전검사 대상으로 편입됨에 따라 해당 기계의 정의와 검사기준을 제27조부터 제33조까지, 별표 13 및 별표 14에 마련했습니다.',link:'https://www.law.go.kr/admRulInfoP.do?admRulSeq=2100000281066&chrClsCd=010202&urlMode=admRulRvsInfoR',keywords:'안전검사 고시 혼합기 파쇄기 분쇄기',question:'2026년 6월 26일부터 안전검사 대상으로 새로 편입된 기계와 관련 검사기준의 위치를 말해보세요.',answer:'새로 편입된 기계는 혼합기와 파쇄기 또는 분쇄기입니다. 안전검사 고시에서는 이들 기계의 정의와 검사기준을 제27조부터 제33조까지, 별표 13 및 별표 14에 두고 있습니다.'},
+  {title:'안전검사 절차에 관한 고시',status:'시행중',effectiveDate:'2026. 6. 26.',basis:'고용노동부고시 제2026-50호 · 2026. 6. 26. 일부개정',summary:'안전검사 및 자율검사프로그램에 따른 안전검사의 위임사항과 시행에 필요한 절차를 규정하는 고시가 개정 시행 중입니다.',link:'https://www.law.go.kr/admRulLsInfoP.do?admRulSeq=2100000281068',keywords:'안전검사 절차 자율검사프로그램',question:'안전검사 절차에 관한 고시는 어떤 법적 사항을 구체화하는 고시인지 설명해보세요.',answer:'산업안전보건법 제93조부터 제98조까지, 시행령 제78조 및 시행규칙 제124조부터 제132조까지의 안전검사와 자율검사프로그램에 따른 안전검사에 관하여 위임된 사항과 시행에 필요한 사항을 규정합니다.'},
+  {title:'산업안전보건법 · 외국인근로자 기초안전보건교육 등',status:'시행예정',effectiveDate:'2027. 1. 8.',basis:'법률 제21853호 · 2026. 7. 7. 일부개정',summary:'외국인근로자를 채용할 때 고용노동부령으로 정하는 외국인근로자 기초안전보건교육을 이수하도록 하는 의무와, 미등록자의 안전보건교육기관 사칭 금지 등이 2027년 1월 8일부터 시행될 예정입니다.',link:'https://www.law.go.kr/LSW/lsRvsRsnListP.do?chrClsCd=010102&lsId=001766',keywords:'외국인근로자 기초안전보건교육 2027 시행예정 21853 교육기관 사칭',question:'2027년 1월 8일 시행예정인 산업안전보건법 개정 중 외국인근로자 교육과 관련된 핵심 사항을 말해보세요.',answer:'사업주는 외국인근로자를 채용할 때 그 근로자가 고용노동부령으로 정하는 외국인근로자 기초안전보건교육을 이수하도록 해야 합니다. 이 의무는 2027년 1월 8일부터 시행될 예정이므로 현재 시행 중인 규정과 구분해서 답해야 합니다.'}
+];
+function cleanUpdateText(v){return String(v||'').replace(/\*\*/g,'').replace(/\s+/g,' ').trim()}
+function safetyInstructorQuestions(laws){return (laws||[]).filter(x=>x.question&&x.answer).map(x=>({question:cleanUpdateText(x.question),answer:cleanUpdateText(x.answer),basis:cleanUpdateText(x.basis),link:x.link,title:x.title,status:x.status}))}
+async function safetyInstructorUpdates(request,env){
+  const url=new URL(request.url),refresh=url.searchParams.get('refresh')==='1';let liveLaw=[];let officialNews=[];let errors=[];
+  const lawQueries=['산업안전보건법 2026 개정','안전검사 고시 2026'];
+  const lawTasks=lawQueries.map(q=>lawGoKrSearch(q,8,refresh?4200:3200).catch(e=>{errors.push(e.message);return[]}));
+  const newsTask=moelSafetyNews(refresh?4200:3200).catch(e=>{errors.push(e.message);return[]});
+  const settled=await Promise.all([...lawTasks,newsTask]);officialNews=settled.pop()||[];liveLaw=dedupeLawItems(settled.flat()).slice(0,10);
+  const curated=SAFETY_INSTRUCTOR_LAW_UPDATES.map(x=>({...x,source:'국가법령정보센터'}));
+  const extra=liveLaw.filter(x=>!curated.some(c=>normalizeMatchText(c.title)===normalizeMatchText(x.title))).map(x=>({title:cleanUpdateText(x.title),status:'공식검색',effectiveDate:'',basis:'국가법령정보센터 검색 결과',summary:cleanUpdateText(x.content),link:x.link,source:'국가법령정보센터'}));
+  const news=dedupeNews([...(officialNews||[]),...OFFICIAL_NEWS_FALLBACK]).slice(0,10).map(x=>({...x,title:cleanUpdateText(x.title),summary:cleanUpdateText(x.summary||'')}));
+  return json({ok:true,checkedAt:new Date().toISOString(),degraded:errors.length>0,laws:[...curated,...extra].slice(0,20),news,questions:safetyInstructorQuestions(curated),sources:{law:'국가법령정보센터',news:'고용노동부 보도자료'},errors});
+}
+
 // KOSHA Smart Search proxy: 인증키를 브라우저에 노출하지 않습니다.
 const KOSHA_SMART_SEARCH='https://apis.data.go.kr/B552468/srch/smartSearch';
 const LAW_CATEGORY={
@@ -912,35 +959,54 @@ function normalizeLawItem(x,query=''){
   item.matchType=lawMatchType(item,query);
   return item;
 }
+const LAW_FALLBACK_INDEX=[
+  {category:'4',categoryName:'산업안전보건기준에 관한 규칙',title:'제618조(정의) · 밀폐공간',content:'밀폐공간은 산소결핍, 유해가스로 인한 질식·화재·폭발 등의 위험이 있는 장소로서 별표 18에서 정한 장소를 말한다.',link:'https://www.law.go.kr/LSW/lsLinkCommonInfo.do?chrClsCd=010202&lsJoLnkSeq=1028062331',source:'국가법령정보센터',keywords:'밀폐공간 질식 산소결핍 유해가스 별표18'},
+  {category:'1',categoryName:'산업안전보건법',title:'제36조(위험성평가의 실시)',content:'유해·위험요인을 찾아 위험성의 크기가 허용 가능한 수준인지 결정하고 위험성을 줄이기 위한 개선대책을 수립·이행한다. 근로자 참여와 결과 공유 사항도 규정한다.',link:'https://law.go.kr/LSW/lsLinkCommonInfo.do?chrClsCd=010202&lsJoLnkSeq=1033350715',source:'국가법령정보센터',keywords:'위험성평가 근로자 참여 개선대책 TBM 위험요인'},
+  {category:'1',categoryName:'산업안전보건법',title:'제93조(안전검사)',content:'안전검사대상기계등을 사용하는 사업주는 고시된 검사기준에 맞는지 안전검사를 받아야 한다.',link:'https://law.go.kr/lsLinkCommonInfo.do?chrClsCd=010202&lsJoLnkSeq=1024074623',source:'국가법령정보센터',keywords:'안전검사 안전검사대상기계 검사주기'},
+  {category:'5',categoryName:'고시·훈령·예규',title:'안전검사 고시 [시행 2026. 6. 26.] [고용노동부고시 제2026-49호]',content:'혼합기, 파쇄기 또는 분쇄기가 안전검사 대상으로 편입되어 정의와 검사기준이 마련되었다. 관련 기준은 제27조부터 제33조까지, 별표 13 및 별표 14에 규정되어 있다.',link:'https://www.law.go.kr/admRulInfoP.do?admRulSeq=2100000281066&chrClsCd=010202&urlMode=admRulRvsInfoR',source:'국가법령정보센터',keywords:'안전검사 고시 혼합기 파쇄기 분쇄기 별표13 별표14'},
+  {category:'5',categoryName:'고시·훈령·예규',title:'안전검사 절차에 관한 고시 [시행 2026. 6. 26.] [고용노동부고시 제2026-50호]',content:'산업안전보건법 제93조부터 제98조까지의 안전검사 및 자율검사프로그램에 따른 안전검사 절차와 위임사항을 규정한다.',link:'https://www.law.go.kr/admRulLsInfoP.do?admRulSeq=2100000281068',source:'국가법령정보센터',keywords:'안전검사 절차 고시 자율검사프로그램'},
+  {category:'4',categoryName:'산업안전보건기준에 관한 규칙',title:'제191조~제195조 · 컨베이어 안전',content:'컨베이어의 이탈·역주행 방지, 비상정지장치, 낙하물 위험 방지, 트롤리 컨베이어 및 통행 제한 등을 규정한다.',link:'https://law.go.kr/lsLinkCommonInfo.do?chrClsCd=010202&lsJoLnkSeq=1024005793',source:'국가법령정보센터',keywords:'컨베이어 비상정지장치 이탈 역주행 낙하물'},
+  {category:'4',categoryName:'산업안전보건기준에 관한 규칙',title:'제241조의2(화재감시자)',content:'일정한 용접·용단 작업 장소에서는 화재감시자를 지정하여 배치하도록 규정한다.',link:'https://www.law.go.kr/LSW/lsLinkCommonInfo.do?chrClsCd=010202&lsJoLnkSeq=1030389561',source:'국가법령정보센터',keywords:'화재감시자 용접 용단 11미터 가연성물질'},
+  {category:'3',categoryName:'산업안전보건법 시행규칙',title:'산업재해 발생 보고 · 산업재해조사표',content:'사업주는 산업재해로 사망자가 발생하거나 3일 이상의 휴업이 필요한 부상·질병자가 발생한 경우 산업재해조사표를 작성하여 관할 지방고용노동관서의 장에게 제출해야 한다.',link:'https://www.law.go.kr/lsSc.do?query='+encodeURIComponent('산업안전보건법 시행규칙 산업재해조사표 3일 이상의 휴업'),source:'국가법령정보센터',keywords:'산업재해조사표 산업재해 발생 보고 3일 휴업 재해조사'},
+  {category:'3',categoryName:'산업안전보건법 시행규칙',title:'안전관리자 선임·해임 관련 보고',content:'안전관리자 선임·해임 등 보고에 관한 시행규칙 조항과 서식을 확인할 수 있다.',link:'https://www.law.go.kr/lsSc.do?query='+encodeURIComponent('산업안전보건법 시행규칙 안전관리자 선임 해임 보고'),source:'국가법령정보센터',keywords:'안전관리자 선임 해임 보고 안전관리 업무'},
+  {category:'4',categoryName:'산업안전보건기준에 관한 규칙',title:'밀폐공간 작업 프로그램·사전확인 사항',content:'밀폐공간 작업 시 위치와 유해·위험요인 관리, 사전 확인, 산소·유해가스 농도 측정, 보호구, 비상연락체계 등의 확인사항을 규정한다.',link:'https://www.law.go.kr/lsSc.do?query='+encodeURIComponent('산업안전보건기준에 관한 규칙 밀폐공간 작업 프로그램 사전 확인'),source:'국가법령정보센터',keywords:'밀폐공간 작업 프로그램 산소 유해가스 농도 측정 감시인 보호구'}
+];
+function lawTokens(v){return normalizeMatchText(v).replace(/[()\[\]{}·ㆍ,./:;!?~\-]/g,' ').split(/\s+/).filter(x=>x.length>=2)}
+function builtinLawFallback(query,limit=30){
+  const q=normalizeMatchText(query),terms=lawTokens(query);if(!q)return[];
+  return LAW_FALLBACK_INDEX.map(x=>({...x,matchType:'fallback'})).filter(x=>{const hay=normalizeMatchText(`${x.title} ${x.content} ${x.keywords||''}`);return hay.includes(q)||(terms.length&&terms.every(t=>hay.includes(t)))||(terms.length&&terms.some(t=>hay.includes(t)))}).slice(0,limit);
+}
+async function lawGoKrSearch(query,limit=20,timeoutMs=4200){
+  const url='https://www.law.go.kr/lsSc.do?query='+encodeURIComponent(query);const r=await fetchTimed(url,{redirect:'follow',headers:{'user-agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/152.0 Safari/537.36','accept':'text/html,*/*;q=0.8','accept-language':'ko-KR,ko;q=0.9'}},timeoutMs);const html=await r.text();if(!r.ok)throw new Error('국가법령정보센터 HTTP '+r.status);
+  const out=[],seen=new Set();for(const m of html.matchAll(/<a\b[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi)){
+    const title=cleanHtmlText(m[2]);if(!title||title.length<3||title.length>180)continue;if(!lawTokens(query).some(t=>normalizeMatchText(title).includes(t)))continue;
+    let link='';try{link=new URL(decodeXml(m[1]).replace(/&amp;/g,'&'),'https://www.law.go.kr/').href}catch(e){}if(!link||!/^https:\/\/www\.law\.go\.kr\//.test(link)||seen.has(link))continue;seen.add(link);
+    const cat=/(고시|훈령|예규|지침)/.test(title)?'5':/(시행규칙)/.test(title)?'3':/(시행령)/.test(title)?'2':/(기준에 관한 규칙)/.test(title)?'4':'1';out.push({category:cat,categoryName:LAW_CATEGORY[cat]||'법령',title,content:'국가법령정보센터 검색 결과',link,source:'국가법령정보센터',matchType:'official-search'});if(out.length>=limit)break;
+  }return out;
+}
+async function koshaLawSearch(query,limit,key){
+  if(!key)return[];const u=new URL(KOSHA_SMART_SEARCH);u.searchParams.set('serviceKey',normalizeServiceKey(key));u.searchParams.set('searchValue',query);u.searchParams.set('pageNo','1');u.searchParams.set('numOfRows',String(limit));u.searchParams.set('category','0');u.searchParams.set('dataType','JSON');
+  const r=await fetchTimed(u,{headers:{Accept:'application/json,text/plain,*/*'},cf:{cacheTtl:300,cacheEverything:true}},4600);const text=await r.text();if(!r.ok)throw new Error(`KOSHA Smart Search HTTP ${r.status}`);if(/SERVICE_ACCESS_DENIED|PERMISSION_DENIED|SERVICE_KEY_IS_NOT_REGISTERED|SERVICE_KEY_IS_NULL|APPLICATION_ERROR|LIMITED_NUMBER_OF_SERVICE_REQUESTS_EXCEEDS/i.test(text))throw new Error('KOSHA Smart Search 인증 또는 이용승인 확인 필요');let data;try{data=JSON.parse(text)}catch(e){throw new Error('KOSHA Smart Search JSON 응답 오류')}const resultCode=data?.response?.header?.resultCode||data?.header?.resultCode;if(resultCode&&!['00','0'].includes(String(resultCode)))throw new Error(data?.response?.header?.resultMsg||`KOSHA resultCode ${resultCode}`);return flattenSearchItems(data).map(x=>normalizeLawItem(x,query)).filter(x=>x.title||x.content).slice(0,limit);
+}
+function dedupeLawItems(items){const seen=new Set(),out=[];for(const x of items||[]){const k=normalizeMatchText(`${x.title}|${x.link||''}`);if(!x?.title||seen.has(k))continue;seen.add(k);out.push(x)}return out}
+
 async function lawsSearch(request,env){
-  const key=koshaLawKey(env);
-  if(!key)return json({ok:false,error:'검색 기능을 준비 중입니다.',items:[]},503);
-  const u0=new URL(request.url),q=(u0.searchParams.get('q')||u0.searchParams.get('searchValue')||'').trim();const limit=Math.max(1,Math.min(100,Number(u0.searchParams.get('limit'))||100));
+  const u0=new URL(request.url),q=(u0.searchParams.get('q')||u0.searchParams.get('searchValue')||'').trim(),limit=Math.max(1,Math.min(100,Number(u0.searchParams.get('limit'))||100));
   if(!q)return json({ok:false,error:'검색어를 입력하세요.',items:[]},400);
-  const u=new URL(KOSHA_SMART_SEARCH);u.searchParams.set('serviceKey',normalizeServiceKey(key));u.searchParams.set('searchValue',q);u.searchParams.set('pageNo','1');u.searchParams.set('numOfRows',String(limit));u.searchParams.set('category','0');u.searchParams.set('dataType','JSON');
-  try{
-    const r=await fetch(u,{headers:{Accept:'application/json,text/plain,*/*'},cf:{cacheTtl:300,cacheEverything:true}});const text=await r.text();if(!r.ok)throw new Error(`KOSHA Smart Search HTTP ${r.status}`);
-    if(/SERVICE_ACCESS_DENIED|PERMISSION_DENIED|SERVICE_KEY_IS_NOT_REGISTERED|SERVICE_KEY_IS_NULL|APPLICATION_ERROR|LIMITED_NUMBER_OF_SERVICE_REQUESTS_EXCEEDS/i.test(text))throw new Error(cleanHtmlText(text).slice(0,220)+' · 데이터 서비스 안전보건법령 스마트검색(15123696) 활용신청과 Cloudflare Secret을 확인하세요.');let data;try{data=JSON.parse(text)}catch(e){throw new Error('KOSHA Smart Search JSON 응답을 해석하지 못했습니다: '+cleanHtmlText(text).slice(0,140))}
-    const resultCode=data?.response?.header?.resultCode||data?.header?.resultCode; if(resultCode&&!['00','0'].includes(String(resultCode)))throw new Error((data?.response?.header?.resultMsg||data?.header?.resultMsg||`KOSHA resultCode ${resultCode}`)+' · 안전보건법령 스마트검색(15123696) 활용신청 상태를 확인하세요.');
-    const items=flattenSearchItems(data).map(x=>normalizeLawItem(x,q)).filter(x=>x.title||x.content);
-    return json({ok:true,query:q,total:items.length,items,updatedAt:new Date().toISOString(),searchedAtLabel:new Date().toLocaleTimeString('ko-KR',{timeZone:'Asia/Seoul',hour:'2-digit',minute:'2-digit'})});
-  }catch(e){console.error('law-search',e);return json({ok:false,error:'검색 연결이 지연되고 있습니다. 잠시 후 다시 시도해 주세요.',items:[]},502)}
+  const built=builtinLawFallback(q,limit),key=koshaLawKey(env);let errors=[];
+  // 자주 찾는 핵심 법령은 네트워크를 기다리지 않고 즉시 공식 원문 인덱스로 응답합니다.
+  if(built.length){return json({ok:true,query:q,total:built.length,items:built.slice(0,limit),updatedAt:new Date().toISOString(),searchedAtLabel:new Date().toLocaleTimeString('ko-KR',{timeZone:'Asia/Seoul',hour:'2-digit',minute:'2-digit'}),degraded:false,fastFallback:true});}
+  const tasks=[lawGoKrSearch(q,Math.min(limit,30),4200).catch(e=>{errors.push('국가법령정보센터: '+e.message);return[]})];
+  if(key)tasks.push(koshaLawSearch(q,limit,key).catch(e=>{errors.push('KOSHA: '+e.message);return[]}));
+  const results=await Promise.all(tasks),items=dedupeLawItems(results.flat()).slice(0,limit);
+  if(items.length)return json({ok:true,query:q,total:items.length,items,updatedAt:new Date().toISOString(),searchedAtLabel:new Date().toLocaleTimeString('ko-KR',{timeZone:'Asia/Seoul',hour:'2-digit',minute:'2-digit'}),degraded:errors.length>0,warning:errors.length?'일부 외부 검색이 지연되어 응답 가능한 공식자료만 표시했습니다.':'',errors});
+  return json({ok:false,error:'공식자료 검색 결과를 확인하지 못했습니다. 국가법령정보센터 원문검색을 이용해 주세요.',items:[],fallbackUrl:'https://www.law.go.kr/lsSc.do?query='+encodeURIComponent(q),errors},502);
 }
 
 async function safetyLawSearch(request,env){
-  const legacy=await lawsSearch(request,env);
-  let data;
-  try{data=await legacy.clone().json()}catch(e){return legacy}
-  if(!legacy.ok||!data?.ok)return legacy;
-  const items=Array.isArray(data.items)?data.items:[];
-  const law=items.filter(x=>!['6','7'].includes(String(x.category)));
-  const guide=items.filter(x=>String(x.category)==='7');
-  const media=items.filter(x=>String(x.category)==='6');
-  return json({
-    ok:true,query:data.query,total:items.length,law,guide,media,
-    searchedAt:data.updatedAt,
-    searchedAtLabel:data.searchedAtLabel||new Date().toLocaleTimeString('ko-KR',{timeZone:'Asia/Seoul',hour:'2-digit',minute:'2-digit'})
-  });
+  const legacy=await lawsSearch(request,env);let data;try{data=await legacy.clone().json()}catch(e){return legacy}if(!legacy.ok||!data?.ok)return legacy;
+  const items=Array.isArray(data.items)?data.items:[],law=items.filter(x=>!['6','7'].includes(String(x.category))),guide=items.filter(x=>String(x.category)==='7'),media=items.filter(x=>String(x.category)==='6');
+  return json({ok:true,query:data.query,total:items.length,law,guide,media,searchedAt:data.updatedAt,searchedAtLabel:data.searchedAtLabel||new Date().toLocaleTimeString('ko-KR',{timeZone:'Asia/Seoul',hour:'2-digit',minute:'2-digit'}),degraded:Boolean(data.degraded),fastFallback:Boolean(data.fastFallback),warning:data.warning||''});
 }
 
 
