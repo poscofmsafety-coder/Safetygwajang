@@ -6,6 +6,24 @@
   "assets": {
     "directory": "./",
     "binding": "ASSETS",
-    "run_worker_first": ["/api/*"]
-  }
+    "run_worker_first": [
+      "/api/*"
+    ]
+  },
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "COMMUNITY_BOARD",
+        "class_name": "CommunityBoard"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v30-community-board",
+      "new_sqlite_classes": [
+        "CommunityBoard"
+      ]
+    }
+  ]
 }

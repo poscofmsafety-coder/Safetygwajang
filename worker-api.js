@@ -1,3 +1,4 @@
+import { DurableObject } from 'cloudflare:workers';
 const KOSHA_BASE = 'https://apis.data.go.kr/B552468/msdschem';
 function firstSecret(env,names){for(const n of names){if(env&&env[n])return {name:n,value:env[n]};}return {name:'',value:''};}
 function koshaMsdsSecret(env){return firstSecret(env,['KOSHA_MSDS_API_KEY','KOSHA_API_KEY','PUBLIC_DATA_API_KEY','DATA_GO_KR_API_KEY','DATA_GO_KR_SERVICE_KEY','SERVICE_KEY','OPENAPI_SERVICE_KEY']);}
@@ -19,6 +20,7 @@ export default {
     if (url.pathname === '/api/msds/search') return msdsSearch(request, env);
     if (url.pathname === '/api/news') return safetyNews(request, env, ctx);
     if (url.pathname === '/api/jobs') return safetyJobs(request, env, ctx);
+    if (url.pathname.startsWith('/api/community/')) return communityGateway(request, env);
     if (url.pathname === '/api/laws/search') return lawsSearch(request, env);
     if (url.pathname === '/api/safety-law/search') return safetyLawSearch(request, env);
     if (url.pathname === '/api/public/safety-brief') return publicSafetyBrief(request, env);
@@ -30,6 +32,153 @@ export default {
     return secureResponse(await env.ASSETS.fetch(request));
   }
 };
+
+
+const COMMUNITY_CATEGORIES = ['고민상담','업무문의','질의회시','현장실무','취업·이직','기타'];
+function communityCleanText(value, max=3000){
+  return String(value||'').replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g,'').replace(/\r\n?/g,'\n').trim().slice(0,max);
+}
+async function communityDigest(value){
+  const bytes=new TextEncoder().encode(String(value||''));
+  const hash=await crypto.subtle.digest('SHA-256',bytes);
+  return [...new Uint8Array(hash)].map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+function communityAlias(postId, authorHash, ownerHash){
+  if(authorHash===ownerHash)return '작성자';
+  let n=0;const src=String(postId||'')+String(authorHash||'');
+  for(let i=0;i<src.length;i++)n=(n*31+src.charCodeAt(i))>>>0;
+  return `익명${(n%97)+1}`;
+}
+async function communityGateway(request,env){
+  if(!env?.COMMUNITY_BOARD)return json({ok:false,error:'게시판 저장소가 연결되지 않았습니다.'},503);
+  const stub=env.COMMUNITY_BOARD.getByName('anjage-main');
+  return stub.fetch(request);
+}
+
+export class CommunityBoard extends DurableObject {
+  constructor(ctx,env){
+    super(ctx,env);this.env=env;this.sql=ctx.storage.sql;
+    this.sql.exec(`
+      CREATE TABLE IF NOT EXISTS posts(
+        id TEXT PRIMARY KEY,
+        category TEXT NOT NULL,
+        title TEXT NOT NULL,
+        content TEXT NOT NULL,
+        author_hash TEXT NOT NULL,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        comment_count INTEGER NOT NULL DEFAULT 0,
+        status TEXT NOT NULL DEFAULT 'active'
+      );
+      CREATE INDEX IF NOT EXISTS idx_posts_created ON posts(status, created_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_posts_category ON posts(status, category, created_at DESC);
+      CREATE TABLE IF NOT EXISTS comments(
+        id TEXT PRIMARY KEY,
+        post_id TEXT NOT NULL,
+        content TEXT NOT NULL,
+        author_hash TEXT NOT NULL,
+        created_at INTEGER NOT NULL,
+        status TEXT NOT NULL DEFAULT 'active'
+      );
+      CREATE INDEX IF NOT EXISTS idx_comments_post ON comments(post_id, status, created_at ASC);
+      CREATE TABLE IF NOT EXISTS rate_limits(
+        id TEXT PRIMARY KEY,
+        last_at INTEGER NOT NULL
+      );
+    `);
+  }
+  async ownerHash(request,required=false){
+    const token=String(request.headers.get('x-community-token')||'').trim().slice(0,180);
+    if(required&&token.length<8)throw new Error('DEVICE_TOKEN_REQUIRED');
+    return token?communityDigest(token):'';
+  }
+  async rateLimit(request,kind,waitMs){
+    const token=String(request.headers.get('x-community-token')||'').trim().slice(0,180);
+    const ip=String(request.headers.get('cf-connecting-ip')||'local').slice(0,80);
+    const key=await communityDigest(`${kind}|${ip}|${token}`);
+    const now=Date.now();const row=this.sql.exec('SELECT last_at FROM rate_limits WHERE id=?',key).toArray()[0];
+    if(row&&now-Number(row.last_at)<waitMs)return Math.ceil((waitMs-(now-Number(row.last_at)))/1000);
+    this.sql.exec('INSERT INTO rate_limits(id,last_at) VALUES(?,?) ON CONFLICT(id) DO UPDATE SET last_at=excluded.last_at',key,now);
+    if(Math.random()<0.02)this.sql.exec('DELETE FROM rate_limits WHERE last_at < ?',now-86400000);
+    return 0;
+  }
+  postPublic(row,ownerHash=''){
+    return {id:row.id,category:row.category,title:row.title,content:row.content,createdAt:Number(row.created_at),updatedAt:Number(row.updated_at),commentCount:Number(row.comment_count)||0,authorLabel:'익명',owned:Boolean(ownerHash&&row.author_hash===ownerHash)};
+  }
+  async fetch(request){
+    try{
+      const url=new URL(request.url),path=url.pathname,method=request.method.toUpperCase();
+      const ownerHash=await this.ownerHash(request,false);
+      if(method==='GET'&&path==='/api/community/posts'){
+        const category=communityCleanText(url.searchParams.get('category'),30);
+        const sort=url.searchParams.get('sort')==='popular'?'popular':'latest';
+        const limit=Math.max(1,Math.min(30,Number(url.searchParams.get('limit'))||12));
+        const offset=Math.max(0,Math.min(1000,Number(url.searchParams.get('offset'))||0));
+        const where=category&&COMMUNITY_CATEGORIES.includes(category)?'status=\'active\' AND category=?':'status=\'active\'';
+        const args=category&&COMMUNITY_CATEGORIES.includes(category)?[category]:[];
+        const order=sort==='popular'?'comment_count DESC, created_at DESC':'created_at DESC';
+        const rows=this.sql.exec(`SELECT * FROM posts WHERE ${where} ORDER BY ${order} LIMIT ? OFFSET ?`,...args,limit+1,offset).toArray();
+        const totalRow=this.sql.exec(`SELECT COUNT(*) AS total FROM posts WHERE ${where}`,...args).toArray()[0]||{total:0};
+        const hasMore=rows.length>limit;if(hasMore)rows.pop();
+        return json({ok:true,items:rows.map(r=>this.postPublic(r,ownerHash)),hasMore,total:Number(totalRow.total)||0,mode:'shared'});
+      }
+      if(method==='POST'&&path==='/api/community/posts'){
+        const wait=await this.rateLimit(request,'post',15000);if(wait)return json({ok:false,error:`글쓰기는 ${wait}초 후 다시 시도해주세요.`},429);
+        const owner=await this.ownerHash(request,true);const body=await request.json().catch(()=>({}));
+        const category=communityCleanText(body.category,30),title=communityCleanText(body.title,80),content=communityCleanText(body.content,3000);
+        if(!COMMUNITY_CATEGORIES.includes(category))return json({ok:false,error:'게시글 분류를 확인해주세요.'},400);
+        if(title.length<3)return json({ok:false,error:'제목은 3자 이상 작성해주세요.'},400);
+        if(content.length<5)return json({ok:false,error:'내용은 5자 이상 작성해주세요.'},400);
+        const id=crypto.randomUUID(),now=Date.now();
+        this.sql.exec('INSERT INTO posts(id,category,title,content,author_hash,created_at,updated_at,comment_count,status) VALUES(?,?,?,?,?,?,?,?,\'active\')',id,category,title,content,owner,now,now,0);
+        const row=this.sql.exec('SELECT * FROM posts WHERE id=?',id).toArray()[0];
+        return json({ok:true,post:this.postPublic(row,owner)},201);
+      }
+      let m=path.match(/^\/api\/community\/posts\/([0-9a-fA-F-]{20,})$/);
+      if(m&&method==='GET'){
+        const id=m[1];const post=this.sql.exec("SELECT * FROM posts WHERE id=? AND status='active'",id).toArray()[0];
+        if(!post)return json({ok:false,error:'게시글을 찾을 수 없습니다.'},404);
+        const rows=this.sql.exec("SELECT * FROM comments WHERE post_id=? AND status='active' ORDER BY created_at ASC",id).toArray();
+        const comments=rows.map(r=>({id:r.id,postId:r.post_id,content:r.content,createdAt:Number(r.created_at),authorLabel:communityAlias(id,r.author_hash,post.author_hash),owned:Boolean(ownerHash&&r.author_hash===ownerHash)}));
+        return json({ok:true,post:this.postPublic(post,ownerHash),comments,mode:'shared'});
+      }
+      if(m&&method==='DELETE'){
+        const id=m[1],owner=await this.ownerHash(request,true);const post=this.sql.exec("SELECT author_hash FROM posts WHERE id=? AND status='active'",id).toArray()[0];
+        if(!post)return json({ok:false,error:'게시글을 찾을 수 없습니다.'},404);
+        const admin=String(request.headers.get('x-admin-key')||'')&&String(request.headers.get('x-admin-key'))===String(this.env?.COMMUNITY_ADMIN_KEY||'');
+        if(post.author_hash!==owner&&!admin)return json({ok:false,error:'작성한 기기에서만 삭제할 수 있습니다.'},403);
+        this.sql.exec("UPDATE posts SET status='deleted', content='', title='삭제된 글' WHERE id=?",id);
+        this.sql.exec("UPDATE comments SET status='deleted', content='' WHERE post_id=?",id);
+        return json({ok:true});
+      }
+      m=path.match(/^\/api\/community\/posts\/([0-9a-fA-F-]{20,})\/comments$/);
+      if(m&&method==='POST'){
+        const wait=await this.rateLimit(request,'comment',5000);if(wait)return json({ok:false,error:`댓글은 ${wait}초 후 다시 시도해주세요.`},429);
+        const id=m[1],owner=await this.ownerHash(request,true),post=this.sql.exec("SELECT * FROM posts WHERE id=? AND status='active'",id).toArray()[0];
+        if(!post)return json({ok:false,error:'게시글을 찾을 수 없습니다.'},404);
+        const body=await request.json().catch(()=>({})),content=communityCleanText(body.content,1000);if(!content)return json({ok:false,error:'댓글 내용을 입력해주세요.'},400);
+        const cid=crypto.randomUUID(),now=Date.now();
+        this.sql.exec("INSERT INTO comments(id,post_id,content,author_hash,created_at,status) VALUES(?,?,?,?,?,'active')",cid,id,content,owner,now);
+        this.sql.exec("UPDATE posts SET comment_count=comment_count+1, updated_at=? WHERE id=?",now,id);
+        return json({ok:true,comment:{id:cid,postId:id,content,createdAt:now,authorLabel:communityAlias(id,owner,post.author_hash),owned:true}},201);
+      }
+      m=path.match(/^\/api\/community\/posts\/([0-9a-fA-F-]{20,})\/comments\/([0-9a-fA-F-]{20,})$/);
+      if(m&&method==='DELETE'){
+        const [_,postId,commentId]=m,owner=await this.ownerHash(request,true);const row=this.sql.exec("SELECT author_hash FROM comments WHERE id=? AND post_id=? AND status='active'",commentId,postId).toArray()[0];
+        if(!row)return json({ok:false,error:'댓글을 찾을 수 없습니다.'},404);
+        const admin=String(request.headers.get('x-admin-key')||'')&&String(request.headers.get('x-admin-key'))===String(this.env?.COMMUNITY_ADMIN_KEY||'');
+        if(row.author_hash!==owner&&!admin)return json({ok:false,error:'작성한 기기에서만 삭제할 수 있습니다.'},403);
+        this.sql.exec("UPDATE comments SET status='deleted', content='' WHERE id=?",commentId);
+        this.sql.exec("UPDATE posts SET comment_count=CASE WHEN comment_count>0 THEN comment_count-1 ELSE 0 END WHERE id=?",postId);
+        return json({ok:true});
+      }
+      return json({ok:false,error:'지원하지 않는 게시판 요청입니다.'},404);
+    }catch(e){
+      if(String(e?.message||e)==='DEVICE_TOKEN_REQUIRED')return json({ok:false,error:'익명 기기 식별정보가 없습니다. 페이지를 새로고침해주세요.'},400);
+      console.error('Community board:',e);return json({ok:false,error:'게시판 처리 중 오류가 발생했습니다.'},500);
+    }
+  }
+}
 
 function applySecurityHeaders(headers){
   const h=new Headers(headers||{});

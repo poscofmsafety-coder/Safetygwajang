@@ -5,7 +5,7 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>안전과장 | 안전관리자 취업 준비 · 현장 실무</title>
-<meta content="안전관리자를 준비하는 취업준비생과 현직 안전관리자를 위한 학습·실무 사이트. 자격증, 토익스피킹, 자기소개서, 면접부터 위험성평가, MSDS, 밀폐공간, 안전교육 실무도구까지 제공합니다." name="description"/>
+<meta content="안전관리자를 준비하는 취업준비생과 현직 안전관리자를 위한 학습·실무 사이트. 자격증, 토익스피킹, 자기소개서, 면접부터 위험성평가, MSDS, 밀폐공간, 안전교육 실무도구와 안전관리자 익명 자유게시판까지 제공합니다." name="description"/>
 <meta content="index,follow,max-image-preview:large" name="robots"/>
 <link href="https://safetygwajang.com/" rel="canonical"/>
 <meta content="website" property="og:type"/>
@@ -28,21 +28,22 @@
 <header class="site-nav">
 <div class="nav-inner">
 <a class="site-brand" href="index.html"><img src="assets/jaeili-face-v4.png" data-cheer-mascot alt="제일이"><span>안전과장</span></a>
-<div aria-label="이용자 유형 선택" class="audience-switch" role="tablist">
-<button aria-selected="true" data-audience-target="jobseeker" role="tab" type="button">취준생</button>
+<div aria-label="화면 선택" class="audience-switch" role="tablist">
+<button aria-selected="true" data-audience-target="home" role="tab" type="button" title="홈화면">홈</button>
+<button aria-selected="false" data-audience-target="jobseeker" role="tab" type="button">취준생</button>
 <button aria-selected="false" data-audience-target="worker" role="tab" type="button">재직자</button>
 </div>
-<nav aria-label="취준생 메뉴" data-nav-group="jobseeker">
+<nav aria-label="취준생 메뉴" data-nav-group="jobseeker" hidden>
 <a href="industrial-safety-guide.html">자격증</a><a href="study.html?id=toeic-part1">영어</a><a href="resume.html">자기소개서</a><a href="interview.html">면접</a><a href="about.html">소개</a>
 </nav>
 <nav aria-label="재직자 메뉴" data-nav-group="worker" hidden>
 <a href="worker/dashboard.html">대시보드</a><a href="worker/patrol-inspection.html">순회점검</a><a href="worker/safety-education.html">안전교육</a><a href="worker/risk-assessment.html">위험성평가</a><a href="worker/laws.html">법령·지침</a><a href="worker/msds-management.html">MSDS</a><a href="worker/confined-space.html">밀폐·온열</a><a href="worker/incident-report.html">사고기록</a>
 </nav>
-<div class="topbar-actions"><span class="live-clock" data-live-clock aria-label="현재 한국 시간"></span><button class="btn-sm" data-jobseeker-only id="settings-btn" title="학습 기록 설정" type="button">학습기록 설정</button></div>
+<div class="topbar-actions"><span class="live-clock" data-live-clock aria-label="현재 한국 시간"></span><button class="btn-sm" data-jobseeker-only hidden id="settings-btn" title="학습 기록 설정" type="button">학습기록 설정</button></div>
 </div>
 </header>
 <main class="container" id="main-content">
-<section class="home-hero home-hero-v4">
+<section class="home-hero home-hero-v4" data-home-only>
 <div class="hero-copy">
 <span class="home-kicker">안전한 오늘, 더 나은 내일을 위해</span>
 <h1>준비하는 사람도, 지키는 사람도<br/><em>안전과장</em>과 함께합니다.</h1>
@@ -56,27 +57,7 @@
 
 </div>
 </section>
-<section class="audience-overview" aria-label="취준생과 재직자 빠른 메뉴">
-<article class="audience-overview-card job">
-<div class="audience-title-row"><div><span class="mini-label">CAREER</span><h2>취준생</h2><p>자격증부터 면접까지, 합격을 위한 준비를 한 흐름으로.</p></div><img src="assets/jaeili-face-v4.png" alt="제일이" data-cheer-mascot></div>
-<div class="quick-grid quick-grid-4">
-<a href="#certificates" data-open-audience="jobseeker"><span class="quick-icon">📘</span><b>자격증</b><small>CBT · 기출 · 오답</small></a>
-<a href="#english" data-open-audience="jobseeker"><span class="quick-icon">🎧</span><b>영어</b><small>토익스피킹</small></a>
-<a href="resume.html"><span class="quick-icon">📄</span><b>자기소개서</b><small>항목별 작성 · 검토</small></a>
-<a href="interview.html"><span class="quick-icon">💬</span><b>면접</b><small>예상질문 · 답변전략</small></a>
-</div>
-</article>
-<article class="audience-overview-card worker">
-<div class="audience-title-row"><div><span class="mini-label">WORK</span><h2>재직자</h2><p>현장에서 바로 쓰는 안전관리 기록·계산·관리 도구.</p></div><img src="assets/jaeili-face-v4.png" alt="제일이" data-cheer-mascot></div>
-<div class="quick-grid quick-grid-4">
-<a href="worker/dashboard.html"><span class="quick-icon">📊</span><b>현장 대시보드</b><small>작업현황 · 위험작업</small></a>
-<a href="worker/safety-education.html"><span class="quick-icon">🎓</span><b>안전보건교육</b><small>대상 · 시간 · 이수</small></a>
-<a href="worker/risk-assessment.html"><span class="quick-icon">⚠️</span><b>위험성평가</b><small>계획 · 실시 · 개선</small></a>
-<a href="worker/msds-management.html"><span class="quick-icon">🧪</span><b>MSDS</b><small>물질 · 보건관리</small></a>
-</div>
-</article>
-</section>
-<section class="audience-panel" data-audience-panel="jobseeker" id="jobseeker">
+<section class="audience-panel" data-audience-panel="jobseeker" hidden id="jobseeker">
 <div class="section-head">
 <div>
 <span class="eyebrow">취업준비생</span>
@@ -217,7 +198,7 @@
 </div>
 </section>
 
-<section class="safety-news" id="safety-news" aria-labelledby="safety-news-title">
+<section class="safety-news" data-home-only id="safety-news" aria-labelledby="safety-news-title">
   <div class="section-head news-head">
     <div><span class="eyebrow">LIVE SAFETY NEWS</span><h2 id="safety-news-title">실시간 안전 뉴스</h2></div>
     <div class="news-actions"><span id="news-updated">최신 기사 불러오는 중</span><button type="button" id="news-refresh">새로고침</button></div>
@@ -225,7 +206,7 @@
   <p class="news-desc">산업안전·안전보건·중대재해·산업재해 관련 최신 기사를 모아 보여줍니다. 기사 제목을 누르면 원문 언론사로 이동합니다.</p>
   <div class="news-grid" id="news-grid"><div class="news-loading">안전 뉴스를 불러오고 있습니다.</div></div>
 </section>
-<section class="safety-jobs" id="safety-jobs" aria-labelledby="safety-jobs-title">
+<section class="safety-jobs" data-home-only id="safety-jobs" aria-labelledby="safety-jobs-title">
   <div class="section-head jobs-head">
     <div><span class="eyebrow">LIVE SAFETY JOBS</span><h2 id="safety-jobs-title">안전관리자 채용공고</h2></div>
     <div class="jobs-actions-main"><span id="jobs-updated">최신 공고 확인 중</span><button type="button" id="jobs-refresh">새로고침</button></div>
@@ -234,6 +215,38 @@
   <div class="jobs-source-chips" aria-label="채용공고 출처"><span>사람인</span><span>잡코리아</span><span>인크루트</span><span>자소설닷컴</span><span>기업 채용페이지 등</span></div>
   <div class="jobs-grid" id="jobs-grid"><div class="jobs-loading-main">안전관리 채용공고를 불러오고 있습니다.</div></div>
 </section>
+<section class="community-board" data-home-only id="anjage" aria-labelledby="anjage-title">
+  <div class="community-head">
+    <div>
+      <span class="eyebrow">ANONYMOUS SAFETY COMMUNITY</span>
+      <h2 id="anjage-title">안전관리자 자유게시판 <span class="community-nickname">안자게</span></h2>
+      <p>안전관리자끼리 고민상담, 업무문의, 질의회시, 현장 실무와 취업·이직 이야기를 익명으로 나누는 공간입니다.</p>
+    </div>
+    <button class="community-write-btn" id="community-write" type="button">글쓰기</button>
+  </div>
+  <div class="community-toolbar">
+    <div class="community-categories" id="community-categories" aria-label="게시판 분류">
+      <button class="active" data-community-category="전체" type="button">전체</button>
+      <button data-community-category="고민상담" type="button">고민상담</button>
+      <button data-community-category="업무문의" type="button">업무문의</button>
+      <button data-community-category="질의회시" type="button">질의회시</button>
+      <button data-community-category="현장실무" type="button">현장실무</button>
+      <button data-community-category="취업·이직" type="button">취업·이직</button>
+      <button data-community-category="기타" type="button">기타</button>
+    </div>
+    <div class="community-sort" aria-label="게시글 정렬">
+      <button class="active" data-community-sort="latest" type="button">최신</button>
+      <button data-community-sort="popular" type="button">댓글 많은 글</button>
+    </div>
+  </div>
+  <div class="community-list" id="community-list"><div class="community-empty">게시글을 불러오고 있습니다.</div></div>
+  <div class="community-footer-row">
+    <span id="community-status" aria-live="polite">익명 게시판 연결 중</span>
+    <button id="community-more" type="button" hidden>더 보기</button>
+  </div>
+  <p class="community-safety-note">회사 기밀, 개인정보, 실명·연락처 등 타인을 식별할 수 있는 정보는 게시하지 마세요. 게시글과 댓글은 다른 이용자에게 공개됩니다.</p>
+</section>
+<div id="community-modal-root"></div>
 </main>
 <div class="auth-modal-bg" id="code-modal">
 <div class="auth-modal">
@@ -270,6 +283,7 @@
 <script src="js/mascot-cheer.js"></script>
 <script src="js/news.js"></script>
 <script src="js/jobs.js"></script>
+<script src="js/community.js"></script>
 <script defer src="/js/security.js"></script>
 </body>
 </html>

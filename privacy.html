@@ -5,12 +5,12 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>개인정보처리방침 | 안전과장</title>
-<meta content="안전과장의 학습·재직자 실무 브라우저 저장정보, 자기소개서 AI 외부 전송, Google AdSense 쿠키 및 이용자 데이터 관리 방법을 안내합니다." name="description"/>
+<meta content="안전과장의 학습·재직자 실무 브라우저 저장정보, 안자게 게시글·댓글, 자기소개서 AI 외부 전송, Google AdSense 쿠키 및 이용자 데이터 관리 방법을 안내합니다." name="description"/>
 <meta content="index,follow,max-image-preview:large" name="robots"/>
 <link href="https://safetygwajang.com/privacy.html" rel="canonical"/>
 <meta content="article" property="og:type"/>
 <meta content="개인정보처리방침 | 안전과장" property="og:title"/>
-<meta content="안전과장의 학습·재직자 실무 브라우저 저장정보, 자기소개서 AI 외부 전송, Google AdSense 쿠키 및 이용자 데이터 관리 방법을 안내합니다." property="og:description"/>
+<meta content="안전과장의 학습·재직자 실무 브라우저 저장정보, 안자게 게시글·댓글, 자기소개서 AI 외부 전송, Google AdSense 쿠키 및 이용자 데이터 관리 방법을 안내합니다." property="og:description"/>
 <meta content="https://safetygwajang.com/privacy.html" property="og:url"/>
 <meta content="#003876" name="theme-color"/>
 <link href="css/style.css" rel="stylesheet"/>
@@ -25,7 +25,7 @@
 <a class="skip-link" href="#main-content">본문으로 바로가기</a>
 <header class="site-nav">
 <div class="nav-inner">
-<a class="site-brand" href="index.html"><img src="assets/jaeili-face-v4.png" data-cheer-mascot alt="제일이"><span>안전과장</span></a><div aria-label="이용자 유형" class="audience-switch"><a class="active" href="index.html?audience=jobseeker">취준생</a><a href="index.html?audience=worker">재직자</a></div>
+<a class="site-brand" href="index.html"><img src="assets/jaeili-face-v4.png" data-cheer-mascot alt="제일이"><span>안전과장</span></a><div aria-label="화면 선택" class="audience-switch"><a href="index.html">홈</a><a class="active" href="index.html?audience=jobseeker">취준생</a><a href="index.html?audience=worker">재직자</a></div>
 <nav aria-label="주요 메뉴">
 <a href="index.html">홈</a> <a href="industrial-safety-guide.html">산업안전기사</a> <a href="risk-assessment-guide.html">위험성평가</a> <a href="interview.html">면접</a> <a href="resume.html">자기소개서</a> <a href="about.html">소개</a>
 </nav>
@@ -38,7 +38,7 @@
 <h1>개인정보처리방침</h1>
 <p>
     안전과장은 회원가입 없이 사용할 수 있는 학습 사이트입니다.
-    아래는 현재 코드 구조를 기준으로 브라우저 저장정보, AI 기능, 광고 서비스 사용 시 처리될 수 있는 정보를 설명합니다.
+    아래는 현재 코드 구조를 기준으로 브라우저 저장정보, 안자게 게시판, AI 기능, 광고 서비스 사용 시 처리될 수 있는 정보를 설명합니다.
   </p>
 <p class="article-meta">시행·최종 업데이트: 2026-09</p>
 </section>
@@ -47,8 +47,8 @@
 <h2>1. 회원가입과 서버 저장</h2>
 <p>
       현재 안전과장은 CBT와 재직자 실무도구 이용을 위해 이름, 전화번호, 이메일 등의 회원정보를 요구하지 않습니다.
-      응시 기록, 오답·북마크 등 일부 학습 데이터는 사용자의 브라우저 저장공간(localStorage 또는 sessionStorage)에 저장될 수 있습니다.
-      이 정보는 브라우저 데이터를 삭제하거나 다른 기기·브라우저를 사용하면 이어지지 않을 수 있습니다.
+      응시 기록, 오답·북마크 및 재직자 실무기록은 주로 사용자의 브라우저 저장공간(localStorage 또는 sessionStorage)에 저장됩니다.
+      다만, 홈의 안전관리자 자유게시판(안자게)에 이용자가 직접 등록한 게시글과 댓글은 여러 이용자가 함께 볼 수 있도록 서버 저장소에 보관됩니다.
     </p>
 </section>
 <section class="content-section">
@@ -63,7 +63,16 @@
 </dl>
 </section>
 <section class="content-section">
-<h2>3. 자기소개서 AI 기능</h2>
+<h2>3. 안자게 자유게시판</h2>
+<p>
+      안자게에 작성한 게시글·댓글은 익명 게시판 운영을 위해 서버에 저장되고 다른 이용자에게 공개됩니다. 이름·이메일 등의 회원정보를 요구하지 않으며, 작성한 기기에서 본인 글·댓글을 삭제할 수 있도록 브라우저에 임의의 기기 토큰을 저장하고 서버에는 그 토큰의 일방향 해시값만 보관합니다.
+    </p>
+<p>
+      반복 게시·도배 방지를 위해 접속정보와 기기 토큰을 이용해 만든 비식별 해시값을 짧은 기간 동안 사용·보관할 수 있습니다. 회사 기밀, 개인정보, 실명·전화번호, 고객·직원 식별정보 등 공개하면 안 되는 내용은 게시하지 마세요.
+    </p>
+</section>
+<section class="content-section">
+<h2>4. 자기소개서 AI 기능</h2>
 <p>
       AI 기능을 사용하면 사용자가 입력한 자기소개서 문항·경험·회사·직무 관련 텍스트와, 순회점검에서 분석을 요청한 현장 사진·메모가 외부 AI 처리 서비스로 전송될 수 있습니다. 개인 API 키를 직접 사용하는 모드에서는 브라우저에서 해당 AI 서비스로 직접 전송될 수 있습니다.
     </p>
@@ -76,7 +85,7 @@
     </p>
 </section>
 <section class="content-section">
-<h2>4. Google AdSense 및 쿠키</h2>
+<h2>5. Google AdSense 및 쿠키</h2>
 <p>
       사이트는 Google AdSense를 통한 광고 게재를 신청·운영할 수 있습니다.
       광고가 실제로 게재되는 경우 Google 및 광고 파트너가 쿠키, 기기 식별자 또는 유사 기술을 사용하여
@@ -89,23 +98,24 @@
     </p>
 </section>
 <section class="content-section">
-<h2>5. 제3자 링크</h2>
+<h2>6. 제3자 링크</h2>
 <p>
       Q-Net, 고용노동부, 한국산업안전보건공단 등 외부 웹사이트로 이동하는 링크가 포함될 수 있습니다.
       외부 사이트에서의 개인정보 처리는 해당 사이트의 정책이 적용됩니다.
     </p>
 </section>
 <section class="content-section">
-<h2>6. 이용자가 할 수 있는 관리</h2>
+<h2>7. 이용자가 할 수 있는 관리</h2>
 <ul>
 <li>홈의 설정 기능에서 사이트 학습 기록을 초기화할 수 있습니다.</li>
 <li>브라우저 설정에서 localStorage, 쿠키 등 사이트 데이터를 삭제할 수 있습니다.</li>
+<li>안자게의 내 글·내 댓글은 작성한 브라우저에서 삭제할 수 있습니다.</li>
 <li>AI 기능에 입력하기 전 민감정보를 제거할 수 있습니다.</li>
 <li>광고 관련 선택은 브라우저·Google 계정의 광고 개인정보 설정에서 관리할 수 있습니다.</li>
 </ul>
 </section>
 <section class="content-section">
-<h2>7. 방침 변경</h2>
+<h2>8. 방침 변경</h2>
 <p>
       기능, 외부 서비스 또는 관련 법령이 변경되면 이 방침도 수정될 수 있습니다.
       중요한 변경이 있을 경우 이 페이지의 업데이트 날짜를 바꾸어 알립니다.
