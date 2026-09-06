@@ -1,0 +1,134 @@
+{
+  "examId": "toeic-part4",
+  "type": "study",
+  "badge": "TOEIC SPEAKING · PART 4",
+  "title": "PART 4 · 제공된 정보로 답하기 (Respond to questions using information provided)",
+  "subtitle": "Q8~10 · 표 읽기 45초 + 각 3초 / 답변 15초·15초·30초 · 평가요소: 정보 전달의 정확성, 문법, 어휘, 발음",
+  "meta": [
+    { "k": "문항", "v": "3문항" },
+    { "k": "표 읽기", "v": "45초" },
+    { "k": "답변", "v": "15 / 15 / 30초" },
+    { "k": "핵심", "v": "표 패턴 문장 암기" }
+  ],
+  "sections": [
+    {
+      "title": "1. 파트 개요 — 화면의 표를 보고 대답하기",
+      "note": "화면에 일정표·이력서·강좌표 등이 제시되고, 전화로 질문하는 사람에게 정보를 알려주는 상황입니다. 표는 답변 중에도 계속 화면에 남아 있으니 외울 필요는 없습니다.",
+      "bullets": [
+        "Q8 · Q9 (15초) — 날짜, 시간, 장소, 가격 등 단일 정보 확인. 1~2문장",
+        "Q10 (30초) — 조건에 맞는 항목 2~3개를 모두 설명. 반드시 2개 이상 언급해야 만점",
+        "Q9에는 잘못된 정보를 말하며 확인을 요청하는 오류 정정 유형이 자주 나옵니다",
+        "표에 없는 정보를 물으면 I am afraid that information is not on the schedule. 로 대응"
+      ],
+      "tip": "표 읽기 45초 루틴 — ① 제목·날짜·장소 확인(10초) ② 열 제목(Time/Topic/Speaker/Room) 파악(10초) ③ 발음 어려운 고유명사 미리 연습(15초) ④ 중복 항목·취소 항목 표시(10초)"
+    },
+    {
+      "title": "2. 표 유형별 빈출 리스트",
+      "table": {
+        "head": ["표 유형", "자주 묻는 질문", "필수 표현"],
+        "rows": [
+          ["콘퍼런스 / 세미나 일정", "언제 어디서 열리나 / 몇 시 시작인가", "will be held on ~ at ~"],
+          ["출장 · 여행 일정 (Itinerary)", "몇 시 출발인가 / 어느 호텔인가", "depart from ~ / arrive in ~ / stay at ~"],
+          ["이력서 (Resume)", "학력 / 경력 / 자격 요건", "got a degree in ~ / worked at ~ as ~"],
+          ["면접 스케줄", "누구를 몇 시에 면접하나", "interview A at ~ / applying for ~ position"],
+          ["강좌 · 수강 안내", "수강료 / 등록 마감 / 강사", "It is 20 dollars / register by ~ / will teach ~"],
+          ["행사 · 출판 · 공연 안내", "누가 썼나 / 어디서 공연하나 / 언제 출간되나", "was written by ~ / will be performed at ~"]
+        ]
+      }
+    },
+    {
+      "title": "3. 일정 · 시간 · 장소 패턴 문장",
+      "phrases": [
+        { "en": "The conference will be held on June 20th at the Hilton Hotel.", "ko": "회의가 6월 20일에 힐튼 호텔에서 개최될 예정이에요.", "tip": "날짜는 on, 장소는 at — 전치사를 틀리면 문법 감점입니다." },
+        { "en": "The meeting will start at 9:00 a.m.", "ko": "미팅은 오전 9시에 시작할 거예요." },
+        { "en": "The seminar will finish at 5:00 p.m.", "ko": "세미나는 오후 5시에 끝날 거예요." },
+        { "en": "It will take place in the main conference room on the third floor.", "ko": "그것은 3층 대회의실에서 열릴 예정이에요.", "tip": "보완 표현 — 층·호실 정보가 있을 때 사용." },
+        { "en": "The event will last for about two hours.", "ko": "그 행사는 약 2시간 동안 진행될 거예요." }
+      ]
+    },
+    {
+      "title": "4. 오류 정정 유형 (Q9 빈출)",
+      "note": "공식: No, I am afraid that you have the wrong information. + Actually, [정확한 정보]. 이 두 문장을 통째로 외우세요.",
+      "phrases": [
+        { "en": "No, I am afraid that you have the wrong information. Actually, the registration and coffee session will start at 9:00 a.m.", "ko": "아니요, 유감스럽지만 잘못 알고 계십니다. 사실은 등록 및 커피타임은 오전 9시에 시작할 거예요." },
+        { "en": "There was supposed to be an interview, but it has been canceled.", "ko": "인터뷰가 예정되어 있었으나 취소되었어요." },
+        { "en": "There was supposed to be a meeting, but it has been postponed.", "ko": "미팅이 예정되어 있었으나 연기되었어요." },
+        { "en": "There was supposed to be a meeting with Jane White at 2 p.m. on Tuesday, but it has been rescheduled to Friday.", "ko": "화요일 오후 2시에 제인 화이트씨와 미팅이 예정되어 있었으나 금요일로 조정되었어요.", "tip": "canceled / postponed / rescheduled 세 단어는 반드시 구분해서 외우세요." },
+        { "en": "I am afraid that information is not on the schedule.", "ko": "죄송하지만 그 정보는 일정표에 없습니다.", "tip": "표에 없는 것을 물었을 때의 유일한 정답." }
+      ]
+    },
+    {
+      "title": "5. 세션 2~3개 나열 유형 (Q10 핵심)",
+      "note": "공식: There are two sessions. First, at [시간], there is a [형태] on [주제] by [발표자]. Next, at [시간], there is a ~. 항목마다 시간·주제·발표자 3요소를 모두 말해야 만점입니다.",
+      "phrases": [
+        { "en": "There are two sessions. First, at 1 p.m., there is a workshop on Social Media Marketing by Ray Kingston. Next, at 2:30 p.m., there is a discussion on Appealing to Sports Fans through Marketing by Kevin Delmont.", "ko": "두 개의 세션이 있어요. 먼저 오후 1시에는 레이 킹스턴의 소셜 미디어 마케팅에 관한 워크숍이 있어요. 다음으로 오후 2시 30분에는 마케팅을 통해 스포츠 팬들에게 어필하기에 대한 케빈 델몬트의 토론이 있어요." },
+        { "en": "There are three sessions in the afternoon. Let me tell you about them one by one.", "ko": "오후에 세 개의 세션이 있어요. 하나씩 말씀드릴게요.", "tip": "30초 답변의 도입부로 쓰면 시간 관리가 쉬워집니다." },
+        { "en": "Lastly, at 4 p.m., there is a presentation on Global Trends by Amy Parker.", "ko": "마지막으로 오후 4시에는 에이미 파커의 글로벌 트렌드에 관한 발표가 있어요.", "tip": "First / Next / Lastly 로 순서를 명확히 하세요." }
+      ]
+    },
+    {
+      "title": "6. 출장 · 여행 일정표 패턴 문장",
+      "phrases": [
+        { "en": "You will depart from San Francisco at 10 a.m.", "ko": "당신은 오전 10시에 샌프란시스코에서 출발할 거예요." },
+        { "en": "You will arrive in Los Angeles at 3 p.m.", "ko": "당신은 오후 3시에 로스앤젤레스에 도착할 거예요.", "tip": "도시 앞에는 arrive in, 공항·건물 앞에는 arrive at." },
+        { "en": "You will take Korean Air 105.", "ko": "당신은 대한항공 105기를 탈 거예요." },
+        { "en": "You will stay at the Glen Hotel.", "ko": "당신은 글렌 호텔에 머무를 거예요." },
+        { "en": "You will have lunch / dinner / a meeting.", "ko": "당신은 점심식사/저녁식사/회의를 할 거예요." },
+        { "en": "You will give a speech / a presentation / a lecture.", "ko": "당신은 연설/프레젠테이션/강의를 할 거예요." },
+        { "en": "Your flight is scheduled to leave at 7 a.m., so please arrive at the airport two hours earlier.", "ko": "당신의 항공편은 오전 7시에 출발 예정이니, 2시간 전에 공항에 도착해 주세요.", "tip": "보완 표현 — 조언을 덧붙이면 답변이 풍성해집니다." }
+      ]
+    },
+    {
+      "title": "7. 이력서 · 지원자 정보 패턴 문장",
+      "note": "학력·경력은 시제가 핵심입니다. 과거 완료된 경력은 과거시제, 현재까지 이어지는 경력은 현재완료를 씁니다.",
+      "phrases": [
+        { "en": "She got a master's degree in Design from Vancouver Art University in 2020.", "ko": "그녀는 2020년에 밴쿠버 예술 대학교에서 디자인 전공으로 석사 학위를 취득했어요." },
+        { "en": "From 2015 to 2017, she worked at Jasper Fashion Magazine as a director.", "ko": "2015년부터 2017년까지 그녀는 제스퍼 패션 잡지사에서 이사로 일했어요." },
+        { "en": "From 2017 up to now, she has worked at Toronto Fashion Magazine as a chief editor.", "ko": "2017년부터 지금까지 그녀는 토론토 패션 잡지사에서 편집장으로 일해오고 있어요.", "tip": "up to now 가 나오면 반드시 has worked (현재완료)." },
+        { "en": "I think she is qualified because she has a lot of experience in the fashion industry.", "ko": "저는 그녀가 자격을 갖췄다고 생각해요. 패션업계에 경험이 많기 때문이에요." },
+        { "en": "He is fluent in Spanish.", "ko": "그는 스페인어를 유창하게 구사해요." },
+        { "en": "She is certified in Pilates.", "ko": "그녀는 필라테스 자격증이 있어요." },
+        { "en": "He has experience in education.", "ko": "그는 교육 분야에 경험이 있어요." },
+        { "en": "She has 5 years of experience.", "ko": "그녀는 5년의 업무경력이 있어요." },
+        { "en": "He is applying for the editor position.", "ko": "그는 편집자 직책에 지원하고 있어요." }
+      ]
+    },
+    {
+      "title": "8. 면접 스케줄 패턴 문장",
+      "phrases": [
+        { "en": "You will interview Jessica Anderson at 9:00 a.m.", "ko": "당신은 제시카 앤더슨과 오전 9시에 면접을 볼 거예요." },
+        { "en": "There is an interview with John White from Eco Electronics, who is applying for the marketing director position.", "ko": "마케팅 부장직에 지원하는 에코전자의 존 화이트씨와 면접이 있어요.", "tip": "이름 + 소속 + 지원 직책 3요소를 한 문장에 담는 것이 고득점 패턴." },
+        { "en": "You have three interviews scheduled in the morning.", "ko": "오전에 세 개의 면접이 예정되어 있어요." }
+      ]
+    },
+    {
+      "title": "9. 강좌 · 수강료 · 등록 패턴 문장",
+      "phrases": [
+        { "en": "You have to pay 20 dollars for the oil painting class.", "ko": "오일 페인팅 수업으로 20달러를 지불하셔야 해요." },
+        { "en": "It is 20 dollars.", "ko": "그것은 20달러예요." },
+        { "en": "You should register by January 3rd.", "ko": "1월 3일까지 등록하셔야 해요.", "tip": "마감은 by(까지), 기간은 until 로 구분." },
+        { "en": "If you are a member, it is 20 dollars.", "ko": "당신이 회원이라면 20달러예요." },
+        { "en": "It is free. It is for members.", "ko": "그것은 무료예요. 그것은 회원들을 위한 것이에요." },
+        { "en": "There is a Cooking for Beginners class.", "ko": "초보자를 위한 요리 수업이 있어요." },
+        { "en": "Sean Kim will teach the Painting Class.", "ko": "션 킴 강사가 회화 수업을 지도할 거예요." },
+        { "en": "There is a class on French Art History.", "ko": "프랑스 예술사에 관한 수업이 있어요." },
+        { "en": "Jennifer Huston will teach a class on computer skills.", "ko": "제니퍼 휴스턴 강사가 컴퓨터 기술에 관한 수업을 지도할 예정이에요." },
+        { "en": "The class will be held every Tuesday and Thursday for four weeks.", "ko": "그 수업은 4주간 매주 화요일과 목요일에 열릴 거예요.", "tip": "보완 표현 — 반복 일정 표현." }
+      ]
+    },
+    {
+      "title": "10. 출판 · 공연 · 출시 패턴 문장",
+      "phrases": [
+        { "en": "The novel was written by George Orwell.", "ko": "그 소설은 조지 오웰이 쓴 것입니다." },
+        { "en": "The movie was directed by Christopher Nolan.", "ko": "그 영화는 크리스토퍼 놀란 감독이 연출한 것입니다." },
+        { "en": "The report is titled Global Supply Chains: New Strategies.", "ko": "그 리포트의 제목은 글로벌 공급망 새로운 전략입니다." },
+        { "en": "The concert will be performed at the New York Theater.", "ko": "그 콘서트는 뉴욕 극장에서 공연될 예정입니다." },
+        { "en": "The movie will be shown at the Grand Theater.", "ko": "그 영화는 그랜드 극장에서 상영될 예정입니다." },
+        { "en": "The article will be published in September.", "ko": "그 기사는 9월에 발간될 예정입니다." },
+        { "en": "The new smartphone will be released on July 15th.", "ko": "신형 스마트폰은 7월 15일에 출시될 예정입니다." },
+        { "en": "The film will be released in December.", "ko": "그 영화는 12월에 개봉될 예정입니다." }
+      ],
+      "warn": "감점 3대 실수: ① 표를 그대로 단어만 읽기(반드시 완전한 문장으로) ② 시제 오류(미래 일정은 will, 과거 이력은 과거시제) ③ Q10에서 항목 1개만 말하고 끝내기. 최소 2개 항목 + 각 항목 2~3요소를 지키세요."
+    }
+  ]
+}

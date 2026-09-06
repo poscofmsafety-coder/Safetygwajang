@@ -1,0 +1,258 @@
+{
+  "group": "G-ETC",
+  "companies": [
+    {
+      "id": "etc-ktng",
+      "name": "KT&G그룹",
+      "tier": "T1",
+      "jobFields": ["안전", "보건", "컴플라이언스"],
+      "interviews": [
+        {
+          "stage": "AI면접",
+          "stageType": "video",
+          "format": "상황제시형 + 성향 일관성 확인 / 앞뒤 답변 모순 시 감점",
+          "questions": [
+            { "qid": "KTG-AI-01", "q": "[상황] 상급자와 함께 준비한 발표자료에서 발표 10분 전 오류를 발견했다. 어떻게 하겠는가", "type": "situation", "tags": ["상황대처"] },
+            { "qid": "KTG-AI-02", "q": "[상황] 후배 사원이 상급자의 부당한 대우를 이유로 퇴사하고 싶어한다. 어떻게 대화하겠는가", "type": "situation", "tags": ["상황대처"] },
+            { "qid": "KTG-AI-03", "q": "본인은 논리적 분석보다 직관적 판단을 하는 편인가", "type": "common", "tags": [] },
+            { "qid": "KTG-AI-04", "q": "직관적으로 선택해서 결과가 좋지 않았던 경험이 있는가", "type": "common", "tags": [] },
+            { "qid": "KTG-AI-05", "q": "그 경험에서 얻은 교훈은 무엇인가", "type": "common", "tags": [] }
+          ]
+        },
+        {
+          "stage": "1차 영어면접",
+          "stageType": "english",
+          "format": "생활영어 → 산업 이슈 → 역질문 순",
+          "questions": [
+            { "qid": "KTG-EN-01", "q": "How is the weather today?", "type": "english", "tags": ["영어"] },
+            { "qid": "KTG-EN-02", "q": "What do you like? What is your hobby and special talent?", "type": "english", "tags": ["영어"] },
+            { "qid": "KTG-EN-03", "q": "Do you have any overseas experience?", "type": "english", "tags": ["영어"] },
+            { "qid": "KTG-EN-04", "q": "How do you think our industry will develop in the future?", "type": "english", "tags": ["영어"] },
+            { "qid": "KTG-EN-05", "q": "What do you think about air pollution issues?", "type": "english", "tags": ["영어", "환경"] },
+            { "qid": "KTG-EN-06", "q": "Do you have any questions for me?", "type": "english", "tags": ["영어"] }
+          ]
+        },
+        {
+          "stage": "1차 PT면접 (도급·작업허가)",
+          "stageType": "pt",
+          "format": "주제 제시 후 작성 → 발표 → 질의",
+          "questions": [
+            { "qid": "KTG-PT1-01", "q": "공사 계약부터 도급 실행까지의 절차를 순서대로 정리하시오", "type": "pt", "tags": ["도급"] },
+            { "qid": "KTG-PT1-02", "q": "각 단계별 담당자의 책임과 산업안전보건법 준수사항을 제시하시오", "type": "pt", "tags": ["도급", "산안법"] },
+            { "qid": "KTG-PT1-03", "q": "그라인더 작업의 작업허가서 발행 절차를 설명하시오", "type": "pt", "tags": ["PSM"] },
+            { "qid": "KTG-PT1-04", "q": "본인이 잘 운영했던 작업허가 사례를 제시하시오", "type": "pt", "tags": ["PSM"] },
+            { "qid": "KTG-PT1-05", "q": "작업허가 시스템 구축 프로세스를 제시하시오", "type": "pt", "tags": ["PSM"] }
+          ]
+        },
+        {
+          "stage": "PT 연계 직무면접",
+          "stageType": "job",
+          "format": "면접관 3 : 지원자 1",
+          "questions": [
+            { "qid": "KTG-J-01", "q": "지원동기", "type": "common", "tags": ["지원동기"] },
+            { "qid": "KTG-J-02", "q": "이직 사유", "type": "common", "tags": ["이직사유"] },
+            { "qid": "KTG-J-03", "q": "지금까지 수행한 업무를 설명하시오", "type": "job", "tags": [] },
+            { "qid": "KTG-J-04", "q": "PSM을 어떻게 운영했으며 가장 중요한 요소는 무엇이라 생각하는가", "type": "job", "tags": ["PSM"] },
+            { "qid": "KTG-J-05", "q": "보건 관련 업무는 어떤 것을 수행했는가", "type": "job", "tags": [] },
+            { "qid": "KTG-J-06", "q": "자기계발은 무엇을 하고 있는가", "type": "common", "tags": [] },
+            { "qid": "KTG-J-07", "q": "현재 가장 큰 고민은 무엇인가", "type": "common", "tags": [] },
+            { "qid": "KTG-J-08", "q": "법정 안전보건교육을 시스템과 연계해 운영한 경험이 있는가", "type": "job", "tags": ["교육"] },
+            { "qid": "KTG-J-09", "q": "중대재해처벌법 대응 경험과 중대재해 경험이 있는가", "type": "job", "tags": ["중처법"] },
+            { "qid": "KTG-J-10", "q": "중대재해·중대산업사고·중대시민재해를 구분해 설명하시오", "type": "job", "tags": ["중처법", "법규해석"] },
+            { "qid": "KTG-J-11", "q": "조직 활동이나 회식 문화에 잘 적응할 수 있는가", "type": "common", "tags": ["조직적합"] },
+            { "qid": "KTG-J-12", "q": "입사 후 업무 계획은 무엇인가", "type": "common", "tags": ["포부"] },
+            { "qid": "KTG-J-13", "q": "안전 외에 컴플라이언스 업무도 수행할 수 있는가", "type": "situation", "tags": ["조직적합"] },
+            { "qid": "KTG-J-14", "q": "현 직장에서 본인의 위치와 평판은 어떤가", "type": "common", "tags": ["레퍼런스"] },
+            { "qid": "KTG-J-15", "q": "마지막으로 하고 싶은 말", "type": "common", "tags": ["마지막할말"] }
+          ]
+        },
+        {
+          "stage": "PT면접 (컨베이어 산재 시나리오)",
+          "stageType": "pt",
+          "format": "제시문 검토 후 40분 작성 → 발표",
+          "scenario": "동일 회사의 A사업장에서 B사업장으로 하청업체 직원이 파견됨 → B사업장 컨베이어 정비 중 산업재해 발생 → 해당 컨베이어는 안전검사 대상이나 검사 미실시 상태 → 재해자는 관리자에게 보고하지 않고 퇴근 후 자가 치료 → 30일 경과 후 산재 처리를 요청",
+          "questions": [
+            { "qid": "KTG-PT2-01", "q": "컨베이어 안전검사가 누락된 상태인데 어떻게 처리해야 하는가", "type": "pt", "tags": ["기계기구", "법규해석"] },
+            { "qid": "KTG-PT2-02", "q": "재해자 처리를 어떻게 해야 회사의 법적 리스크를 최소화할 수 있는가", "type": "pt", "tags": ["산재처리"] },
+            { "qid": "KTG-PT2-03", "q": "하청업체 안전관리 노하우를 제시하시오 (법령 명시사항 제외)", "type": "pt", "tags": ["도급"] }
+          ]
+        },
+        {
+          "stage": "실무진면접 (PT 꼬리질문)",
+          "stageType": "job",
+          "format": "PT 시나리오를 기점으로 법규 지식을 끝까지 파고드는 구조",
+          "note": "이 회사 전형의 핵심 구간. 컨베이어·산재처리·도급 3개 축은 반드시 암기 수준으로 준비",
+          "questions": [
+            { "qid": "KTG-R-01", "q": "컨베이어의 방호장치를 설명하시오", "type": "job", "tags": ["기계기구"] },
+            { "qid": "KTG-R-02", "q": "컨베이어 안전검사 주기와 검사 대상 조건은 무엇인가", "type": "job", "tags": ["기계기구"] },
+            { "qid": "KTG-R-03", "q": "신규로 안전검사 대상 설비를 구매할 때 필요한 서류는 무엇인가", "type": "job", "tags": ["기계기구"] },
+            { "qid": "KTG-R-04", "q": "컨베이어 안전검사의 검사기준은 무엇인가", "type": "job", "tags": ["기계기구"] },
+            { "qid": "KTG-R-05", "q": "안전검사 대상 기계·기구 목록을 말해보시오", "type": "job", "tags": ["기계기구"] },
+            { "qid": "KTG-R-06", "q": "현 사업장의 PSM 등급은 무엇인가", "type": "job", "tags": ["PSM"] },
+            { "qid": "KTG-R-07", "q": "PSM 업무 중 가장 재미있는 것과 가장 어려운 것은 무엇인가", "type": "job", "tags": ["PSM"] },
+            { "qid": "KTG-R-08", "q": "PSM 변경관리를 등급별로 구분해 설명하시오", "type": "job", "tags": ["PSM"] },
+            { "qid": "KTG-R-09", "q": "KOSHA GUIDE상 정기 위험성평가 지침의 내용을 설명하시오", "type": "job", "tags": ["위험성평가"] },
+            { "qid": "KTG-R-10", "q": "HAZOP을 설명하시오", "type": "job", "tags": ["HAZOP"] },
+            { "qid": "KTG-R-11", "q": "산업재해가 발생한 경험이 있는가", "type": "job", "tags": ["산재처리"] },
+            { "qid": "KTG-R-12", "q": "산업재해 발생 시 처리를 어떻게 했는가", "type": "job", "tags": ["산재처리"] },
+            { "qid": "KTG-R-13", "q": "산업재해조사표의 제출 항목은 무엇인가", "type": "job", "tags": ["산재처리"] },
+            { "qid": "KTG-R-14", "q": "산재 처리 후 다음 절차는 무엇인가", "type": "job", "tags": ["산재처리"], "note": "요양급여 신청 등 근로복지공단 절차로 연결" },
+            { "qid": "KTG-R-15", "q": "휴직자·복직자 관리는 어떻게 했는가", "type": "job", "tags": ["산재처리"] },
+            { "qid": "KTG-R-16", "q": "산업안전보건법 전면개정의 주요 내용을 설명하시오", "type": "job", "tags": ["산안법"] },
+            { "qid": "KTG-R-17", "q": "도급 금지 물질 3가지와 도급 승인 대상 물질을 설명하시오", "type": "job", "tags": ["도급"] },
+            { "qid": "KTG-R-18", "q": "도급업체 관리는 어떤 방식으로 했는가", "type": "job", "tags": ["도급"] },
+            { "qid": "KTG-R-19", "q": "안전 업무를 하며 가장 보람 있었던 순간은 언제인가", "type": "common", "tags": [] },
+            { "qid": "KTG-R-20", "q": "안전 업무 중 가장 인상적이었던 기억을 설명하시오", "type": "common", "tags": [] },
+            { "qid": "KTG-R-21", "q": "지원한 사업장이 아닌 전국 근무지로 발령될 수 있는데 그래도 지원하겠는가", "type": "situation", "tags": ["근무지"] },
+            { "qid": "KTG-R-22", "q": "전공에서 무엇을 배웠는가", "type": "common", "tags": [] },
+            { "qid": "KTG-R-23", "q": "외부 교육 이수사항에 대해 설명할 수 있는가", "type": "job", "tags": ["교육"] },
+            { "qid": "KTG-R-24", "q": "산재 처리 시 근로자가 공상을 원하는 경우에는 어떻게 하는가", "type": "situation", "tags": ["산재처리"] },
+            { "qid": "KTG-R-25", "q": "회사 리스크를 고려하면 공상으로 처리하는 것이 맞지 않은가", "type": "situation", "tags": ["산재처리", "압박"] },
+            { "qid": "KTG-R-26", "q": "공상으로 처리했을 경우 별도의 사후 절차가 있는가", "type": "job", "tags": ["산재처리"] },
+            { "qid": "KTG-R-27", "q": "A사업장 소속 하청 직원이 B사업장에서 사고를 당한 경우, 산재조사표는 어디에 제출해야 하는가", "type": "job", "tags": ["산재처리", "법규해석"] }
+          ]
+        },
+        {
+          "stage": "임원면접",
+          "stageType": "exec",
+          "format": "법 준수 실태를 직접 캐묻는 압박 질문 포함",
+          "questions": [
+            { "qid": "KTG-E-01", "q": "현재 근무하는 사업장은 어떤 곳인가", "type": "common", "tags": [] },
+            { "qid": "KTG-E-02", "q": "산업재해 처리를 해봤는가, 어떤 상황에서 어떻게 처리했는가", "type": "job", "tags": ["산재처리"] },
+            { "qid": "KTG-E-03", "q": "산재로 처리할 것인가, 공상으로 처리할 것인가", "type": "situation", "tags": ["산재처리", "압박"] },
+            { "qid": "KTG-E-04", "q": "현 직장에서 산안법·화관법 등 법적 규제를 모두 준수하고 있는가", "type": "situation", "tags": ["법규해석", "압박"] },
+            { "qid": "KTG-E-05", "q": "본인 사업장에서 현장과의 소통은 어떻게 하고 있는가", "type": "situation", "tags": ["현장소통"] },
+            { "qid": "KTG-E-06", "q": "안전 업무로 쌓아온 본인의 커리어를 설명하시오", "type": "job", "tags": [] },
+            { "qid": "KTG-E-07", "q": "지원동기", "type": "common", "tags": ["지원동기"] },
+            { "qid": "KTG-E-08", "q": "우리 회사에 어떻게 기여할 것인가", "type": "common", "tags": ["포부"] },
+            { "qid": "KTG-E-09", "q": "안전 업무를 하며 보람 있었던 것과 힘들었던 것은 무엇인가", "type": "common", "tags": [] },
+            { "qid": "KTG-E-10", "q": "안전 업무에서 '기획'했던 경험을 PDCA 관점으로 설명하시오", "type": "job", "tags": [] },
+            { "qid": "KTG-E-11", "q": "안전보건경영시스템과 PSM의 차이를 설명하시오", "type": "job", "tags": ["안전보건경영시스템", "PSM"] },
+            { "qid": "KTG-E-12", "q": "법 기준에 대해 상사와 유권해석이 다를 때 어떻게 대처할 것인가", "type": "situation", "tags": ["법규해석", "상황대처"] },
+            { "qid": "KTG-E-13", "q": "전공 과정에서 가장 기억나는 안전 관련 강의는 무엇인가", "type": "common", "tags": [] },
+            { "qid": "KTG-E-14", "q": "본인을 채용해야 하는 이유는 무엇인가", "type": "common", "tags": ["강점단점"] },
+            { "qid": "KTG-E-15", "q": "본인의 장점과 단점을 말해보시오", "type": "common", "tags": ["강점단점"] },
+            { "qid": "KTG-E-16", "q": "PSM 관리를 잘 수행할 수 있는가", "type": "job", "tags": ["PSM"] },
+            { "qid": "KTG-E-17", "q": "마지막으로 하고 싶은 말", "type": "common", "tags": ["마지막할말"] }
+          ]
+        },
+        {
+          "stage": "기타 직무질문 (연도 혼재)",
+          "stageType": "job",
+          "format": "연도별로 출제된 단문 직무질문 모음",
+          "questions": [
+            { "qid": "KTG-X-01", "q": "안전 기획 업무를 해봤는가 (PDCA 관점)", "type": "job", "tags": [] },
+            { "qid": "KTG-X-02", "q": "변경관리와 작업절차 단계 설정은 어떤 기준으로 하는가", "type": "job", "tags": ["PSM"] },
+            { "qid": "KTG-X-03", "q": "입사하면 안전 업무를 무엇부터 하겠는가", "type": "common", "tags": ["포부"] },
+            { "qid": "KTG-X-04", "q": "소방 분야를 다루면서 왜 안전을 전공했는가", "type": "common", "tags": ["지원동기", "소방"] },
+            { "qid": "KTG-X-05", "q": "위험물의 성상(류별 특성)을 설명하시오", "type": "job", "tags": ["위험물"] },
+            { "qid": "KTG-X-06", "q": "공생협력프로그램을 운영한 경험이 있는가", "type": "job", "tags": ["도급"] },
+            { "qid": "KTG-X-07", "q": "산업안전보건위원회 운영 시 근로자대표가 없으면 어떻게 하는가", "type": "job", "tags": ["산안법", "법규해석"] },
+            { "qid": "KTG-X-08", "q": "도급 금지 대상 물질은 무엇인가", "type": "job", "tags": ["도급"] }
+          ]
+        }
+      ]
+    },
+
+    {
+      "id": "etc-coupang",
+      "name": "쿠팡",
+      "tier": "T1",
+      "jobFields": ["안전(물류)"],
+      "interviews": [
+        {
+          "stage": "1차면접 (인성·직무 기본)",
+          "stageType": "job",
+          "questions": [
+            { "qid": "CPG-1-01", "q": "자기소개", "type": "common", "tags": ["자기소개"] },
+            { "qid": "CPG-1-02", "q": "지원동기", "type": "common", "tags": ["지원동기"] },
+            { "qid": "CPG-1-03", "q": "물류업 안전관리에 대해 어느 정도 알고 있는가", "type": "job", "tags": [] }
+          ]
+        },
+        {
+          "stage": "2차면접 (법규·기술)",
+          "stageType": "job",
+          "format": "물류센터 특성상 시설·근골격계·교육 기준을 집중 확인",
+          "questions": [
+            { "qid": "CPG-2-01", "q": "방화문 설치기준을 설명하시오", "type": "job", "tags": ["소방"] },
+            { "qid": "CPG-2-02", "q": "작업장 조도 기준은 작업 구분별로 어떻게 되는가", "type": "job", "tags": ["산안법"] },
+            { "qid": "CPG-2-03", "q": "근골격계 부담작업의 법적 분류를 설명하시오", "type": "job", "tags": ["산안법"] },
+            { "qid": "CPG-2-04", "q": "법정 안전보건교육의 대상별 시간 기준을 설명하시오", "type": "job", "tags": ["교육"] }
+          ]
+        },
+        {
+          "stage": "3차면접 (현업부서 인성)",
+          "stageType": "culture",
+          "format": "대규모 인력 관리 상황에서의 대인 대응력 확인",
+          "questions": [
+            { "qid": "CPG-3-01", "q": "함께 일하기 싫은 사람이 있으면 어떻게 하는가", "type": "situation", "tags": ["상황대처"] },
+            { "qid": "CPG-3-02", "q": "본인의 지시를 따르지 않는 사람이 있으면 어떻게 할 것인가", "type": "situation", "tags": ["현장소통"] },
+            { "qid": "CPG-3-03", "q": "실패를 극복한 사례를 말해보시오", "type": "common", "tags": [] }
+          ]
+        }
+      ]
+    },
+
+    {
+      "id": "etc-hanjin",
+      "name": "한진그룹",
+      "tier": "T1",
+      "jobFields": ["안전", "보건"],
+      "interviews": [
+        {
+          "stage": "직무·인성면접",
+          "stageType": "job",
+          "format": "지원자 다수 동시 진행 / 개별 지정질문 다수",
+          "note": "'좋은 얘기 말고 솔직하게'라는 재질문이 반복됨. 모범답안형 답변은 역효과",
+          "questions": [
+            { "qid": "HJN-J-01", "q": "자기소개", "type": "common", "tags": ["자기소개"] },
+            { "qid": "HJN-J-02", "q": "지원동기", "type": "common", "tags": ["지원동기"] },
+            { "qid": "HJN-J-03", "q": "포장된 답변 말고 솔직한 지원동기를 말해보시오", "type": "situation", "tags": ["지원동기", "압박"] },
+            { "qid": "HJN-J-04", "q": "현 직장도 중요한 시기인데 인력을 데려가는 셈이 아닌가", "type": "situation", "tags": ["압박"] },
+            { "qid": "HJN-J-05", "q": "첫 번째 회사의 이직 사유는 무엇인가", "type": "common", "tags": ["이직사유"] },
+            { "qid": "HJN-J-06", "q": "두 번째 회사의 이직 사유는 무엇인가", "type": "common", "tags": ["이직사유"] },
+            { "qid": "HJN-J-07", "q": "현장 근로자들과 평소 대화를 나누는가", "type": "situation", "tags": ["현장소통"] },
+            { "qid": "HJN-J-08", "q": "근로자들은 어떤 점이 힘들다고 이야기하는가", "type": "situation", "tags": ["현장소통"] },
+            { "qid": "HJN-J-09", "q": "물류·하역 현장에서 최근 사고가 잦은데 원인이 무엇이라 생각하는가", "type": "job", "tags": [] },
+            { "qid": "HJN-J-10", "q": "그렇다면 어떻게 해야 사고를 줄일 수 있는가", "type": "job", "tags": ["위험성평가"] },
+            { "qid": "HJN-J-11", "q": "안전 캠페인만으로는 인식 변화가 어려운데 다른 방법은 없는가", "type": "situation", "tags": ["현장소통", "압박"] },
+            { "qid": "HJN-J-12", "q": "모집 분야는 안전이지만 보건 담당으로 배치될 수도 있는데 괜찮은가", "type": "situation", "tags": ["조직적합"] },
+            { "qid": "HJN-J-13", "q": "보건관리자 선임 자격이 없다면, 자격 취득 계획은 무엇인가", "type": "common", "tags": ["포부"] },
+            { "qid": "HJN-J-14", "q": "입사하면 안전 측면에서 무엇을 어떻게 하겠다는 계획이 있는가", "type": "common", "tags": ["포부"] },
+            { "qid": "HJN-J-15", "q": "현 직장에서 안전 분야로 만든 대표 실적을 말해보시오", "type": "job", "tags": [] },
+            { "qid": "HJN-J-16", "q": "본인의 강점은 무엇인가", "type": "common", "tags": ["강점단점"] },
+            { "qid": "HJN-J-17", "q": "마지막으로 본인을 PR해보시오", "type": "common", "tags": ["마지막할말"] }
+          ]
+        }
+      ]
+    },
+
+    {
+      "id": "etc-lig",
+      "name": "LIG그룹",
+      "tier": "T1",
+      "jobFields": ["안전", "연구안전"],
+      "interviews": [
+        {
+          "stage": "직무면접",
+          "stageType": "job",
+          "format": "안전 철학 + 연구실안전법 이해도 중심",
+          "questions": [
+            { "qid": "LIG-J-01", "q": "자기소개", "type": "common", "tags": ["자기소개"] },
+            { "qid": "LIG-J-02", "q": "안전을 어떤 자세로 대하며, 안전이란 무엇이라 생각하는가. 중점적으로 확인해야 할 사항은 무엇인가", "type": "job", "tags": [] },
+            { "qid": "LIG-J-03", "q": "KOSHA-MS, OHSAS 등 인증 절차를 어떤 방식으로 진행해봤는가", "type": "job", "tags": ["안전보건경영시스템"] },
+            { "qid": "LIG-J-04", "q": "현 사업장의 규모(인원·설비)는 어떻게 되는가", "type": "job", "tags": [] },
+            { "qid": "LIG-J-05", "q": "위험성평가를 하면서 가장 중요한 것은 무엇이라 생각하는가", "type": "job", "tags": ["위험성평가"] },
+            { "qid": "LIG-J-06", "q": "감소대책 수립 후 현장에서 지켜지지 않을 때 본인이 취한 행동과 사례를 말하시오", "type": "situation", "tags": ["현장소통"] },
+            { "qid": "LIG-J-07", "q": "연구실안전법과 산업안전보건법의 차이는 무엇인가", "type": "job", "tags": ["연구실안전", "산안법"] },
+            { "qid": "LIG-J-08", "q": "연구소에 신규 물질을 도입할 때의 절차 Flow를 설명하시오", "type": "job", "tags": ["연구실안전", "화평법"] },
+            { "qid": "LIG-J-09", "q": "현장이 지시를 따르지 않을 때 안전관리자가 해야 할 일은 무엇인가", "type": "situation", "tags": ["현장소통"] },
+            { "qid": "LIG-J-10", "q": "안전관리의 효과와 효율 중 무엇이 더 중요하다고 생각하는가", "type": "job", "tags": [] },
+            { "qid": "LIG-J-11", "q": "본인이 가장 자신 있는 업무는 무엇인가", "type": "job", "tags": ["강점단점"] },
+            { "qid": "LIG-J-12", "q": "마지막으로 하고 싶은 말", "type": "common", "tags": ["마지막할말"] }
+          ]
+        }
+      ]
+    }
+  ]
+}

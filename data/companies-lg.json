@@ -1,0 +1,78 @@
+{
+  "group": "G-LG",
+  "companies": [
+    {
+      "id": "lg-1",
+      "name": "LG그룹 ①",
+      "tier": "T1",
+      "jobFields": ["안전"],
+      "interviews": [
+        {
+          "stage": "1차 발표면접",
+          "stageType": "pt",
+          "format": "경력·직무수행능력 자료를 사전 작성 후 발표 → 심층 질의",
+          "note": "발표 자료의 문장 하나하나를 근거로 되묻는 압박형. 수치는 반드시 산출근거까지 준비",
+          "questions": [
+            { "qid": "LG1-P-01", "q": "[PT] 본인의 경력사항과 직무수행능력을 사전 작성하여 발표하시오", "type": "pt", "tags": [] },
+            { "qid": "LG1-P-02", "q": "발표 자료 내용에 대한 심층 질의 (근거·기여도·재현성 확인)", "type": "situation", "tags": ["압박"] },
+            { "qid": "LG1-P-03", "q": "증설로 신규 PSM 대상 사업장이 되는데, 입사 직후 바로 역량을 발휘할 수 있는가", "type": "situation", "tags": ["PSM", "압박"] },
+            { "qid": "LG1-P-04", "q": "퇴직 사유와, 안전에서 가장 중요하게 생각하는 것은 무엇인가", "type": "common", "tags": ["이직사유"] },
+            { "qid": "LG1-P-05", "q": "회사에 궁금한 점이 있는가 (역질문)", "type": "common", "tags": [] },
+            { "qid": "LG1-P-06", "q": "마지막으로 어필하고 싶은 점", "type": "common", "tags": ["마지막할말"] }
+          ]
+        },
+        {
+          "stage": "영어면접",
+          "stageType": "english",
+          "format": "원어민 또는 사내 평가자와 1:1 / 생활영어 + 경력 설명 수준",
+          "questions": [
+            { "qid": "LG1-EN-01", "q": "How did you get here today? / What did you do in your previous job?", "type": "english", "tags": ["영어"] },
+            { "qid": "LG1-EN-02", "q": "What are your strengths?", "type": "english", "tags": ["영어", "강점단점"] },
+            { "qid": "LG1-EN-03", "q": "How would you describe your personality?", "type": "english", "tags": ["영어"] }
+          ]
+        },
+        {
+          "stage": "임원면접",
+          "stageType": "exec",
+          "note": "준비한 멘트 티가 나면 '솔직하게 말해보라'는 지적이 반복됨. 암기형보다 사실 기반 답변",
+          "questions": [
+            { "qid": "LG1-E-01", "q": "입사 동기는 무엇인가", "type": "common", "tags": ["지원동기"] },
+            { "qid": "LG1-E-02", "q": "취미는 무엇인가", "type": "common", "tags": [] },
+            { "qid": "LG1-E-03", "q": "앞으로의 미래 계획은 무엇인가", "type": "common", "tags": ["포부"] },
+            { "qid": "LG1-E-04", "q": "입사 후 계획은 무엇인가", "type": "common", "tags": ["포부"] },
+            { "qid": "LG1-E-05", "q": "회사 생활에서 힘들었던 점과 그것을 극복한 사례를 말해보시오", "type": "common", "tags": ["강점단점"] },
+            { "qid": "LG1-E-06", "q": "회사에서 본인이 가장 크게 이뤄낸 성과는 무엇인가", "type": "common", "tags": ["강점단점"] }
+          ]
+        }
+      ]
+    },
+
+    {
+      "id": "lg-2",
+      "name": "LG그룹 ②",
+      "tier": "T1",
+      "jobFields": ["안전", "환경", "소방"],
+      "interviews": [
+        {
+          "stage": "직무·인성면접",
+          "stageType": "job",
+          "format": "직무 기술 + 인성 혼합 / 이직 사유를 조직 부적응 관점으로 되묻는 압박 포함",
+          "questions": [
+            { "qid": "LG2-J-01", "q": "자기소개", "type": "common", "tags": ["자기소개"] },
+            { "qid": "LG2-J-02", "q": "중견·중소기업의 인재를 데려가는 것 아닌가", "type": "situation", "tags": ["압박"], "note": "업무분장 체계·타팀 지원 가능성·인수인계 계획을 근거로 답변" },
+            { "qid": "LG2-J-03", "q": "현재 환경 업무와 안전 업무의 비율은 어떻게 되는가", "type": "job", "tags": ["환경"] },
+            { "qid": "LG2-J-04", "q": "본인의 강점은 무엇인가", "type": "common", "tags": ["강점단점"] },
+            { "qid": "LG2-J-05", "q": "커뮤니케이션 측면에서 본인의 장점과 단점은 무엇인가", "type": "common", "tags": ["강점단점", "현장소통"] },
+            { "qid": "LG2-J-06", "q": "이직 사유가 조직 부적응은 아닌가", "type": "situation", "tags": ["이직사유", "압박"] },
+            { "qid": "LG2-J-07", "q": "위험성평가·JSA·HAZOP을 직접 수행할 수 있는가", "type": "job", "tags": ["위험성평가", "JSA", "HAZOP"] },
+            { "qid": "LG2-J-08", "q": "PSM 12대 요소 중 자신 있는 것 3가지를 말하고 근거를 설명하시오", "type": "job", "tags": ["PSM"] },
+            { "qid": "LG2-J-09", "q": "취미와 스트레스 해소 방법은 무엇인가", "type": "common", "tags": [] },
+            { "qid": "LG2-J-10", "q": "전공이 실제 업무에 어떤 영향을 주었는가", "type": "common", "tags": [] },
+            { "qid": "LG2-J-11", "q": "약 1년의 공백 기간에는 무엇을 했는가", "type": "common", "tags": ["공백기"] },
+            { "qid": "LG2-J-12", "q": "현 직장에서 소방 업무는 어떤 것을 수행했는가 (인허가 포함)", "type": "job", "tags": ["소방"] }
+          ]
+        }
+      ]
+    }
+  ]
+}

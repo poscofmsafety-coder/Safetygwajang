@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>스마트 안전보건법령 검색 | 안전과장</title><meta name="robots" content="noindex,follow"><meta name="theme-color" content="#153b67">
+<link rel="stylesheet" href="../css/brand.css"><link rel="stylesheet" href="assets/legacy-brand.css">
+<style>
+.law-page{max-width:1240px;margin:0 auto;padding:36px 22px 72px}.law-hero{padding:34px;border:1px solid #d8e4e7;border-radius:24px;background:linear-gradient(135deg,#fff 0%,#eef8f5 100%);box-shadow:0 10px 30px rgba(21,59,103,.06)}.law-hero .eyebrow{color:#07858a;font-weight:900;font-size:.74rem;letter-spacing:.09em}.law-hero h1{margin:8px 0 10px;color:#153b67;font-size:clamp(2rem,4vw,3.25rem);line-height:1.15;letter-spacing:-.035em}.law-hero>p{margin:0;color:#657688;line-height:1.8;font-size:.94rem}.law-examples{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}.law-examples button{border:1px solid #c9dcdf;background:#fff;color:#31516f;border-radius:999px;padding:8px 13px;font-size:.78rem;font-weight:800;cursor:pointer}.law-examples button:hover{border-color:#0b8185;color:#0b8185}.law-search{display:grid;grid-template-columns:1fr auto;gap:10px;margin-top:18px}.law-search input{height:58px;border:1px solid #c7d7de;border-radius:15px;padding:0 18px;font-size:1.03rem;background:#fff}.law-search button{border:0;border-radius:15px;background:#0b8185;color:#fff;padding:0 30px;font-weight:900;cursor:pointer}.law-search button:hover{background:#096b70}.law-search button:disabled{opacity:.58;cursor:wait}.law-status{margin-top:12px;border-radius:12px;padding:10px 12px;background:#f6f8fa;font-size:.78rem;color:#64748b}.law-status.ok{background:#ecfdf5;color:#087c59}.law-status.bad{background:#fff7ed;color:#b45309}.api-help{margin-top:12px;padding:13px 15px;border-radius:14px;border:1px solid #edd9a2;background:#fffaf0;color:#755f31;font-size:.77rem;line-height:1.7}.api-help code{background:#fff;padding:2px 5px;border-radius:5px;color:#153b67}.law-summary{display:none;margin-top:24px;padding:14px 16px;border:1px solid #d9e5e8;border-radius:14px;background:#fff;align-items:center;justify-content:space-between;gap:12px;color:#40556d;font-size:.84rem}.law-summary.show{display:flex}.law-summary strong{color:#0b8185}.law-count-pills{display:flex;gap:7px;flex-wrap:wrap}.law-count-pills span{display:inline-flex;padding:5px 9px;border-radius:999px;background:#eff5f5;color:#486073;font-size:.7rem;font-weight:900}.law-results{display:none;margin-top:8px}.law-results.show{display:block}.law-group{margin-top:25px}.law-group-head{display:flex;align-items:center;gap:9px;border-bottom:1px solid #dbe4e7;padding-bottom:10px}.law-group-head h2{margin:0;color:#153b67;font-size:1.25rem}.law-count{display:inline-flex;min-width:28px;height:25px;align-items:center;justify-content:center;padding:0 8px;border-radius:999px;background:#153b67;color:#fff;font-size:.72rem;font-weight:900}.law-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:14px}.law-card{display:flex;min-width:0;flex-direction:column;border:1px solid #dce5e8;border-radius:16px;padding:17px;background:#fff;color:inherit;transition:.16s}.law-card:hover{transform:translateY(-2px);border-color:#8fb9b9;box-shadow:0 8px 20px rgba(21,59,103,.07)}.law-card-head{display:flex;align-items:center;justify-content:space-between;gap:10px}.law-badge-row{display:flex;gap:6px;align-items:center;flex-wrap:wrap}.law-badge,.law-match-badge{display:inline-flex;padding:4px 8px;border-radius:999px;font-size:.68rem;font-weight:900}.law-badge{background:#edf7f5;color:#0b8185}.law-match-badge{background:#fff6cc;color:#7a6200}.law-source{color:#8a96a2;font-size:.68rem;white-space:nowrap}.law-card h3{margin:10px 0 7px;color:#183a61;font-size:.96rem;line-height:1.55}.law-category{margin:0 0 8px;color:#748494;font-size:.72rem}.law-scroll-wrap{position:relative;margin-top:2px}.law-content{max-height:205px;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:11px 12px 28px;border:1px solid #e4eaed;border-radius:12px;background:#fbfcfc;color:#596b7d;font-size:.79rem;line-height:1.75;white-space:pre-wrap;word-break:keep-all;scrollbar-width:thin;scrollbar-color:#8db8bd #eef4f4}.law-content::-webkit-scrollbar{width:8px}.law-content::-webkit-scrollbar-track{background:#eef4f4;border-radius:10px}.law-content::-webkit-scrollbar-thumb{background:#8db8bd;border-radius:10px}.law-scroll-hint{position:absolute;left:9px;right:9px;bottom:6px;display:block;padding:3px 6px;border-radius:8px;background:linear-gradient(90deg,rgba(255,255,255,.96),rgba(255,255,255,.82));color:#78909c;font-size:.63rem;font-weight:800;text-align:right;pointer-events:none}.law-scroll-hint.is-hidden{display:none}.law-card mark{background:#ffe96a;color:#1c2c3c;border-radius:3px;padding:0 .08em;box-shadow:0 0 0 1px rgba(255,214,10,.28)}.law-actions{display:flex;justify-content:flex-end;margin-top:11px}.law-actions a{display:inline-flex;align-items:center;justify-content:center;min-height:38px;padding:8px 11px;border:1px solid #cbdadd;border-radius:10px;background:#fff;color:#153b67;text-decoration:none;font-size:.72rem;font-weight:900}.law-actions a:hover{border-color:#0b8185;color:#0b8185}.law-fallback{margin-top:20px;padding:16px;border:1px solid #eadcaa;border-radius:14px;background:#fffaf0;color:#746743;font-size:.8rem;line-height:1.7}.law-fallback a{font-weight:900;color:#153b67}.empty{grid-column:1/-1;padding:30px;text-align:center;border:1px dashed #d2dee3;border-radius:15px;background:#fff;color:#7b8997}
+@media(max-width:900px){.law-page{padding:26px 16px 58px}.law-hero{padding:27px 22px}.law-grid{grid-template-columns:1fr 1fr}.law-content{max-height:190px}}
+@media(max-width:760px){.law-page{padding:18px 12px 46px}.law-hero{padding:22px 15px;border-radius:18px}.law-hero h1{font-size:clamp(1.65rem,8vw,2.2rem)}.law-search{grid-template-columns:1fr}.law-search input{height:52px}.law-search button{height:50px;width:100%}.law-summary{align-items:flex-start;flex-direction:column}.law-grid{grid-template-columns:1fr}.law-card{padding:14px}.law-card:hover{transform:none}.law-card-head{align-items:flex-start}.law-source{white-space:normal;text-align:right}.law-content{max-height:180px;font-size:.8rem}.law-actions a{width:100%;min-height:44px}}
+</style><script src="/js/adsense-guard.js"></script>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9283463208175336" crossorigin="anonymous"></script>
+<link rel="stylesheet" href="../css/responsive.css">
+</head>
+<body class="legacy-tool-page">
+<header class="legacy-brand-nav"><div class="legacy-brand-inner"><a class="legacy-brand-name" href="../index.html?audience=worker"><img src="../assets/jaeili-face-v4.png" alt="안전과장 제일이 로고" data-cheer-mascot><span>안전과장</span></a><nav class="legacy-worker-nav" aria-label="재직자 실무 메뉴"><a href="dashboard.html">현장 대시보드</a><a href="patrol-inspection.html">순회점검</a><a href="safety-education.html">안전교육</a><a href="risk-assessment.html">위험성평가</a><a href="risk-guide.html">실무가이드</a><a href="laws.html" aria-current="page">법령·지침</a><a href="msds-management.html">MSDS</a><a href="confined-space.html">밀폐공간</a><a href="incident-report.html">사고기록</a></nav><span class="live-clock legacy-live-clock" data-live-clock></span><a class="legacy-back" href="../index.html?audience=worker">재직자 홈</a></div></header>
+<main class="law-page">
+<section class="law-hero"><span class="eyebrow">SMART SAFETY LAW SEARCH</span><h1>스마트 안전보건법령 검색</h1><p>현장에서 바로 찾고 싶은 안전보건 법령·고시·KOSHA GUIDE를 공식 데이터에서 키워드로 검색합니다.</p><div class="law-examples" aria-label="예시 검색어"><button type="button" data-law-example="밀폐공간">밀폐공간</button><button type="button" data-law-example="적정공기">적정공기</button><button type="button" data-law-example="하역운반기계">하역운반기계</button><button type="button" data-law-example="접지">접지</button><button type="button" data-law-example="화재감시자">화재감시자</button></div><div class="law-search"><input id="searchInput" autocomplete="off" maxlength="80" placeholder="예: 밀폐공간, 적정공기, 하역운반기계"><button id="searchBtn" type="button">법령 검색</button></div><div id="dbStatus" class="law-status" hidden aria-live="polite"></div></section>
+<div id="lawSummary" class="law-summary" aria-live="polite"></div>
+<section id="resultArea" class="law-results" aria-live="polite"><div class="law-group" data-law-group="law"><div class="law-group-head"><h2>산업안전보건법 및 관계 법령</h2><span id="cntLaw" class="law-count">0</span></div><div id="lawContent" class="law-grid"></div></div><div class="law-group" data-law-group="guide"><div class="law-group-head"><h2>KOSHA GUIDE</h2><span id="cntGuide" class="law-count">0</span></div><div id="guideContent" class="law-grid"></div></div><div class="law-group" data-law-group="media"><div class="law-group-head"><h2>안전보건 자료</h2><span id="cntMedia" class="law-count">0</span></div><div id="mediaContent" class="law-grid"></div></div><div id="fallback" class="law-fallback" hidden></div></section>
+</main>
+<script>
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const reEsc=s=>String(s).replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+function highlightLawText(value,query){
+  const text=String(value??'');
+  const phrase=String(query||'').trim();
+  if(!phrase)return esc(text);
+  const terms=[phrase,...phrase.split(/\s+/)].map(x=>x.trim()).filter(Boolean).filter((v,i,a)=>a.indexOf(v)===i).sort((a,b)=>b.length-a.length);
+  if(!terms.length)return esc(text);
+  const rx=new RegExp(terms.map(reEsc).join('|'),'gi');
+  let out='',last=0,m;
+  while((m=rx.exec(text))){out+=esc(text.slice(last,m.index))+'<mark>'+esc(m[0])+'</mark>';last=m.index+m[0].length;if(m[0].length===0)rx.lastIndex++;}
+  return out+esc(text.slice(last));
+}
+function officialLink(item,q){
+  const raw=String(item.link||item.url||'').trim();
+  if(/^https?:\/\//i.test(raw))return raw;
+  const cat=String(item.category||'');
+  if(cat==='6'||cat==='7')return 'https://smartsearch.kosha.or.kr/?searchValue='+encodeURIComponent(q);
+  return 'https://www.law.go.kr/lsSc.do?query='+encodeURIComponent(item.title||q);
+}
+function directMatch(item){return ['title-phrase','content-phrase','title-all-terms','content-all-terms'].includes(item.matchType)}
+function resultCard(item,type,q){
+  const category=item.categoryName||(type==='guide'?'KOSHA GUIDE':type==='media'?'안전보건 자료':'법령');
+  const content=item.content||'검색된 공식 자료의 원문을 확인하세요.';
+  const source=item.source||(type==='law'?'국가법령정보센터':'한국산업안전보건공단');
+  return `<article class="law-card" data-law-type="${esc(type)}"><div class="law-card-head"><div class="law-badge-row"><span class="law-badge">${esc(category)}</span>${directMatch(item)?'<span class="law-match-badge">검색어 일치</span>':''}</div><small class="law-source">${esc(source)}</small></div><h3>${highlightLawText(item.title||'제목 없음',q)}</h3><p class="law-category">${highlightLawText(category,q)}</p><div class="law-scroll-wrap"><div class="law-content" data-law-content tabindex="0" role="region" aria-label="${esc(item.title||'법령')} 내용">${highlightLawText(content,q)}</div><span class="law-scroll-hint" aria-hidden="true">↕ 스크롤해서 전체 내용 보기</span></div><div class="law-actions"><a href="${esc(officialLink(item,q))}" target="_blank" rel="noopener noreferrer">공식 원문 열기 ↗</a></div></article>`;
+}
+function renderGroup(id,items,type,q){
+  const el=document.getElementById(id);
+  const group=el.closest('[data-law-group]');
+  group.hidden=!items.length;
+  el.innerHTML=items.length?items.map(x=>resultCard(x,type,q)).join(''):'<div class="empty">검색 결과가 없습니다.</div>';
+}
+function updateScrollHints(){
+  requestAnimationFrame(()=>document.querySelectorAll('.law-content').forEach(el=>{const hint=el.parentElement.querySelector('.law-scroll-hint');if(hint)hint.classList.toggle('is-hidden',el.scrollHeight<=el.clientHeight+4)}));
+}
+function renderResults(data,q){
+  let law=Array.isArray(data.law)?data.law:[],guide=Array.isArray(data.guide)?data.guide:[],media=Array.isArray(data.media)?data.media:[];
+  if(!law.length&&!guide.length&&!media.length&&Array.isArray(data.items)){
+    law=data.items.filter(x=>!['6','7'].includes(String(x.category)));guide=data.items.filter(x=>String(x.category)==='7');media=data.items.filter(x=>String(x.category)==='6');
+  }
+  const total=law.length+guide.length+media.length;
+  document.getElementById('cntLaw').textContent=law.length;document.getElementById('cntGuide').textContent=guide.length;document.getElementById('cntMedia').textContent=media.length;
+  const summary=document.getElementById('lawSummary');summary.classList.add('show');summary.innerHTML=`<div><b>“${esc(q)}”</b> 검색 결과 <strong>${total}건</strong></div><div class="law-count-pills"><span>법령 ${law.length}</span><span>KOSHA GUIDE ${guide.length}</span><span>자료 ${media.length}</span></div>`;
+  renderGroup('lawContent',law,'law',q);renderGroup('guideContent',guide,'guide',q);renderGroup('mediaContent',media,'media',q);document.getElementById('resultArea').classList.add('show');updateScrollHints();
+  return total;
+}
+const LAW_CACHE_KEY='sgw_law_cache_v2';
+function cacheGet(q){
+  try{const box=JSON.parse(sessionStorage.getItem(LAW_CACHE_KEY)||'{}');const hit=box[q];if(hit&&Date.now()-hit.t<5*60*1000)return hit.data}catch(e){}return null;
+}
+function cacheSet(q,data){
+  try{const box=JSON.parse(sessionStorage.getItem(LAW_CACHE_KEY)||'{}');box[q]={t:Date.now(),data};const keys=Object.keys(box).sort((a,b)=>box[b].t-box[a].t).slice(0,8);const out={};keys.forEach(k=>out[k]=box[k]);sessionStorage.setItem(LAW_CACHE_KEY,JSON.stringify(out))}catch(e){}
+}
+async function fetchLaw(q,limit=100){
+  const cached=cacheGet(q);if(cached)return {...cached,_cached:true};
+  const urls=['/api/safety-law/search?q='+encodeURIComponent(q)+'&limit='+limit,'/api/laws/search?q='+encodeURIComponent(q)+'&limit='+limit];
+  let lastError=new Error('검색 연결이 지연되고 있습니다.');
+  for(const url of urls){
+    const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),16000);
+    try{const r=await fetch(url,{cache:'no-store',signal:ctrl.signal}),j=await r.json();clearTimeout(timer);if(r.ok&&j.ok){cacheSet(q,j);return j}lastError=new Error('검색 결과를 불러오지 못했습니다.');if(r.status!==404)break}catch(e){clearTimeout(timer);lastError=e?.name==='AbortError'?new Error('검색 시간이 길어지고 있습니다. 잠시 후 다시 시도해 주세요.'):new Error('검색 연결이 지연되고 있습니다. 잠시 후 다시 시도해 주세요.')}
+  }
+  throw lastError;
+}
+async function doSearch(){
+  const input=document.getElementById('searchInput'),q=input.value.trim();if(!q){input.focus();return}
+  const btn=document.getElementById('searchBtn'),status=document.getElementById('dbStatus');
+  btn.disabled=true;btn.textContent='검색 중';status.hidden=false;status.textContent='공식자료 검색 중 · '+q;status.className='law-status';document.getElementById('resultArea').classList.add('show');document.getElementById('fallback').hidden=true;
+  try{const data=await fetchLaw(q,100),total=renderResults(data,q);status.textContent=(data._cached?'빠른 검색 완료':'검색 완료')+' · '+total+'건 · '+(data.searchedAtLabel||'방금');status.className='law-status ok'}catch(e){document.getElementById('lawSummary').classList.remove('show');document.querySelectorAll('[data-law-group]').forEach(x=>x.hidden=true);const f=document.getElementById('fallback');f.hidden=false;f.innerHTML=`검색 연결이 원활하지 않습니다. 잠시 후 다시 시도해 주세요.<br><a target="_blank" rel="noopener" href="https://www.law.go.kr/lsSc.do?query=${encodeURIComponent(q)}">국가법령정보센터에서 직접 검색</a> · <a target="_blank" rel="noopener" href="https://smartsearch.kosha.or.kr/">안전보건 자료 직접 검색</a>`;status.textContent=String(e.message||'검색 연결이 지연되고 있습니다.');status.className='law-status bad'}finally{btn.disabled=false;btn.textContent='법령 검색'}
+}
+document.querySelectorAll('[data-law-example]').forEach(b=>b.addEventListener('click',()=>{document.getElementById('searchInput').value=b.dataset.lawExample;doSearch()}));
+document.getElementById('searchBtn').addEventListener('click',doSearch);
+document.getElementById('searchInput').addEventListener('keydown',e=>{if(e.key==='Enter')doSearch()});
+window.addEventListener('resize',updateScrollHints,{passive:true});
+</script><script src="../js/site-clock.js"></script><script src="../js/mascot-cheer.js"></script><script defer src="/js/security.js"></script>
+</body></html>

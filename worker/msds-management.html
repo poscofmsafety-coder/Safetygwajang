@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MSDS 보건관리 | 안전과장</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- 엑셀 -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- PDF.js 6.3.289: 원문 텍스트/좌표 추출. CDN 장애 시 unpkg로 자동 재시도 -->
+    <script type="module">
+      (async()=>{
+        const candidates=[
+          ['https://cdn.jsdelivr.net/npm/pdfjs-dist@6.3.289/build/pdf.min.mjs','https://cdn.jsdelivr.net/npm/pdfjs-dist@6.3.289/build/pdf.worker.min.mjs'],
+          ['https://unpkg.com/pdfjs-dist@6.3.289/build/pdf.min.mjs','https://unpkg.com/pdfjs-dist@6.3.289/build/pdf.worker.min.mjs']
+        ];
+        for(const [src,worker] of candidates){
+          try{
+            const pdfjsLib=await import(src);
+            pdfjsLib.GlobalWorkerOptions.workerSrc=worker;
+            window.pdfjsLib=pdfjsLib;
+            window.dispatchEvent(new Event('pdfjs-ready'));
+            return;
+          }catch(e){ console.warn('[PDF.js CDN fallback]',src,e); }
+        }
+        window.dispatchEvent(new Event('pdfjs-ready'));
+      })();
+    </script>
+    <!-- Tesseract.js 7.0.0: 스캔형 PDF/이미지 OCR 보조. 2개 CDN 순차 사용 -->
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@7/dist/tesseract.min.js" onerror="var s=document.createElement('script');s.src='https://unpkg.com/tesseract.js@7/dist/tesseract.min.js';document.head.appendChild(s);"></script>
+    <!-- ⭐ 분리된 스타일 -->
+    <link rel="stylesheet" href="assets/msds/styles.css">
+<meta name="robots" content="noindex,follow"><meta name="theme-color" content="#153b67"><link rel="stylesheet" href="../css/brand.css"><link rel="stylesheet" href="assets/legacy-brand.css"><script src="/js/adsense-guard.js"></script>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9283463208175336" crossorigin="anonymous"></script>
+<link rel="stylesheet" href="../css/responsive.css">
+</head>
+<body class="legacy-tool-page bg-slate-100 min-h-screen text-gray-800"><header class="legacy-brand-nav"><div class="legacy-brand-inner"><a class="legacy-brand-name" href="../index.html?audience=worker"><img src="../assets/jaeili-face-v4.png" alt="안전과장 제일이 로고" data-cheer-mascot><span>안전과장</span></a><nav class="legacy-worker-nav" aria-label="재직자 실무 메뉴"><a href="dashboard.html">현장 대시보드</a><a href="patrol-inspection.html">순회점검</a><a href="safety-education.html">안전교육</a><a href="risk-assessment.html">위험성평가</a><a href="risk-guide.html">실무가이드</a><a href="laws.html">법령·지침</a><a href="msds-management.html">MSDS</a><a href="confined-space.html">밀폐공간</a><a href="incident-report.html">사고기록</a></nav><span class="live-clock legacy-live-clock" data-live-clock aria-label="현재 한국 시간"></span><a class="legacy-back" href="../index.html?audience=worker">재직자 홈</a></div></header>
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+        <nav class="flex items-center text-xs text-gray-500 gap-2" aria-label="현재 위치">
+            <a href="../index.html?audience=worker" class="hover:text-teal-700 font-semibold">재직자 홈</a>
+            <span>›</span>
+            <span class="text-teal-700 font-semibold">MSDS 보건관리</span>
+        </nav>
+
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+                <h1 class="text-2xl font-black text-gray-900 flex items-center space-x-2">
+                    
+                    <span>MSDS 보건관리</span>
+                </h1>
+                <p class="text-sm text-gray-500 mt-1">화학물질 안전보건자료 등록·분석 및 작업환경측정·특수건강진단 통합 관리</p>
+            </div>
+            <div class="flex items-center space-x-2">
+                <button onclick="exportList2Excel()" class="bg-white border border-gray-300 hover:bg-slate-50 text-sm font-semibold px-3 py-2 rounded-lg flex items-center space-x-1">
+                    <span>Excel 내보내기</span>
+                </button>
+                <button onclick="document.querySelector('.tab-btn[data-tab=tab-register]').click(); document.getElementById('tab-register').scrollIntoView({behavior:'smooth',block:'start'});" class="bg-teal-600 hover:bg-teal-700 text-white text-sm font-semibold px-3 py-2 rounded-lg flex items-center space-x-1 shadow-sm">
+                    <span>신규 MSDS 등록</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div class="bg-white rounded-xl shadow-sm p-4 border-l-4 border-teal-500 flex items-center justify-between">
+                <div>
+                    <p class="text-[11px] font-bold text-gray-500 uppercase">전체 등록 MSDS</p>
+                    <p class="text-2xl font-black text-teal-600 mt-1"><span id="hdr-total">0</span><span class="text-sm text-gray-600"> 종</span></p>
+                </div>
+                
+            </div>
+            <div class="bg-white rounded-xl shadow-sm p-4 border-l-4 border-rose-500 flex items-center justify-between">
+                <div>
+                    <p class="text-[11px] font-bold text-gray-500 uppercase">특별관리물질</p>
+                    <p class="text-2xl font-black text-rose-600 mt-1"><span id="hdr-special">0</span><span class="text-sm text-gray-600"> 종</span></p>
+                </div>
+                
+            </div>
+            <div class="bg-white rounded-xl shadow-sm p-4 border-l-4 border-amber-500 flex items-center justify-between">
+                <div>
+                    <p class="text-[11px] font-bold text-gray-500 uppercase">작업환경측정 만료임박</p>
+                    <p class="text-2xl font-black text-amber-600 mt-1"><span id="hdr-envSoon">0</span><span class="text-sm text-gray-600"> 건</span></p>
+                </div>
+                
+            </div>
+            <div class="bg-white rounded-xl shadow-sm p-4 border-l-4 border-indigo-500 flex items-center justify-between">
+                <div>
+                    <p class="text-[11px] font-bold text-gray-500 uppercase">특수건강진단 대상</p>
+                    <p class="text-2xl font-black text-indigo-600 mt-1"><span id="hdr-health">0</span><span class="text-sm text-gray-600"> 종</span></p>
+                </div>
+                
+            </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+            <div class="border-b border-gray-200 overflow-x-auto">
+                <nav class="flex space-x-1 px-2" aria-label="Tabs">
+                    <button data-tab="tab-register" class="tab-btn active whitespace-nowrap px-4 py-3 text-sm font-bold border-b-2 border-transparent text-gray-500 hover:text-teal-600 transition flex items-center space-x-2">
+                        
+                        <span>① MSDS 등록</span>
+                    </button>
+                    <button data-tab="tab-list" class="tab-btn whitespace-nowrap px-4 py-3 text-sm font-bold border-b-2 border-transparent text-gray-500 hover:text-teal-600 transition flex items-center space-x-2">
+                        
+                        <span>② MSDS 리스트·법규분석</span>
+                        <span id="tabBadgeList" class="bg-teal-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">0</span>
+                    </button>
+                    <button data-tab="tab-label" class="tab-btn whitespace-nowrap px-4 py-3 text-sm font-bold border-b-2 border-transparent text-gray-500 hover:text-teal-600 transition flex items-center space-x-2">
+                        
+                        <span>③ 경고표지·관리요령</span>
+                    </button>
+                    <button data-tab="tab-env" class="tab-btn whitespace-nowrap px-4 py-3 text-sm font-bold border-b-2 border-transparent text-gray-500 hover:text-teal-600 transition flex items-center space-x-2">
+                        
+                        <span>④ 작업환경측정</span>
+                    </button>
+                    <button data-tab="tab-health" class="tab-btn whitespace-nowrap px-4 py-3 text-sm font-bold border-b-2 border-transparent text-gray-500 hover:text-teal-600 transition flex items-center space-x-2">
+                        
+                        <span>⑤ 특수건강진단</span>
+                    </button>
+                </nav>
+            </div>
+
+            <div class="p-6">
+                <!-- ① MSDS 등록 -->
+                <div id="tab-register" class="tab-panel active">
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div class="lg:col-span-2 space-y-5">
+                            <div id="uploadZone" class="border border-dashed border-teal-300 bg-teal-50 rounded-lg p-6 text-center cursor-pointer hover:bg-teal-100 transition">
+                                <input type="file" id="msdsFileInput" accept=".pdf,.png,.jpg,.jpeg,.webp,.tif,.tiff" class="hidden" multiple>
+                                
+                                <p class="mt-2 text-sm font-bold text-gray-800">MSDS 파일을 여기로 드래그하거나 클릭하여 업로드</p>
+                                <p class="text-xs text-gray-500 mt-1">지원 형식: PDF 또는 이미지 · 텍스트 추출이 어려운 스캔 문서는 OCR로 보조합니다. HWP·DOCX는 PDF로 저장 후 업로드하세요.</p>
+                                <button type="button" onclick="document.getElementById('msdsFileInput').click()" class="mt-3 bg-teal-600 hover:bg-teal-700 text-white text-sm font-semibold px-4 py-2 rounded-lg">
+                                     파일 선택
+                                </button>
+                            </div>
+
+                            <div id="uploadProgress" class="hidden bg-white border border-teal-200 rounded-lg p-4">
+                                <div class="flex items-center justify-between mb-2">
+                                    <p class="text-xs font-bold text-gray-700">MSDS 자동 추출 중…</p>
+                                    <p class="text-xs text-teal-600 font-bold" id="progressPercent">0%</p>
+                                </div>
+                                <div class="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
+                                    <div id="progressBar" class="bg-gradient-to-r from-teal-500 to-blue-500 h-2 rounded-full transition-all" style="width:0%"></div>
+                                </div>
+                                <div id="progressLog" class="mt-3 text-[11px] text-gray-600 space-y-1 max-h-40 overflow-y-auto"></div>
+                            </div>
+                            <div id="parseResult" class="hidden bg-emerald-50 border border-emerald-300 rounded-lg p-4">
+                                <div class="flex items-start justify-between mb-3">
+                                    <div class="flex items-center">
+                                        
+                                        <div>
+                                            <p class="text-sm font-black text-emerald-800">파싱 완료</p>
+                                            <p class="text-xs text-emerald-700 mt-0.5" id="parseResultSummary">-</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div id="parseDetail" class="bg-white border border-emerald-200 rounded p-3 text-[11px] space-y-2"></div>
+                            </div>
+
+                            <div id="compositionReviewArea" class="hidden"></div>
+
+                            <!-- ⭐⭐⭐ 기본 정보 (제조사·공급자 추가) -->
+                            <div>
+                                <h3 class="text-sm font-bold text-gray-800 mb-3 flex items-center space-x-2">
+                                    
+                                    <span>기본 정보</span>
+                                    <span class="text-[10px] text-gray-500 font-normal">(파일 업로드 시 자동 입력 · 수동 편집 가능)</span>
+                                </h3>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="text-xs font-semibold text-gray-600">제품명 <span class="text-rose-500">*</span></label>
+                                        <input type="text" id="reg-product" placeholder="예: N-Methyl-2-pyrrolidone (NMP)" class="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500">
+                                    </div>
+                                    <div>
+                                        <label class="text-xs font-semibold text-gray-600">사용 부서 <span class="text-rose-500">*</span></label>
+                                        <input type="text" id="reg-dept" placeholder="예: 생산1팀, 품질관리부, 연구소" class="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500">
+                                    </div>
+                                    <div>
+                                        <label class="text-xs font-semibold text-gray-600">사용 공정</label>
+                                        <input type="text" id="reg-process" placeholder="예: 세척, 정비, 분석" class="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500">
+                                    </div>
+                                    <div>
+                                        <label class="text-xs font-semibold text-gray-600">월 사용량(kg)</label>
+                                        <input type="number" id="reg-usage" placeholder="0" class="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500">
+                                    </div>
+                                    <div>
+                                        <label class="text-xs font-semibold text-gray-600">제조사</label>
+                                        <input type="text" id="reg-manufacturer" placeholder="예: 제조사명" class="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500">
+                                    </div>
+                                    <div>
+                                        <label class="text-xs font-semibold text-gray-600">공급자 (연락처)</label>
+                                        <input type="text" id="reg-supplier" placeholder="예: 제조사명 (02-3773-1114)" class="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- ⭐⭐⭐ 구성성분 수동 입력 섹션 (신규) -->
+                            <div class="border-2 border-dashed border-teal-300 rounded-lg p-4 bg-teal-50/40">
+                                <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+                                    <h4 class="text-sm font-bold text-gray-800 flex items-center gap-1.5">
+                                        
+                                        <span>구성성분 (MSDS 3번) — 수동 입력</span>
+                                        <span class="text-[10px] text-gray-500 font-normal">자동 추출 결과를 원본 MSDS와 대조하고 필요 시 수정하세요</span>
+                                    </h4>
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-[11px] text-gray-600">합계: <b id="manualCompSum" class="text-teal-700">0</b>%</span>
+                                        <button type="button" onclick="addManualCompRow()" class="bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg">
+                                            성분 추가
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="overflow-x-auto">
+                                    <table class="w-full text-xs" id="manualCompTable">
+                                        <thead>
+                                            <tr class="bg-white border border-gray-200">
+                                                <th class="px-2 py-1.5 text-left font-bold text-gray-600 w-10">#</th>
+                                                <th class="px-2 py-1.5 text-left font-bold text-gray-600">물질명 (한글/영문)</th>
+                                                <th class="px-2 py-1.5 text-left font-bold text-gray-600 w-40">CAS No.</th>
+                                                <th class="px-2 py-1.5 text-left font-bold text-gray-600 w-32">함유량 (%)</th>
+                                                <th class="px-2 py-1.5 text-center font-bold text-gray-600 w-12">삭제</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="manualCompBody"></tbody>
+                                    </table>
+                                </div>
+                                <p class="text-[10px] text-gray-500 mt-2">
+                                     <b>입력 예:</b> 물질명 <code class="bg-white px-1 rounded">황산</code> · CAS <code class="bg-white px-1 rounded">7664-93-9</code> · 함유량 <code class="bg-white px-1 rounded">95~98</code> 또는 <code class="bg-white px-1 rounded">99</code>
+                                </p>
+                            </div>
+
+                            <div class="flex justify-end space-x-2 pt-4 border-t border-gray-100">
+                                <button onclick="clearRegForm()" class="bg-white border border-gray-300 hover:bg-slate-50 text-sm font-semibold px-4 py-2 rounded-lg">초기화</button>
+                                <button id="btnRegister" onclick="registerMaterial()" class="bg-teal-600 hover:bg-teal-700 text-white text-sm font-semibold px-4 py-2 rounded-lg shadow-sm">
+                                     MSDS 분석 및 등록
+                                </button>
+                            </div>
+                        </div>
+                        <div class="lg:col-span-1">
+                            <div class="bg-gradient-to-br from-teal-50 to-blue-50 border border-teal-200 rounded-lg p-5 sticky top-24">
+                                <h3 class="text-sm font-bold text-gray-800 flex items-center space-x-2">
+                                    
+                                    <span>MSDS 추출 결과 미리보기</span>
+                                </h3>
+                                <p class="text-[11px] text-gray-500 mt-1">파일 업로드 시 자동으로 채워집니다</p>
+                                <div id="aiPreviewBody" class="mt-4 space-y-3 text-xs">
+                                    <p class="text-gray-400 text-center py-8">파일을 업로드하면<br>여기에 결과가 표시됩니다</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ② MSDS 리스트 -->
+                <div id="tab-list" class="tab-panel">
+                    <div class="bg-gradient-to-r from-indigo-50 via-blue-50 to-teal-50 border border-indigo-200 rounded-xl p-4 mb-5">
+                        <div class="flex items-center justify-between flex-wrap gap-3 mb-3">
+                            <div class="flex items-center gap-2">
+                                
+                                <div>
+                                    <h3 class="text-sm font-black text-gray-800">CAS No. 기준 KOSHA 법규정보 교차검토</h3>
+                                    <p class="text-[11px] text-gray-500">구성성분 CAS No.를 KOSHA MSDS 15항과 대조해 작업환경측정·특수건강진단·특별관리물질 정보를 보조 확인합니다</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button onclick="reinspectAll()" id="btnReinspectAll" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-sm">
+                                    전체 재조회
+                                </button>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3">
+                            <div class="bg-white/70 border border-white rounded-lg px-3 py-2"><p class="text-[10px] font-bold text-gray-500">모니터링 물질</p><p class="text-lg font-black text-gray-800" id="ins-total">-</p></div>
+                            <div class="bg-white/70 border border-white rounded-lg px-3 py-2"><p class="text-[10px] font-bold text-rose-600">KOSHA 자료 확인</p><p class="text-lg font-black text-rose-700" id="ins-matched">-</p></div>
+                            <div class="bg-white/70 border border-white rounded-lg px-3 py-2"><p class="text-[10px] font-bold text-gray-500">자료 없음</p><p class="text-lg font-black text-gray-700" id="ins-nomatch">-</p></div>
+                            <div class="bg-white/70 border border-white rounded-lg px-3 py-2"><p class="text-[10px] font-bold text-amber-600">재조회 필요</p><p class="text-lg font-black text-amber-700" id="ins-refresh">-</p></div>
+                        </div>
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <div class="relative flex-1 min-w-[240px]">
+                                <input id="insCasInput" type="text" placeholder="CAS No. 입력 (예: 872-50-4, 71-43-2)" class="w-full border border-gray-300 rounded-lg pl-8 pr-2 py-2 text-xs focus:ring-2 focus:ring-indigo-500 bg-white">
+                                
+                            </div>
+                            <button onclick="inspectCasSingle(false)" class="bg-white border border-indigo-300 hover:bg-indigo-50 text-indigo-700 text-xs font-bold px-3 py-2 rounded-lg">조회</button>
+                            <button onclick="inspectCasSingle(true)" class="bg-white border border-gray-300 hover:bg-slate-50 text-gray-700 text-xs font-bold px-3 py-2 rounded-lg" title="최신 데이터로 재조회">재조회</button>
+                            <button onclick="clearInspectCache()" class="text-[11px] text-gray-500 hover:text-gray-700 underline">캐시 초기화</button>
+                        </div>
+                        <div id="insLog" class="hidden mt-3 bg-white/80 border border-white rounded-lg p-2.5 text-[11px] text-gray-700 space-y-1 max-h-32 overflow-y-auto"></div>
+                    </div>
+
+                    <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-5">
+                        <div class="bg-slate-50 border border-slate-200 rounded-lg p-3 text-center"><p class="text-[11px] font-bold text-gray-500">전체 물질</p><p class="text-xl font-black text-gray-800 mt-1"><span id="k2-total">0</span><span class="text-xs text-gray-500"> 종</span></p></div>
+                        <div class="bg-rose-50 border border-rose-200 rounded-lg p-3 text-center"><p class="text-[11px] font-bold text-rose-600">특별관리물질</p><p class="text-xl font-black text-rose-700 mt-1"><span id="k2-special">0</span><span class="text-xs text-gray-500"> 종</span></p></div>
+                        <div class="bg-orange-50 border border-orange-200 rounded-lg p-3 text-center"><p class="text-[11px] font-bold text-orange-600">CMR 물질</p><p class="text-xl font-black text-orange-700 mt-1"><span id="k2-cmr">0</span><span class="text-xs text-gray-500"> 종</span></p></div>
+                        <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 text-center"><p class="text-[11px] font-bold text-amber-600">작업환경측정 대상</p><p class="text-xl font-black text-amber-700 mt-1"><span id="k2-env">0</span><span class="text-xs text-gray-500"> 종</span></p></div>
+                        <div class="bg-indigo-50 border border-indigo-200 rounded-lg p-3 text-center"><p class="text-[11px] font-bold text-indigo-600">특수건진 대상</p><p class="text-xl font-black text-indigo-700 mt-1"><span id="k2-health">0</span><span class="text-xs text-gray-500"> 종</span></p></div>
+                    </div>
+
+                    <div class="bg-slate-50 border border-slate-200 rounded-lg p-4 mb-4">
+                        <div class="grid grid-cols-1 md:grid-cols-5 gap-3">
+                            <div><label class="text-[11px] font-bold text-gray-600">사용 부서</label><input type="text" id="f2-dept" placeholder="부서명 입력 (부분검색)" class="mt-1 w-full border border-gray-300 rounded-lg px-2 py-1.5 text-xs focus:ring-1 focus:ring-teal-500"></div>
+                            <div><label class="text-[11px] font-bold text-gray-600">사용 공정</label><input type="text" id="f2-process" placeholder="공정명 입력 (부분검색)" class="mt-1 w-full border border-gray-300 rounded-lg px-2 py-1.5 text-xs focus:ring-1 focus:ring-teal-500"></div>
+                            <div><label class="text-[11px] font-bold text-gray-600">유해성 분류</label><select id="f2-hazard" class="mt-1 w-full border border-gray-300 rounded-lg px-2 py-1.5 text-xs focus:ring-1 focus:ring-teal-500"><option value="">전체</option><option value="special">특별관리물질</option><option value="cmr">CMR 물질</option><option value="carcino">발암성</option><option value="repro">생식독성</option><option value="flam">인화성</option></select></div>
+                            <div><label class="text-[11px] font-bold text-gray-600">KOSHA 조회 상태</label><select id="f2-law" class="mt-1 w-full border border-gray-300 rounded-lg px-2 py-1.5 text-xs focus:ring-1 focus:ring-teal-500"><option value="">전체</option><option value="KOSHA_FOUND">자료 확인</option><option value="KOSHA_NOT_FOUND">자료 없음</option><option value="KOSHA_PENDING">미조회</option></select></div>
+                            <div><label class="text-[11px] font-bold text-gray-600">검색 (물질명·CAS·부서)</label><div class="relative mt-1"><input type="text" id="f2-search" placeholder="예: NMP, 872-50-4" class="w-full border border-gray-300 rounded-lg pl-7 pr-2 py-1.5 text-xs focus:ring-1 focus:ring-teal-500"></div></div>
+                        </div>
+                        <div class="flex justify-end mt-3 gap-2 flex-wrap">
+                            <button onclick="resetFilter2()" class="text-xs font-semibold text-gray-600 border border-gray-300 hover:bg-slate-100 px-3 py-1.5 rounded-lg">초기화</button>
+                            <button onclick="applyFilter2()" class="bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold px-4 py-1.5 rounded-lg shadow-sm">검색·필터 적용</button>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+                        <p class="text-xs text-gray-500">총 <span class="font-bold text-gray-800" id="list-total-count">0</span>건 중 <span class="font-bold text-teal-600" id="list-shown-count">0</span>건 표시 <span id="list-filter-info" class="text-amber-600 hidden ml-2"></span></p>
+                        <div class="flex items-center space-x-2">
+                            <button onclick="deleteSelected2()" class="text-xs font-semibold text-rose-700 border border-rose-300 bg-rose-50 hover:bg-rose-100 rounded-lg px-3 py-1">선택 삭제</button>
+                            <button onclick="exportList2Excel()" class="text-xs font-semibold text-gray-600 border border-gray-300 rounded-lg px-2 py-1 hover:bg-slate-50">Excel</button>
+                            <button onclick="window.print()" class="text-xs font-semibold text-gray-600 border border-gray-300 rounded-lg px-2 py-1 hover:bg-slate-50">인쇄</button>
+                        </div>
+                    </div>
+
+                    <div class="overflow-x-auto border border-gray-200 rounded-lg">
+                        <table class="w-full text-xs">
+                            <thead class="bg-slate-100 text-gray-600">
+                                <tr>
+                                    <th class="px-3 py-2 text-left font-bold w-8"><input type="checkbox" id="chk-all-2" onclick="toggleAllSelect2(this)"></th>
+                                    <th class="px-3 py-2 text-left font-bold">물질명 (제품명)</th>
+                                    <th class="px-3 py-2 text-left font-bold">CAS No.</th>
+                                    <th class="px-3 py-2 text-left font-bold">사용부서 / 공정</th>
+                                    <th class="px-3 py-2 text-center font-bold">GHS 분류</th>
+                                    <th class="px-3 py-2 text-center font-bold">산안법 검토</th>
+                                    <th class="px-3 py-2 text-center font-bold">검수</th>
+                                    <th class="px-3 py-2 text-center font-bold">등록일</th>
+                                    <th class="px-3 py-2 text-center font-bold">액션</th>
+                                </tr>
+                            </thead>
+                            <tbody id="listTableBody" class="divide-y divide-gray-100 bg-white"></tbody>
+                        </table>
+                        <div id="listEmptyState" class="hidden text-center py-16 text-gray-400 bg-white">
+                            
+                            <p class="text-sm font-bold text-gray-500">아직 등록된 MSDS가 없습니다</p>
+                            <p class="text-xs text-gray-400 mt-1">① MSDS 등록 탭에서 파일을 업로드하여 시작하세요</p>
+                            <button onclick="document.querySelector('.tab-btn[data-tab=tab-register]').click()" class="mt-4 bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold px-4 py-2 rounded-lg">MSDS 등록하러 가기</button>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between mt-4 flex-wrap gap-2">
+                        <div class="text-xs text-gray-500">페이지당 <select id="list-page-size" onchange="changePageSize2()" class="border border-gray-300 rounded px-1 py-0.5 text-xs ml-1"><option value="10">10</option><option value="20">20</option><option value="50">50</option><option value="100">100</option></select></div>
+                        <div id="list-pagination" class="flex items-center space-x-1"></div>
+                    </div>
+                </div>
+
+                <!-- ③ 경고표지·관리요령 -->
+                <div id="tab-label" class="tab-panel">
+                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+                        <div class="lg:col-span-3">
+                            <div class="bg-slate-50 border border-slate-200 rounded-lg p-3 sticky top-24">
+                                <h3 class="text-xs font-black text-gray-700 mb-2 flex items-center">물질 선택</h3>
+                                <div class="relative mb-2">
+                                    <input type="text" id="matSearchInput" placeholder="물질명·CAS·제조사 검색" class="w-full border border-gray-300 rounded-lg pl-7 pr-2 py-1.5 text-xs focus:ring-1 focus:ring-teal-500">
+                                    
+                                </div>
+                                <div class="flex gap-1 mb-2 text-[10px] flex-wrap" id="matFilterChips">
+                                    <button data-filter="all" class="chip-btn bg-teal-600 text-white px-2 py-0.5 rounded-full font-bold">전체</button>
+                                    <button data-filter="special" class="chip-btn bg-white border border-gray-300 text-gray-600 px-2 py-0.5 rounded-full font-semibold hover:bg-slate-100">특별관리</button>
+                                    <button data-filter="cmr" class="chip-btn bg-white border border-gray-300 text-gray-600 px-2 py-0.5 rounded-full font-semibold hover:bg-slate-100">CMR</button>
+                                </div>
+                                <div id="materialList" class="space-y-1 max-h-[640px] overflow-y-auto pr-1"></div>
+                                <div class="mt-3 bg-white border border-teal-200 rounded-lg p-2.5">
+                                    <p class="text-[10px] font-black text-teal-700 mb-1">자동 매핑 상태</p>
+                                    <div class="space-y-0.5 text-[10px] text-gray-600">
+                                        <p> 제품명 · CAS · 제조사</p><p> 픽토그램 · 신호어</p>
+                                        <p> H·P 코드 → 한글 문구</p><p> 특별관리 여부 · 함유량</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="lg:col-span-9">
+                            <div class="bg-white border border-gray-200 rounded-lg p-1.5 flex gap-1 mb-3">
+                                <button onclick="switchForm(this,'form-warning')" class="form-tab-btn flex-1 bg-teal-600 text-white text-xs font-bold py-2 rounded-md">MSDS 경고표지</button>
+                                <button onclick="switchForm(this,'form-process')" class="form-tab-btn flex-1 bg-white text-gray-600 hover:bg-slate-50 text-xs font-bold py-2 rounded-md">작업공정별 관리요령</button>
+                                <button id="btnFormSpecial" onclick="switchForm(this,'form-special')" class="form-tab-btn flex-1 bg-white text-gray-600 hover:bg-slate-50 text-xs font-bold py-2 rounded-md relative">특별관리물질 고지<span id="specialBadge" class="hidden absolute -top-1 -right-1 bg-rose-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">확인</span></button>
+                            </div>
+                            <div id="notSpecialBanner" class="hidden bg-amber-50 border border-amber-300 rounded-lg p-3 mb-3 text-xs text-amber-800">
+                                특별관리물질 여부가 자동 확정되지 않았습니다. 업로드 MSDS 15항, KOSHA 조회 결과, 안전보건규칙 별표 12 및 제440조를 확인한 뒤 고지문을 출력하세요.
+                            </div>
+                            <div class="bg-slate-50 border border-slate-200 rounded-lg p-2.5 mb-3 flex items-center gap-2 flex-wrap">
+                                <div class="flex items-center gap-1.5"><label class="text-[10px] font-bold text-gray-600">용지</label><select class="border border-gray-300 rounded px-2 py-1 text-xs"><option>A4</option><option>A3</option><option>A5</option></select></div>
+                                <div class="flex items-center gap-1.5"><label class="text-[10px] font-bold text-gray-600">언어</label><select class="border border-gray-300 rounded px-2 py-1 text-xs"><option>한글</option><option>한글+영문</option></select></div>
+                                <div class="flex items-center gap-1.5"><label class="text-[10px] font-bold text-gray-600">편집모드</label><button id="editModeBtn" onclick="toggleEditMode()" class="border border-gray-300 rounded px-2 py-1 text-xs font-bold bg-white hover:bg-slate-100">잠금</button></div>
+                                <div class="flex-1"></div>
+                                <button onclick="resetToAuto()" class="bg-white border border-gray-300 hover:bg-slate-100 text-xs font-bold px-3 py-1.5 rounded">자동값 복원</button>
+                                <button onclick="downloadCurrentMsdsFormPdf()" class="bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold px-3 py-1.5 rounded">PDF 저장</button><button onclick="printCurrentMsdsForm()" class="bg-white border border-gray-300 hover:bg-slate-100 text-xs font-bold px-3 py-1.5 rounded">선택 양식 인쇄</button>
+                            </div>
+                            <div id="form-warning" class="form-panel">
+                                <div class="bg-white border-2 border-gray-800 shadow-md">
+                                    <div class="bg-gray-800 text-white text-center py-2"><h2 class="text-lg font-black tracking-widest">물질안전보건자료 MSDS 경고표지</h2></div>
+                                    <div class="border-b-2 border-gray-800 py-3 text-center"><p class="text-2xl font-black text-gray-900" data-field="product-name">-</p></div>
+                                    <div class="border-b-2 border-gray-800 p-4 flex items-center justify-center gap-4"><div class="flex gap-2 flex-wrap justify-center" data-field="pictograms"></div><div class="bg-red-600 text-white px-6 py-3" data-field="signal-word-box"><p class="text-2xl font-black" data-field="signal-word">위험</p></div></div>
+                                    <div class="border-b-2 border-gray-800 p-3"><p class="text-xs font-black text-gray-800 mb-1.5">유해위험문구</p><ul class="text-xs text-gray-800 space-y-0.5 pl-2" data-field="hazards"></ul></div>
+                                    <div class="border-b-2 border-gray-800">
+                                        <p class="text-xs font-black text-gray-800 px-3 pt-2">예방조치문구</p>
+                                        <div class="grid grid-cols-[80px_1fr] border-t border-gray-300 mt-2"><div class="bg-slate-100 border-r border-gray-300 px-2 py-2 text-xs font-black text-gray-800 flex items-center justify-center">예방</div><ul class="text-xs text-gray-800 space-y-0.5 px-3 py-2" data-field="p-prevention"></ul></div>
+                                        <div class="grid grid-cols-[80px_1fr] border-t border-gray-300"><div class="bg-slate-100 border-r border-gray-300 px-2 py-2 text-xs font-black text-gray-800 flex items-center justify-center">대응</div><ul class="text-xs text-gray-800 space-y-0.5 px-3 py-2" data-field="p-response"></ul></div>
+                                        <div class="grid grid-cols-[80px_1fr] border-t border-gray-300"><div class="bg-slate-100 border-r border-gray-300 px-2 py-2 text-xs font-black text-gray-800 flex items-center justify-center">저장</div><ul class="text-xs text-gray-800 space-y-0.5 px-3 py-2" data-field="p-storage"></ul></div>
+                                        <div class="grid grid-cols-[80px_1fr] border-t border-gray-300"><div class="bg-slate-100 border-r border-gray-300 px-2 py-2 text-xs font-black text-gray-800 flex items-center justify-center">폐기</div><ul class="text-xs text-gray-800 space-y-0.5 px-3 py-2" data-field="p-disposal"></ul></div>
+                                    </div>
+                                    <div class="p-3 grid grid-cols-[80px_1fr] gap-2"><div class="text-xs font-black text-gray-800">공급자 정보</div><p class="text-xs text-gray-800"><span class="bg-yellow-100 px-1 rounded" data-field="supplier">-</span></p></div>
+                                    <div class="bg-slate-50 border-t border-gray-300 px-3 py-1.5 text-[10px] text-gray-600 italic">* 그 외의 기재내용은 물질안전보건자료를 참고하시오.</div>
+                                </div>
+                            </div>
+                            <div id="form-process" class="form-panel hidden">
+                                <div class="msds-process-sheet bg-white border-2 border-gray-800 shadow-md">
+                                    <div class="msds-process-title border-b-2 border-gray-800"><h2>작업공정별 관리 요령</h2><p>현장 게시·교육용 · 물질안전보건자료(MSDS) 기준</p></div>
+                                    <table class="msds-process-table w-full"><tbody>
+                                        <tr><th>물질명 / 제품명</th><td class="font-bold" data-field="product-name">-</td></tr>
+                                        <tr><th>CAS No.</th><td data-field="cas-no">-</td></tr>
+                                        <tr><th>그림문자 · 신호어</th><td><div class="msds-signal-row"><div><div class="flex gap-1.5 flex-wrap" data-field="pictograms"></div><p class="msds-mini-note" data-field="pictogram-source">원본 MSDS 2항 확인</p></div><div class="msds-signal-word"><p data-field="signal-word">위험</p></div></div></td></tr>
+                                        <tr><th>유해성 · 위험성</th><td><ul data-field="hazards-o"></ul></td></tr>
+                                        <tr><th>취급상의 주의사항</th><td><ul data-field="handling"></ul></td></tr>
+                                        <tr><th>적절한 보호구</th><td><ul data-field="ppe"></ul></td></tr>
+                                        <tr><th>응급조치 및 사고 시 대처</th><td><ul data-field="first-aid"></ul></td></tr>
+                                    </tbody></table>
+                                    <div class="msds-process-footer">
+                                        <p>※ 자세한 내용은 해당 제품의 최신 MSDS와 작업표준을 함께 확인하세요.</p>
+                                        <div class="msds-process-supplier"><span>공급자 정보</span><b data-field="supplier">MSDS 1항 공급자 정보 미확인</b></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div id="form-special" class="form-panel hidden">
+                                <div class="bg-white border-2 border-gray-900 shadow-md overflow-hidden">
+                                    <div class="bg-rose-700 text-white text-center py-2.5 border-b-2 border-gray-900">
+                                        <p class="text-xl font-black tracking-[0.14em]">관계자 외 출입금지</p>
+                                    </div>
+                                    <div class="bg-gray-900 text-white text-center py-3">
+                                        <h2 class="text-2xl font-black tracking-widest">특별관리물질 취급중</h2>
+                                        <p class="text-[10px] text-gray-300 mt-1">산업안전보건기준에 관한 규칙 제440조에 따른 근로자 고지 지원 양식</p>
+                                    </div>
+                                    <div class="grid grid-cols-1 md:grid-cols-4 border-b-2 border-gray-900 text-xs">
+                                        <div class="p-2 border-b md:border-b-0 md:border-r border-gray-300"><b>MSDS 제품명</b><div class="mt-1 font-black text-gray-900" data-field="special-product">-</div></div>
+                                        <div class="p-2 border-b md:border-b-0 md:border-r border-gray-300"><b>공급자 (연락처)</b><div class="mt-1 font-bold" data-field="special-supplier">MSDS 1항 공급자 정보 미확인</div></div>
+                                        <div class="p-2 border-b md:border-b-0 md:border-r border-gray-300"><b>취급 부서 / 공정</b><div class="mt-1 font-bold" data-field="special-dept-process">직접 입력</div></div>
+                                        <div class="p-2"><b>고지일</b><div class="mt-1 font-bold" data-field="special-date">-</div></div>
+                                    </div>
+                                    <table class="w-full text-xs border-collapse">
+                                        <thead>
+                                            <tr class="bg-slate-100 border-b-2 border-gray-900"><th class="border-r-2 border-gray-900 font-black text-gray-800 py-2 px-2" rowspan="2">특별관리물질명<br>/ 함유량(%)</th><th class="border-r-2 border-gray-900 font-black text-gray-800 py-2 px-2" rowspan="2">CAS No.</th><th class="font-black text-gray-800 py-2 px-2" colspan="3">고지해야 할 건강유해성 구분</th></tr>
+                                            <tr class="bg-slate-100 border-b-2 border-gray-900"><th class="border-l-2 border-r border-gray-900 font-black text-gray-800 py-1.5 px-2">발암성</th><th class="border-r border-gray-900 font-black text-gray-800 py-1.5 px-2">생식세포<br>변이원성</th><th class="font-black text-gray-800 py-1.5 px-2">생식독성</th></tr>
+                                        </thead>
+                                        <tbody id="specialTableBody"></tbody>
+                                    </table>
+                                    <div class="border-t-2 border-gray-900 bg-yellow-50 p-4 text-center">
+                                        <p class="text-base font-black text-gray-900">특별관리물질: <span class="text-red-700" data-field="special-mat">-</span></p>
+                                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3 text-sm font-black">
+                                            <div class="border-2 border-gray-900 bg-white py-2 px-3">보호구 / 보호의 착용</div>
+                                            <div class="border-2 border-gray-900 bg-white py-2 px-3">흡연 및 음식섭취 금지</div>
+                                        </div>
+                                        <p class="text-[10px] leading-5 text-gray-600 mt-3">제440조는 특별관리물질이라는 사실과 발암성·생식세포 변이원성·생식독성 중 해당 구분을 근로자에게 알리도록 요구합니다. 이 화면은 고지용 출력 지원 양식이며, 물질 분류는 최신 별표 12·노출기준 고시·공급자 MSDS를 최종 대조하세요.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ④ 작업환경측정 -->
+                <div id="tab-env" class="tab-panel">
+                    <div id="envWorkflowRoot"></div>
+                    <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-5">
+                        <div class="bg-slate-50 border border-slate-200 rounded-lg p-3 text-center"><p class="text-[11px] font-bold text-gray-500">측정 장소·물질 관리</p><p class="text-xl font-black text-gray-800 mt-1" id="k4-total">0<span class="text-xs text-gray-500"> 건</span></p></div>
+                        <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 text-center"><p class="text-[11px] font-bold text-amber-600">만료임박 (D-30)</p><p class="text-xl font-black text-amber-700 mt-1" id="k4-soon">0<span class="text-xs text-gray-500"> 건</span></p></div>
+                        <div class="bg-rose-50 border border-rose-200 rounded-lg p-3 text-center"><p class="text-[11px] font-bold text-rose-600">부적합 이력</p><p class="text-xl font-black text-rose-700 mt-1" id="k4-bad">0<span class="text-xs text-gray-500"> 건</span></p></div>
+                        <div class="bg-indigo-50 border border-indigo-200 rounded-lg p-3 text-center"><p class="text-[11px] font-bold text-indigo-600">노출 근로자</p><p class="text-xl font-black text-indigo-700 mt-1" id="k4-worker">0<span class="text-xs text-gray-500"> 명</span></p></div>
+                        <div class="bg-teal-50 border border-teal-200 rounded-lg p-3 text-center"><p class="text-[11px] font-bold text-teal-600">측정지점</p><p class="text-xl font-black text-teal-700 mt-1" id="k4-loc">0<span class="text-xs text-gray-500"> 개</span></p></div>
+                    </div>
+
+                    <div class="bg-slate-50 border border-slate-200 rounded-lg p-4 mb-4">
+                        <div class="grid grid-cols-1 md:grid-cols-5 gap-3">
+                            <div><label class="text-[11px] font-bold text-gray-600">사업장</label><input type="text" id="f4-site" placeholder="사업장명 입력" class="mt-1 w-full border border-gray-300 rounded-lg px-2 py-1.5 text-xs focus:ring-1 focus:ring-teal-500"></div>
+                            <div><label class="text-[11px] font-bold text-gray-600">부서명</label><input type="text" id="f4-dept" placeholder="예: 생산1팀, 설비팀" class="mt-1 w-full border border-gray-300 rounded-lg px-2 py-1.5 text-xs focus:ring-1 focus:ring-teal-500"></div>
+                            <div><label class="text-[11px] font-bold text-gray-600">상태</label><select id="f4-status" class="mt-1 w-full border border-gray-300 rounded-lg px-2 py-1.5 text-xs focus:ring-1 focus:ring-teal-500"><option value="">전체</option><option value="ok">적합</option><option value="soon">만료임박</option><option value="bad">부적합</option></select></div>
+                            <div class="md:col-span-2"><label class="text-[11px] font-bold text-gray-600">물질명 · CAS · 작업장소 검색</label><input type="text" id="f4-search" placeholder="예: 황산, 7664-93-9, 산세라인" class="mt-1 w-full border border-gray-300 rounded-lg px-2 py-1.5 text-xs focus:ring-1 focus:ring-teal-500"></div>
+                        </div>
+                        <div class="flex justify-end mt-3 space-x-2">
+                            <button onclick="resetMat()" class="text-xs font-semibold text-gray-500 hover:text-gray-700 px-2 py-1">초기화</button>
+                            <button onclick="applyFilter4()" class="bg-white border border-gray-300 hover:bg-slate-50 text-xs font-semibold px-3 py-1.5 rounded-lg">필터 적용</button>
+                            <button onclick="syncEnvTargetsFromMsds()" class="bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-100 text-xs font-bold px-3 py-1.5 rounded-lg">MSDS 대상물질 가져오기</button>
+                            <button onclick="openMatModal()" class="bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg">물질 등록</button>
+                        </div>
+                    </div>
+
+                    <section class="bg-white border border-slate-200 rounded-xl p-4 mb-4">
+                        <div class="flex items-start justify-between gap-3 flex-wrap mb-3">
+                            <div><h3 class="text-sm font-black text-slate-900">부서 · 작업장소별 측정계획</h3><p class="text-[10px] text-slate-500 mt-1">같은 화학물질을 여러 장소에서 사용하는 경우 장소별 항목으로 분리해 측정계획과 예상 시료·비용을 관리합니다. 부서를 누르면 해당 물질만 필터링됩니다.</p></div>
+                        </div>
+                        <div id="envDeptSummary" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2"></div>
+                    </section>
+
+                    <div id="matGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+                    <p id="matEmpty" class="hidden text-center py-12 text-gray-400 text-sm">등록된 물질이 없습니다. 우측 상단의 <b>물질 등록</b> 버튼을 눌러 시작하세요.</p>
+                </div>
+
+                <!-- ⑤ 특수건강진단 -->
+                <div id="tab-health" class="tab-panel">
+                    <div class="bg-indigo-50 border border-indigo-200 rounded-lg p-4 mb-4 text-[11px] leading-6 text-indigo-950">
+                        <p class="font-black text-sm">특수건강진단 대상물질 · 검진기록 관리</p>
+                        <p class="mt-1">MSDS 법규검토에서 <b>특수건강진단 대상</b>으로 명시 확인된 물질을 먼저 보여줍니다. 대상 유해인자는 산업안전보건법 시행규칙 <b>별표 22</b>, 배치 후 첫 검진 시기와 주기는 <b>별표 23</b>을 물질별로 확인해 기록하세요.</p>
+                        <p class="text-indigo-700">혈압·혈당 등 의학적 수치로 임의 적격/부적격 판정을 하지 않습니다. 검진 결과의 의학적 판단은 검진기관의 판정서를 기준으로 관리합니다.</p>
+                    </div>
+
+                    <div class="bg-white border border-gray-200 rounded-lg p-4 mb-4">
+                        <div class="flex items-center justify-between gap-3 flex-wrap">
+                            <div>
+                                <p class="text-xs font-black text-gray-800">MSDS에서 확인된 특수건강진단 대상물질</p>
+                                <p class="text-[10px] text-gray-500 mt-1">공식 자료와 업로드 MSDS 15항은 보조근거이며 최신 별표·사업장 노출상황을 함께 확인하세요.</p>
+                            </div>
+                            <button onclick="renderHealthTargetMaterials()" class="bg-white border border-gray-300 hover:bg-slate-50 text-xs font-semibold px-3 py-1.5 rounded-lg">대상물질 새로고침</button>
+                        </div>
+                        <div id="healthTargetMaterials" class="mt-3 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2"></div>
+                    </div>
+
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                        <div class="bg-indigo-50 border border-indigo-200 rounded-lg p-3 text-center"><p class="text-[11px] font-bold text-indigo-600">대상물질</p><p class="text-xl font-black text-indigo-700 mt-1"><span id="k5-targets">0</span><span class="text-xs text-gray-500"> 종</span></p></div>
+                        <div class="bg-slate-50 border border-slate-200 rounded-lg p-3 text-center"><p class="text-[11px] font-bold text-gray-500">검진기록</p><p class="text-xl font-black text-gray-800 mt-1"><span id="k5-total">0</span><span class="text-xs text-gray-500"> 건</span></p></div>
+                        <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 text-center"><p class="text-[11px] font-bold text-amber-600">차기 검진 D-30</p><p class="text-xl font-black text-amber-700 mt-1"><span id="k5-soon">0</span><span class="text-xs text-gray-500"> 건</span></p></div>
+                        <div class="bg-rose-50 border border-rose-200 rounded-lg p-3 text-center"><p class="text-[11px] font-bold text-rose-600">기한 경과</p><p class="text-xl font-black text-rose-700 mt-1"><span id="k5-expired">0</span><span class="text-xs text-gray-500"> 건</span></p></div>
+                    </div>
+
+                    <div class="bg-slate-50 border border-slate-200 rounded-lg p-4 mb-4">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <div><label class="text-[11px] font-bold text-gray-600">부서명</label><input type="text" id="f5-dept" placeholder="부서명 검색" class="mt-1 w-full border border-gray-300 rounded-lg px-2 py-1.5 text-xs"></div>
+                            <div><label class="text-[11px] font-bold text-gray-600">성명</label><input type="text" id="f5-name" placeholder="성명 검색" class="mt-1 w-full border border-gray-300 rounded-lg px-2 py-1.5 text-xs"></div>
+                            <div class="flex items-end gap-2"><button onclick="renderHealth()" class="flex-1 bg-white border border-gray-300 hover:bg-slate-50 text-xs font-semibold px-3 py-1.5 rounded-lg">필터 적용</button><button onclick="addHealthRow()" class="flex-1 bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg">검진기록 추가</button></div>
+                        </div>
+                        <div class="flex justify-end mt-3 gap-2 flex-wrap">
+                            <button onclick="downloadExcel()" class="bg-white border border-gray-300 hover:bg-slate-50 text-xs font-semibold px-3 py-1.5 rounded-lg">엑셀 다운로드</button>
+                            <button onclick="document.getElementById('uploadHealthExcel').click()" class="bg-white border border-gray-300 hover:bg-slate-50 text-xs font-semibold px-3 py-1.5 rounded-lg">엑셀 불러오기</button>
+                            <input type="file" id="uploadHealthExcel" class="hidden" accept=".xlsx,.xls" onchange="importExcel(event)">
+                        </div>
+                    </div>
+
+                    <div class="overflow-x-auto border border-gray-200 rounded-lg bg-white">
+                        <table class="w-full text-[11px] border-collapse min-w-[1250px]">
+                            <thead class="bg-slate-100 text-gray-700">
+                                <tr>
+                                    <th class="p-2 border">NO</th><th class="p-2 border">부서</th><th class="p-2 border">성명</th>
+                                    <th class="p-2 border">대상 유해인자</th><th class="p-2 border">CAS No.</th><th class="p-2 border">배치·노출 시작일</th>
+                                    <th class="p-2 border">최근 검진일</th><th class="p-2 border">주기(개월)</th><th class="p-2 border">차기 검진일</th>
+                                    <th class="p-2 border">검진기관·판정/비고</th><th class="p-2 border">결과서</th><th class="p-2 border">삭제</th>
+                                </tr>
+                            </thead>
+                            <tbody id="healthBody"></tbody>
+                        </table>
+                    </div>
+                    <p class="text-[10px] text-gray-500 mt-2">CAS별 기준이 명확한 유해인자는 별표 23 기본 주기를 제안합니다. 그 외 물질은 별표 23을 확인해 입력하고, 단축주기 적용 여부는 최근 작업환경측정·건강진단 결과와 함께 관리하세요.</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 모달·패널 -->
+    <div id="detailPanel" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-black/40" onclick="closeDetailPanel()"></div>
+        <div class="absolute right-0 top-0 h-full w-full max-w-lg bg-white shadow-2xl overflow-y-auto">
+            <div class="sticky top-0 bg-gradient-to-r from-teal-600 to-teal-700 text-white px-5 py-4 flex items-center justify-between">
+                <div>
+                    <p class="text-[11px] text-teal-100 font-semibold">MSDS 상세정보</p>
+                    <h3 class="text-lg font-black" id="dp-name">-</h3>
+                    <p class="text-xs text-teal-100 mt-0.5">CAS No. <span id="dp-cas">-</span></p>
+                </div>
+                <button onclick="closeDetailPanel()" class="text-white hover:text-teal-100 text-xs font-bold border border-white/50 rounded px-2 py-1">닫기</button>
+            </div>
+            <div id="dp-body" class="p-5 space-y-4 text-sm"></div>
+        </div>
+    </div>
+
+    <div id="inspectModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+            <div class="bg-gradient-to-r from-indigo-600 to-blue-600 text-white px-5 py-4 flex items-center justify-between">
+                <div>
+                    <p class="text-[11px] text-indigo-100">검수 결과</p>
+                    <h3 class="text-lg font-black"><span id="insModalCas">-</span></h3>
+                </div>
+                <button onclick="closeInspectModal()" class="text-white text-xs font-bold border border-white/50 rounded px-2 py-1">닫기</button>
+            </div>
+            <div id="inspectModalBody" class="p-5 space-y-3 text-sm"><p class="text-center py-8 text-gray-400">조회 중…</p></div>
+            <div class="px-5 py-3 bg-slate-50 border-t border-gray-200 flex justify-end gap-2">
+                <button onclick="closeInspectModal()" class="bg-white border border-gray-300 hover:bg-slate-100 text-sm font-semibold px-4 py-2 rounded-lg">닫기</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="matModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div class="bg-gradient-to-r from-teal-600 to-teal-700 text-white px-5 py-4 flex items-center justify-between">
+                <h3 class="text-lg font-black"><span id="matModalTitle">측정물질 등록</span></h3>
+                <button onclick="closeMatModal()" class="text-white text-xs font-bold border border-white/50 rounded px-2 py-1">닫기</button>
+            </div>
+            <div class="p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div><label class="text-xs font-bold text-gray-600">물질명 *</label><input id="m-name" type="text" class="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="예: N-Methyl-2-pyrrolidone"></div>
+                <div><label class="text-xs font-bold text-gray-600">CAS No.</label><input id="m-cas" type="text" class="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="예: 872-50-4"></div>
+                <div><label class="text-xs font-bold text-gray-600">사업장 *</label><input id="m-site" type="text" class="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="예: 본사, 제1공장"></div>
+                <div><label class="text-xs font-bold text-gray-600">부서명</label><input id="m-dept" type="text" class="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="예: 생산1팀"></div>
+                <div><label class="text-xs font-bold text-gray-600">측정지점</label><input id="m-loc" type="text" class="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="예: A라인"></div>
+                <div><label class="text-xs font-bold text-gray-600">측정주기 (개월)</label><input id="m-cycle" type="number" min="1" placeholder="사업장·법정 기준 확인 후 입력" class="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"><p class="text-[10px] text-gray-500 mt-1">일률적인 6개월값을 자동 적용하지 않습니다.</p></div>
+                <div><label class="text-xs font-bold text-gray-600">노출기준 (TWA)</label><input id="m-twa" type="text" class="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="예: 10 ppm"></div>
+                <div><label class="text-xs font-bold text-gray-600">최근 측정일</label><input id="m-date" type="date" class="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"></div>
+                <div><label class="text-xs font-bold text-gray-600">측정값</label><input id="m-val" type="text" class="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="예: 3.2"></div>
+                <div><label class="text-xs font-bold text-gray-600">노출자 수 (명)</label><input id="m-workers" type="number" value="0" class="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"></div>
+                <div class="md:col-span-2"><label class="text-xs font-bold text-gray-600">특별관리물질 여부</label><select id="m-special" class="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"><option value="N">아니오</option><option value="Y">예 (특별관리물질)</option></select></div>
+            </div>
+            <div class="px-5 py-4 bg-slate-50 border-t border-gray-200 flex justify-end gap-2">
+                <button onclick="closeMatModal()" class="bg-white border border-gray-300 hover:bg-slate-100 text-sm font-semibold px-4 py-2 rounded-lg">취소</button>
+                <button onclick="saveMat()" class="bg-teal-600 hover:bg-teal-700 text-white text-sm font-bold px-4 py-2 rounded-lg">저장</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <!-- ⭐⭐⭐ 분리된 스크립트 (순서 중요!) -->
+    <script src="assets/msds/03-common.js"></script>
+    <script src="assets/msds/01-inspect.js"></script>
+    <script src="assets/msds/02-list.js"></script>
+    <script src="assets/msds/04-knowledge.js"></script>
+    <script src="assets/msds/05-parser.js"></script>
+    <script src="assets/msds/06-register.js"></script>
+    <script src="assets/msds/07-env.js"></script>
+    <script src="assets/msds/08-health.js"></script>
+    <script src="assets/msds/09-init.js"></script>
+<script src="../js/site-clock.js"></script>
+<script src="../js/mascot-cheer.js"></script>
+<script defer src="/js/security.js"></script>
+</body>
+</html>

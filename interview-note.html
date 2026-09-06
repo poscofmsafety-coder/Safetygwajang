@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+
+<html lang="ko">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<title>안전관리자 면접 답변 노트 | 안전과장</title>
+<meta content="기업별 면접 예상질문에 나의 답변을 작성하고 저장하는 개인 학습 노트" name="description"/>
+<link href="assets/style.css" rel="stylesheet"/>
+<style>
+    /* =========================================================
+       콘텐츠 보호 스타일
+       - 기본: 페이지 전체 텍스트 선택·드래그 금지
+       - 예외: 핵심 키워드 / 나의 예상답변 등 입력 요소는 허용
+    ========================================================= */
+
+    html,
+    body {
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
+
+      /* 모바일 롱프레스 복사 메뉴 차단 */
+      -webkit-touch-callout: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* 사용자가 직접 작성하는 영역만 선택·복사 허용 */
+    input,
+    textarea,
+    select,
+    [contenteditable="true"],
+    [contenteditable=""],
+    .allow-copy,
+    .allow-copy * {
+      -webkit-user-select: text !important;
+      -moz-user-select: text !important;
+      -ms-user-select: text !important;
+      user-select: text !important;
+      -webkit-touch-callout: default !important;
+    }
+
+    /* 이미지 드래그 저장 방지 */
+    img {
+      -webkit-user-drag: none;
+      user-drag: none;
+      pointer-events: none;
+    }
+
+    /* =========================================================
+       우측 상단 저장 안내 문구
+    ========================================================= */
+
+    .save-notice {
+      display: inline-flex;
+      align-items: center;
+      margin-left: auto;
+      color: #666;
+      font-size: 13px;
+      line-height: 1.4;
+      white-space: nowrap;
+    }
+
+    @media (max-width: 1100px) {
+      .save-notice {
+        width: 100%;
+        margin-left: 0;
+        white-space: normal;
+      }
+    }
+
+    @media print {
+      .save-notice {
+        display: none;
+      }
+
+      /* 인쇄 시에는 선택 제한이 영향을 주지 않도록 명시 */
+      html,
+      body {
+        -webkit-user-select: auto;
+        user-select: auto;
+      }
+    }
+
+    /* =========================================================
+       app.js 호환용 숨김 슬롯
+       화면에는 보이지 않지만 요소는 존재합니다.
+    ========================================================= */
+
+    .legacy-hidden-slot {
+      position: absolute !important;
+      width: 1px !important;
+      height: 1px !important;
+      margin: -1px !important;
+      padding: 0 !important;
+      border: 0 !important;
+      overflow: hidden !important;
+      clip: rect(0 0 0 0) !important;
+      clip-path: inset(50%) !important;
+      white-space: nowrap !important;
+      pointer-events: none !important;
+      opacity: 0 !important;
+    }
+  </style>
+<script>
+  (function () {
+    "use strict";
+
+    /* ---------------------------------------------------------
+       1) 이벤트 대상 요소 판정
+    --------------------------------------------------------- */
+
+    function toElement(target) {
+      if (!target) {
+        return null;
+      }
+
+      /* 텍스트 노드인 경우 부모 요소로 승격 */
+      if (target.nodeType && target.nodeType !== 1) {
+        return target.parentElement || null;
+      }
+
+      return target;
+    }
+
+    function hasAllowCopyAncestor(element) {
+      var node = element;
+      var level = 0;
+
+      while (node && level < 12) {
+        if (
+          node.classList &&
+          node.classList.contains("allow-copy")
+        ) {
+          return true;
+        }
+
+        node = node.parentElement;
+        level++;
+      }
+
+      return false;
+    }
+
+    /* 입력 가능한 영역인지 확인 (핵심 키워드 · 나의 예상답변 허용) */
+    function isEditable(target) {
+      var element = toElement(target);
+
+      if (!element) {
+        return false;
+      }
+
+      var tag = element.tagName
+        ? element.tagName.toUpperCase()
+        : "";
+
+      if (
+        tag === "TEXTAREA" ||
+        tag === "INPUT" ||
+        tag === "SELECT" ||
+        tag === "OPTION"
+      ) {
+        return true;
+      }
+
+      if (element.isContentEditable) {
+        return true;
+      }
+
+      try {
+        if (
+          element.closest &&
+          element.closest(".allow-copy")
+        ) {
+          return true;
+        }
+      } catch (error) {
+        /* closest 미지원 환경은 아래 폴백으로 처리 */
+      }
+
+      return hasAllowCopyAncestor(element);
+    }
+
+    /* 현재 포커스가 입력란에 있는지 확인 */
+    function isEditableFocused() {
+      return isEditable(document.activeElement);
+    }
+
+    /* ---------------------------------------------------------
+       2) 우클릭 차단
+    --------------------------------------------------------- */
+
+    document.addEventListener(
+      "contextmenu",
+      function (event) {
+        if (isEditable(event.target)) {
+          return;
+        }
+
+        event.preventDefault();
+      },
+      true
+    );
+
+    /* ---------------------------------------------------------
+       3) 복사 · 잘라내기 차단
+          붙여넣기는 답변 작성에 필요하므로 차단하지 않습니다.
+    --------------------------------------------------------- */
+
+    function blockClipboard(event) {
+      if (
+        isEditable(event.target) ||
+        isEditableFocused()
+      ) {
+        return;
+      }
+
+      event.preventDefault();
+    }
+
+    document.addEventListener("copy", blockClipboard, true);
+    document.addEventListener("cut", blockClipboard, true);
+    document.addEventListener("beforecopy", blockClipboard, true);
+
+    /* ---------------------------------------------------------
+       4) 드래그 차단
+    --------------------------------------------------------- */
+
+    document.addEventListener(
+      "dragstart",
+      function (event) {
+        if (isEditable(event.target)) {
+          return;
+        }
+
+        event.preventDefault();
+      },
+      true
+    );
+
+    /* ---------------------------------------------------------
+       5) 텍스트 선택 시작 차단
+    --------------------------------------------------------- */
+
+    document.addEventListener(
+      "selectstart",
+      function (event) {
+        if (isEditable(event.target)) {
+          return;
+        }
+
+        event.preventDefault();
+      },
+      true
+    );
+
+    /* ---------------------------------------------------------
+       6) 전체 선택(Ctrl + A) 차단
+          입력란 안에서는 정상 동작합니다.
+    --------------------------------------------------------- */
+
+    document.addEventListener(
+      "keydown",
+      function (event) {
+        var isCtrl = event.ctrlKey || event.metaKey;
+
+        if (!isCtrl) {
+          return;
+        }
+
+        var key = String(event.key || "").toLowerCase();
+
+        if (key !== "a") {
+          return;
+        }
+
+        if (isEditable(event.target)) {
+          return;
+        }
+
+        event.preventDefault();
+      },
+      true
+    );
+  })();
+  </script>
+<meta content="noindex,follow" name="robots"/>
+<link href="https://safetygwajang.com/interview-note.html" rel="canonical"/>
+<link href="css/brand.css" rel="stylesheet"/>
+<script src="/js/adsense-guard.js"></script>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9283463208175336" crossorigin="anonymous"></script>
+<link rel="stylesheet" href="css/responsive.css">
+</head>
+<body>
+<header class="topbar">
+<h1>
+<a href="index.html?audience=jobseeker">📖 면접 예상질문 노트</a>
+</h1>
+<div class="topbar-actions">
+<input id="search" placeholder="질문·태그 검색 (예: PSM, 이직사유)" type="search"/>
+<span class="save-notice">
+        ※ 내용이 포맷될 수 있으니 따로 저장해 두시기 바랍니다.
+      </span>
+<button class="btn ghost" id="btn-print" type="button">
+        인쇄/PDF
+      </button>
+<a class="btn ghost" href="interview.html">
+        면접 가이드
+      </a>
+<a class="btn ghost" href="index.html?audience=jobseeker">
+        🏠 홈
+      </a>
+</div>
+</header>
+<!--
+    app.js 호환용 숨김 슬롯
+    삭제된 버튼을 참조할 때 발생하는 초기화 오류를 방지합니다.
+  -->
+<div aria-hidden="true" class="legacy-hidden-slot">
+<button id="btn-export" tabindex="-1" type="button">
+      내보내기
+    </button>
+<button id="btn-import" tabindex="-1" type="button">
+      불러오기
+    </button>
+<button id="btn-export-word" tabindex="-1" type="button">
+      Word
+    </button>
+<input accept="application/json,.json" id="file-import" tabindex="-1" type="file"/>
+</div>
+<div class="layout">
+<aside class="sidebar">
+<div class="filters">
+<select id="filter-tier">
+<option value="">전체 기업군</option>
+</select>
+<select id="filter-type">
+<option value="">전체 질문유형</option>
+</select>
+<label class="chk">
+<input id="only-unanswered" type="checkbox"/>
+          미작성만 보기
+        </label>
+</div>
+<nav class="nav" id="nav"></nav>
+</aside>
+<main class="main" id="main">
+<p class="loading">데이터를 불러오는 중…</p>
+</main>
+</div>
+<div class="toast" hidden="" id="toast">
+    저장됨
+  </div>
+<!-- =========================================================
+       app.js 초기화 오류 방지 안전장치
+       존재하지 않는 컨트롤을 참조하면 숨김 슬롯에 임시 요소를 만들어
+       반환하여 addEventListener 오류를 막습니다.
+  ========================================================== -->
+<script>
+  (function () {
+    "use strict";
+
+    var SAFE_IDS = [
+      "btn-export",
+      "btn-import",
+      "btn-export-word",
+      "btn-export-json",
+      "btn-save",
+      "btn-reset",
+      "btn-clear",
+      "file-import",
+      "file-input"
+    ];
+
+    function slot() {
+      var container = document.querySelector(
+        ".legacy-hidden-slot"
+      );
+
+      if (!container) {
+        container = document.createElement("div");
+        container.className = "legacy-hidden-slot";
+        container.setAttribute("aria-hidden", "true");
+        document.body.appendChild(container);
+      }
+
+      return container;
+    }
+
+    function createStub(id) {
+      var element;
+
+      if (id.indexOf("file") !== -1) {
+        element = document.createElement("input");
+        element.type = "file";
+      } else {
+        element = document.createElement("button");
+        element.type = "button";
+      }
+
+      element.id = id;
+      element.tabIndex = -1;
+
+      slot().appendChild(element);
+
+      return element;
+    }
+
+    var originalGetElementById =
+      document.getElementById.bind(document);
+
+    document.getElementById = function (id) {
+      var found = originalGetElementById(id);
+
+      if (
+        found ||
+        SAFE_IDS.indexOf(id) === -1
+      ) {
+        return found;
+      }
+
+      return createStub(id);
+    };
+
+    var originalQuerySelector =
+      document.querySelector.bind(document);
+
+    document.querySelector = function (selector) {
+      var found = originalQuerySelector(selector);
+
+      if (found) {
+        return found;
+      }
+
+      /* "#id" 형태의 단순 선택자만 보완합니다. */
+      if (
+        typeof selector === "string" &&
+        /^#[A-Za-z][\w-]*$/.test(selector)
+      ) {
+        var id = selector.slice(1);
+
+        if (SAFE_IDS.indexOf(id) !== -1) {
+          return createStub(id);
+        }
+      }
+
+      return found;
+    };
+  })();
+  </script>
+<script src="assets/app.js"></script>
+<script src="js/mascot-cheer.js"></script>
+<script defer src="/js/security.js"></script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+{
+  "coreStories": "data/core-stories.json",
+  "files": [
+    "data/companies-posco.json",
+    "data/companies-sk.json",
+    "data/companies-lg.json",
+    "data/companies-hmg.json",
+    "data/companies-chem.json",
+    "data/companies-etc.json",
+    "data/companies-public.json"
+  ]
+}
