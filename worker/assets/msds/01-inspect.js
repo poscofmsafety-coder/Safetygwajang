@@ -5,8 +5,8 @@
    - API 미연결 시 가짜/데모 판정을 생성하지 않음
    ========================================================= */
 const INSPECT_CONFIG={
-  lookup:'/api/msds/lookup', health:'/api/health?probe=1', timeout:8000,
-  cacheTTL:{success:7*24*60*60*1000,failure:4*60*60*1000}
+  lookup:'/api/msds/lookup', health:'/api/health?probe=1&service=msds', timeout:45000,
+  cacheTTL:{success:7*24*60*60*1000,failure:30*1000}
 };
 const InspectCache={
   get(cas){try{const x=JSON.parse(localStorage.getItem('sgw_inspect_'+cas)||'null');if(!x)return null;const ttl=x.ok?INSPECT_CONFIG.cacheTTL.success:INSPECT_CONFIG.cacheTTL.failure;if(Date.now()-(x.checkedAt||0)>ttl)return null;return x}catch(e){return null}},
@@ -17,19 +17,19 @@ const InspectCache={
 let apiConnected=false, apiStatusDetail='';
 async function checkApiHealth(){
   try{
-    const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),5000);
+    const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),22000);
     const r=await fetch(INSPECT_CONFIG.health,{signal:ctrl.signal,cache:'no-store'});clearTimeout(timer);
     const j=await r.json().catch(()=>({}));
     const msdsProbe=j?.probes?.msds;
-    apiConnected=Boolean(r.ok&&j.msdsConfigured!==false&&(msdsProbe==='ok'||!msdsProbe));
-    apiStatusDetail=msdsProbe==='ok'?'KOSHA MSDS 실제 응답 확인':(msdsProbe||j.message||'');
+    apiConnected=Boolean(j.msdsConfigured!==false&&(msdsProbe?.ok===true||msdsProbe==='ok'));
+    apiStatusDetail=apiConnected?'KOSHA MSDS API 실제 응답 확인':String(msdsProbe?.message||msdsProbe?.status||j.message||'KOSHA MSDS API 연결 확인 필요');
   }catch(e){apiConnected=false;apiStatusDetail=e.message||''}
   updateApiStatusPill();
 }
 function updateApiStatusPill(){
   const el=document.getElementById('apiStatusPill');if(!el)return;
   if(apiConnected){el.textContent='자료 확인 준비됨';el.className='inline-flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 text-emerald-700 text-[11px] font-bold px-2.5 py-1 rounded-full';}
-  else{el.textContent='업로드 문서 우선 분석';el.className='inline-flex items-center gap-1.5 bg-amber-50 border border-amber-200 text-amber-800 text-[11px] font-bold px-2.5 py-1 rounded-full';}
+  else{el.textContent='KOSHA API 연결 확인';el.className='inline-flex items-center gap-1.5 bg-amber-50 border border-amber-200 text-amber-800 text-[11px] font-bold px-2.5 py-1 rounded-full';}
 }
 function triText(v){return v===true?'해당으로 기재':v===false?'해당 없음으로 기재':'자동 확정 안 됨';}
 function normalizeBackendResponse(cas,raw){
@@ -37,10 +37,8 @@ function normalizeBackendResponse(cas,raw){
   return{...raw,ok:true,casNo:raw.casNo||cas,status:raw.status||'FOUND',checkedAt:Date.now(),sources:{kosha:{ok:true,hit:raw.status==='FOUND',note:'KOSHA 물질안전보건자료 조회 서비스',evidence:raw.legal?.evidence||[]}}};
 }
 function mergeCasLegal(material,cas,apiLegal){
-  const local=(typeof sgwLegalForCas==='function')?sgwLegalForCas(material,cas):{};const api=apiLegal||{};
-  const tri=(a,b)=>a===true||b===true?true:(a===false&&b===false?false:(a===false&&b==null?false:(b===false&&a==null?false:null)));
-  const cmr={};['carcinogenic','mutagenic','reprotoxic'].forEach(k=>{cmr[k]=tri(local.cmr?.[k],api.cmr?.[k])});
-  return {...api,workEnvTarget:tri(local.workEnvTarget,api.workEnvTarget),specialHealthTarget:tri(local.specialHealthTarget,api.specialHealthTarget),specialManagement:tri(local.specialManagement,api.specialManagement),managementTarget:tri(local.managementTarget,api.managementTarget),cmr,evidence:[...(local.evidence||[]),...(api.evidence||[])].filter(Boolean).slice(0,14),source:[local.source,api.source].filter(Boolean).join(' + ')||'CAS 대조'};
+  const api=apiLegal||{};
+  return {...api,cmr:{carcinogenic:api.cmr?.carcinogenic??null,mutagenic:api.cmr?.mutagenic??null,reprotoxic:api.cmr?.reprotoxic??null},evidence:[...(api.evidence||[])].filter(Boolean).slice(0,14),source:api.source||'KOSHA MSDS 15항'};
 }
 async function inspectByCas(cas,forceRefresh=false){
   cas=String(cas||'').trim();if(!cas)throw new Error('CAS No.를 입력하세요.');
@@ -50,9 +48,9 @@ async function inspectByCas(cas,forceRefresh=false){
   }
   if(!apiConnected){
     // API 설정 직후에도 즉시 다시 시도할 수 있도록 '미연결' 상태는 장기 캐시하지 않습니다.
-    return {ok:false,unavailable:true,casNo:cas,error:'외부 자료 조회가 준비되지 않았습니다. 업로드한 MSDS 15항을 우선 확인해 주세요.',checkedAt:Date.now()};
+    return {ok:false,unavailable:true,casNo:cas,error:'KOSHA MSDS API 실제 응답을 확인하지 못했습니다. /api/health?probe=1 진단 결과를 확인해 주세요.',checkedAt:Date.now()};
   }
-  try{const ctrl=new AbortController();setTimeout(()=>ctrl.abort(),INSPECT_CONFIG.timeout);const u=INSPECT_CONFIG.lookup+'?cas='+encodeURIComponent(cas)+(forceRefresh?'&refresh=1':'');const r=await fetch(u,{signal:ctrl.signal});const raw=await r.json();const out=normalizeBackendResponse(cas,raw);InspectCache.set(cas,out);return out;}catch(e){const out={ok:false,casNo:cas,error:e.message,checkedAt:Date.now()};InspectCache.set(cas,out);return out;}
+  try{const ctrl=new AbortController();setTimeout(()=>ctrl.abort(),INSPECT_CONFIG.timeout);const u=INSPECT_CONFIG.lookup+'?cas='+encodeURIComponent(cas)+(forceRefresh?'&refresh=1':'');const r=await fetch(u,{signal:ctrl.signal});const raw=await r.json();const out=normalizeBackendResponse(cas,raw);InspectCache.set(cas,out);return out;}catch(e){const out={ok:false,casNo:cas,error:e.message,checkedAt:Date.now()};return out;}
 }
 function applyInspectionToMaterial(m,ins){
   if(!m||!ins||!ins.ok)return false;let changed=false;

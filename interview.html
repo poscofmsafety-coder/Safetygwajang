@@ -34,7 +34,7 @@
 <div class="iv-tabs" id="iv-tabs">
 <button class="iv-tab" data-v="guide">📋 면접 기본기</button>
 <button class="iv-tab" data-v="common">💬 공통 빈출 질문</button>
-<button class="iv-tab" data-v="company">🏢 기업별 예상질문</button>
+<button class="iv-tab" data-v="company">🏢 🔒 기업별 예상질문</button>
 <button class="iv-tab" data-v="job">🎯 직무별 기술 질문</button>
 <button class="iv-tab" data-v="press">🔥 압박·꼬리질문</button>
 </div>
@@ -316,8 +316,15 @@
 <section class="iv-view" id="view-company">
 <div class="iv-sec">
 <h3>🏢 기업별 예상질문</h3>
+<div class="lock-box" id="company-locked">
+<div class="lock-icon">🔒</div>
+<p class="lock-text"><b>대치동만 이용가능</b><br>기업별 예상질문은 입장코드를 입력해야 이용할 수 있습니다.</p>
+<button class="btn-primary" id="company-open-code" type="button">입장코드 입력</button>
+</div>
+<div id="company-unlocked" hidden>
 <div class="co-bar" id="co-bar"></div>
 <div id="co-body"></div>
+</div>
 </div>
 </section>
 <!-- ==================== ④ 직무별 기술 질문 ==================== -->
@@ -454,6 +461,15 @@
 </div>
 </section>
 </main>
+<div class="auth-modal-bg" id="company-code-modal">
+<div class="auth-modal">
+<h3>기업별 예상질문 입장코드</h3>
+<p style="margin:0 0 12px;color:var(--gray-600);font-size:.88rem;">대치동만 이용가능</p>
+<input autocomplete="off" id="company-code-input" placeholder="입장코드를 입력하세요" type="password"/>
+<div class="code-error" id="company-code-error" style="display:none;">입장코드가 올바르지 않습니다.</div>
+<div class="actions"><button class="btn-primary" id="company-code-submit" type="button">입장</button><button class="btn" id="company-code-cancel" type="button">취소</button></div>
+</div>
+</div>
 <footer class="site-footer">
 <div class="footer-note">
 <div class="footer-links">
@@ -474,12 +490,30 @@
     var VALID = ['guide','common','company','job','press'];
     var tabs  = document.querySelectorAll('#iv-tabs .iv-tab');
     var views = document.querySelectorAll('.iv-view');
+    var COMPANY_CODE = '0901';
+    var COMPANY_KEY = 'daechidong-company-interview-ok';
+    function companyUnlocked(){ try{return sessionStorage.getItem(COMPANY_KEY)==='1'}catch(e){return false} }
+    function paintCompanyLock(){
+      var lock=document.getElementById('company-locked'), content=document.getElementById('company-unlocked');
+      var ok=companyUnlocked();if(lock)lock.hidden=ok;if(content)content.hidden=!ok;
+      var tab=document.querySelector('#iv-tabs .iv-tab[data-v="company"]');if(tab)tab.textContent=ok?'🏢 🔓 기업별 예상질문':'🏢 🔒 기업별 예상질문';
+      if(ok)setTimeout(function(){loadCompany()},0);
+    }
+    function openCompanyCode(){
+      var modal=document.getElementById('company-code-modal'),input=document.getElementById('company-code-input'),err=document.getElementById('company-code-error');
+      if(!modal)return;if(err)err.style.display='none';if(input)input.value='';modal.classList.add('show');setTimeout(function(){if(input)input.focus()},50);
+    }
+    function submitCompanyCode(){
+      var modal=document.getElementById('company-code-modal'),input=document.getElementById('company-code-input'),err=document.getElementById('company-code-error');
+      if(input&&input.value.trim()===COMPANY_CODE){try{sessionStorage.setItem(COMPANY_KEY,'1')}catch(e){}if(modal)modal.classList.remove('show');paintCompanyLock();}
+      else{if(err)err.style.display='block';if(input)input.select();}
+    }
 
     function show(v){
       if(VALID.indexOf(v) < 0) v = 'guide';
       tabs.forEach(function(t){ t.classList.toggle('active', t.dataset.v === v); });
       views.forEach(function(s){ s.classList.toggle('on', s.id === 'view-' + v); });
-      if(v === 'company') loadCompany();
+      if(v === 'company') paintCompanyLock();
       try { history.replaceState(null, '', '#' + v); } catch(e){}
     }
     tabs.forEach(function(t){
@@ -489,6 +523,12 @@
       });
     });
     show((location.hash || '').replace('#',''));
+    var companyOpen=document.getElementById('company-open-code'),companySubmit=document.getElementById('company-code-submit'),companyCancel=document.getElementById('company-code-cancel'),companyInput=document.getElementById('company-code-input'),companyModal=document.getElementById('company-code-modal');
+    if(companyOpen)companyOpen.addEventListener('click',openCompanyCode);
+    if(companySubmit)companySubmit.addEventListener('click',submitCompanyCode);
+    if(companyCancel)companyCancel.addEventListener('click',function(){companyModal.classList.remove('show')});
+    if(companyInput)companyInput.addEventListener('keydown',function(e){if(e.key==='Enter')submitCompanyCode()});
+    if(companyModal)companyModal.addEventListener('click',function(e){if(e.target===companyModal)companyModal.classList.remove('show')});
 
 
     /* ================= 기업별 예상질문 ================= */
@@ -532,6 +572,7 @@
     }
 
     function loadCompany(){
+      if(!companyUnlocked()) return;
       if(loaded) return;
       loaded = true;
       msg('데이터를 불러오는 중입니다…');

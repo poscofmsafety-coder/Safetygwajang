@@ -1,8 +1,11 @@
 import { DurableObject } from 'cloudflare:workers';
 const KOSHA_BASE = 'https://apis.data.go.kr/B552468/msdschem';
-function firstSecret(env,names){for(const n of names){if(env&&env[n])return {name:n,value:env[n]};}return {name:'',value:''};}
-function koshaMsdsSecret(env){return firstSecret(env,['KOSHA_MSDS_API_KEY','KOSHA_API_KEY','PUBLIC_DATA_API_KEY','DATA_GO_KR_API_KEY','DATA_GO_KR_SERVICE_KEY','SERVICE_KEY','OPENAPI_SERVICE_KEY']);}
-function koshaLawSecret(env){return firstSecret(env,['KOSHA_LAW_API_KEY','KOSHA_SMART_SEARCH_API_KEY','KOSHA_API_KEY','PUBLIC_DATA_API_KEY','DATA_GO_KR_API_KEY','DATA_GO_KR_SERVICE_KEY','SERVICE_KEY','OPENAPI_SERVICE_KEY']);}
+function secretCandidates(env,names){const out=[],seen=new Set();for(const n of names){const value=cleanServiceKey(env&&env[n]);if(!value||seen.has(value))continue;seen.add(value);out.push({name:n,value});}return out;}
+function firstSecret(env,names){return secretCandidates(env,names)[0]||{name:'',value:''};}
+function koshaMsdsSecrets(env){return secretCandidates(env,['KOSHA_MSDS_API_KEY','KOSHA_API_KEY','PUBLIC_DATA_API_KEY','DATA_GO_KR_API_KEY','DATA_GO_KR_SERVICE_KEY','SERVICE_KEY','OPENAPI_SERVICE_KEY']);}
+function koshaLawSecrets(env){return secretCandidates(env,['KOSHA_LAW_API_KEY','KOSHA_SMART_SEARCH_API_KEY','KOSHA_API_KEY','PUBLIC_DATA_API_KEY','DATA_GO_KR_API_KEY','DATA_GO_KR_SERVICE_KEY','SERVICE_KEY','OPENAPI_SERVICE_KEY']);}
+function koshaMsdsSecret(env){return koshaMsdsSecrets(env)[0]||{name:'',value:''};}
+function koshaLawSecret(env){return koshaLawSecrets(env)[0]||{name:'',value:''};}
 function koshaMsdsKey(env){return koshaMsdsSecret(env).value;}
 function koshaLawKey(env){return koshaLawSecret(env).value;}
 function koshaGeneralKey(env){return firstSecret(env,['KOSHA_API_KEY','PUBLIC_DATA_API_KEY','DATA_GO_KR_API_KEY','DATA_GO_KR_SERVICE_KEY','KOSHA_MSDS_API_KEY','KOSHA_LAW_API_KEY','SERVICE_KEY','OPENAPI_SERVICE_KEY']).value;}
@@ -199,15 +202,37 @@ function json(data, status=200){
   return new Response(JSON.stringify(data,null,2),{status,headers:applySecurityHeaders({'content-type':'application/json; charset=utf-8','cache-control':'no-store'})});
 }
 async function apiHealth(request,env){
-  // 공개 화면에서는 Secret 이름/값을 노출하지 않습니다. probe=1일 때만 짧은 실제 연결 확인을 수행합니다.
-  const out={ok:true,checkedAt:new Date().toISOString(),configured:Boolean(koshaGeneralKey(env)),msdsConfigured:Boolean(koshaMsdsKey(env)),lawSearchConfigured:Boolean(koshaLawKey(env)),aiConfigured:Boolean(env&&env.GROQ_API_KEY),publicDataConfigured:Boolean(publicDataKey(env)),fallbackSearchReady:true};
+  // Secret 값은 절대 노출하지 않고, 실제 KOSHA 응답 여부와 사용 중인 바인딩 이름만 진단합니다.
+  const lawSecret=koshaLawSecret(env), msdsSecret=koshaMsdsSecret(env);
+  const out={
+    ok:true,checkedAt:new Date().toISOString(),workerRuntime:'cloudflare-worker',
+    configured:Boolean(koshaGeneralKey(env)),msdsConfigured:Boolean(msdsSecret.value),lawSearchConfigured:Boolean(lawSecret.value),
+    msdsSecretBinding:msdsSecret.name||null,lawSecretBinding:lawSecret.name||null,
+    aiConfigured:Boolean(env&&env.GROQ_API_KEY),publicDataConfigured:Boolean(publicDataKey(env)),
+    koshaOnly:true,nationalLawFallback:false
+  };
   const url=new URL(request.url);if(url.searchParams.get('probe')!=='1')return json(out);
-  const probes={law:'not-configured',msds:'not-configured',officialNews:'checking'};
+  const service=(url.searchParams.get('service')||'all').toLowerCase();
+  const probes={law:{ok:false,status:lawSecret.value?'not-probed':'not-configured'},msds:{ok:false,status:msdsSecret.value?'not-probed':'not-configured'}};
   const jobs=[];
-  if(koshaLawKey(env))jobs.push((async()=>{try{const u=new URL(KOSHA_SMART_SEARCH);u.searchParams.set('serviceKey',normalizeServiceKey(koshaLawKey(env)));u.searchParams.set('searchValue','밀폐공간');u.searchParams.set('pageNo','1');u.searchParams.set('numOfRows','1');u.searchParams.set('category','0');u.searchParams.set('dataType','JSON');const r=await fetchTimed(u,{headers:{accept:'application/json,text/plain,*/*'}},3200);probes.law=r.ok?'ok':'http-'+r.status}catch(e){probes.law='fallback-active'}})());
-  if(koshaMsdsKey(env))jobs.push((async()=>{try{const r=await fetchTimed(makeKoshaUrl('/getChemList',koshaMsdsKey(env),{searchWrd:'톨루엔',searchCnd:0,numOfRows:1,pageNo:1}),{headers:{accept:'application/xml,text/xml,*/*'}},3200);const text=await r.text();probes.msds=r.ok&&/<item[\s>]/i.test(text)?'ok':(r.ok?'empty':'http-'+r.status)}catch(e){probes.msds='error'}})());
-  jobs.push((async()=>{try{const n=await moelSafetyNews(3200);probes.officialNews=n.length?'ok':'fallback-active'}catch(e){probes.officialNews='fallback-active'}})());
-  await Promise.allSettled(jobs);return json({...out,probes});
+  if(lawSecret.value&&service!=='msds')jobs.push((async()=>{
+    let last=null;
+    for(const candidate of koshaLawSecrets(env)){
+      try{const items=await koshaLawSearch('밀폐공간',1,candidate.value,{attempts:2,timeoutMs:8500});probes.law={ok:true,status:'ok',items:items.length,source:'KOSHA_API',secretBinding:candidate.name};return;}catch(e){last=e;}
+    }
+    probes.law=koshaProbeError(last||new Error('KOSHA 법령 API 연결 실패'));
+  })());
+  if(msdsSecret.value&&service!=='law')jobs.push((async()=>{
+    let last=null;
+    for(const candidate of koshaMsdsSecrets(env)){
+      try{const result=await koshaFetch('/getChemList',candidate.value,{searchWrd:'톨루엔',searchCnd:0,numOfRows:1,pageNo:1},{attempts:2,timeoutMs:8500});probes.msds={ok:true,status:'ok',items:result.items.length,source:'KOSHA_API',secretBinding:candidate.name};return;}catch(e){last=e;}
+    }
+    probes.msds=koshaProbeError(last||new Error('KOSHA MSDS API 연결 실패'));
+  })());
+  await Promise.allSettled(jobs);
+  const liveOk=service==='law'?Boolean(probes.law.ok):service==='msds'?Boolean(probes.msds.ok):Boolean(probes.law.ok&&probes.msds.ok);
+  const okMsg=service==='law'?'KOSHA 안전보건법령 스마트검색 API 실제 응답을 확인했습니다.':service==='msds'?'KOSHA MSDS API 실제 응답을 확인했습니다.':'KOSHA 법령검색과 MSDS API 실제 응답을 확인했습니다.';
+  return json({...out,ok:liveOk,probeService:service,probes,message:liveOk?okMsg:'KOSHA API 실제 응답 중 오류가 있습니다. probes의 상태와 공공데이터포털 운영계정 승인 상태를 확인하세요.'},liveOk?200:503);
 }
 function decodeXml(s){return String(s||'').replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g,'$1').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&amp;/g,'&').replace(/&quot;/g,'"').replace(/&#39;/g,"'");}
 function stripTags(s){return decodeXml(String(s||'').replace(/<[^>]+>/g,' ')).replace(/\s+/g,' ').trim();}
@@ -231,20 +256,75 @@ function pick(obj, patterns){
 function allValues(obj){return Object.entries(obj||{}).map(([k,v])=>`${k}: ${v}`).filter(x=>x.replace(/^[^:]+:\s*/, '').trim());}
 function normalizeCas(cas){return String(cas||'').replace(/[‐‑‒–—−]/g,'-').replace(/\s+/g,'').trim();}
 function validateCas(cas){return /^\d{2,7}-\d{2}-\d$/.test(normalizeCas(cas));}
-function normalizeServiceKey(key){
-  const raw=String(key||'').trim();
-  if(!raw.includes('%')) return raw;
-  try{return decodeURIComponent(raw)}catch(e){return raw}
+function cleanServiceKey(value){
+  let raw=String(value??'').trim();
+  if((raw.startsWith('"')&&raw.endsWith('"'))||(raw.startsWith("'")&&raw.endsWith("'")))raw=raw.slice(1,-1).trim();
+  raw=raw.replace(/[\r\n\t ]+/g,'');
+  if(!raw)return '';
+  if(raw.includes('%')){try{raw=decodeURIComponent(raw)}catch(e){}}
+  return raw;
 }
+function normalizeServiceKey(key){return cleanServiceKey(key)}
 function makeKoshaUrl(path, key, params={}){
   const u=new URL(KOSHA_BASE+path);u.searchParams.set('serviceKey',normalizeServiceKey(key));for(const [k,v] of Object.entries(params))if(v!==undefined&&v!==null&&v!=='')u.searchParams.set(k,String(v));return u;
 }
 
-async function koshaFetch(path,key,params){
-  const r=await fetchTimed(makeKoshaUrl(path,key,params),{headers:{accept:'application/xml,text/xml,*/*'}},6500);
-  const text=await r.text();
-  if(!r.ok) throw new Error(`KOSHA API HTTP ${r.status}`);
-  if(/SERVICE_KEY|APPLICATION_ERROR|ERROR/i.test(text)&&!/<item/i.test(text)){throw new Error(stripTags(text).slice(0,220)||'KOSHA API 오류');}
+function sleep(ms){return new Promise(resolve=>setTimeout(resolve,ms))}
+function koshaErrorInfo(text,status=0){
+  const raw=String(text||'').trim();let code='',message='';
+  try{
+    const j=JSON.parse(raw);const h=j?.response?.header||j?.header||{};
+    code=String(h.resultCode||h.code||j?.code||'').trim();message=String(h.resultMsg||h.message||j?.message||'').trim();
+  }catch(e){}
+  if(!code){code=String(raw.match(/<resultCode[^>]*>([\s\S]*?)<\/resultCode>/i)?.[1]||raw.match(/<returnReasonCode[^>]*>([\s\S]*?)<\/returnReasonCode>/i)?.[1]||'').trim()}
+  if(!message){message=stripTags(raw.match(/<resultMsg[^>]*>([\s\S]*?)<\/resultMsg>/i)?.[1]||raw.match(/<returnAuthMsg[^>]*>([\s\S]*?)<\/returnAuthMsg>/i)?.[1]||'')}
+  if(['00','0','NORMAL_SERVICE'].includes(String(code).toUpperCase())||/^(NORMAL[_ ]?SERVICE\.?|정상)$/i.test(message)){code='';message=''}
+  const known=[
+    ['Unauthorized','API 인증키가 존재하지 않거나 유효하지 않습니다.'],['Forbidden','해당 API의 활용신청 또는 운영계정 승인이 확인되지 않습니다.'],
+    ['API not found','KOSHA API 호출 URL을 찾을 수 없습니다.'],['Error forwarding request to backend server','공공데이터포털에서 KOSHA 기관 서버로 요청 전달에 실패했습니다.'],
+    ['Error receiving response from backend server','KOSHA 기관 서버의 응답을 받지 못했습니다.'],['API rate limit exceeded','KOSHA API 동시 요청 한도를 초과했습니다.'],
+    ['API token quota exceeded','KOSHA API 일일 호출 허용량을 초과했습니다.'],['Unexpected error','공공데이터포털 또는 KOSHA API에서 일시적 오류가 발생했습니다.'],
+    ['SERVICETIMEOUT_ERROR','KOSHA API 응답 대기시간을 초과했습니다.'],['SERVICE_KEY_IS_NULL','KOSHA API 인증키가 요청에 포함되지 않았습니다.'],
+    ['SERVICE_KEY_IS_NOT_REGISTERED_ERROR','등록되지 않은 KOSHA API 인증키입니다.'],['SERVICE_ACCESS_DENIED_ERROR','KOSHA API 이용 권한이 확인되지 않습니다.'],
+    ['PERMISSION_DENIED','KOSHA API 접근 권한이 거부되었습니다.'],['DEADLINE_HAS_EXPIRED_ERROR','KOSHA API 인증키의 사용 기한이 만료되었습니다.'],
+    ['LIMITED_NUMBER_OF_SERVICE_REQUESTS_EXCEEDS_ERROR','KOSHA API 일일 호출 허용량을 초과했습니다.'],['LIMITED_NUMBER_OF_SERVICE_REQUESTS_PER_SECOND_EXCEEDS_ERROR','KOSHA API 초당 호출 허용량을 초과했습니다.'],
+    ['BLACKLIST_IP_ACCESS_ERROR','KOSHA API에서 호출 IP 접근이 차단되었습니다.'],['INVALID_REQUEST_PARAMETER_ERROR','KOSHA API 요청 파라미터가 올바르지 않습니다.'],
+    ['NO_OPENAPI_SERVICE_ERROR','요청한 KOSHA OpenAPI 서비스가 존재하지 않거나 폐기되었습니다.'],['HTTP_ERROR','KOSHA API HTTP 요청 또는 기관 응답 처리에 실패했습니다.'],
+    ['APPLICATION_ERROR','KOSHA API 게이트웨이 내부 처리 오류가 발생했습니다.']
+  ];
+  const hay=(raw+' '+code+' '+message).toLowerCase();
+  for(const [needle,desc] of known){if(hay.includes(needle.toLowerCase())){if(!message||message.toLowerCase()===needle.toLowerCase()||message.length>260)message=desc;if(!code)code=needle;break}}
+  if(!message&&status>=400)message=`KOSHA API HTTP ${status}`;
+  if(!message&&raw&&!/<item[\s>]/i.test(raw)&&!/^\s*[\[{]/.test(raw))message=stripTags(raw).slice(0,260);
+  const retryable=status===408||status===425||status===429||status>=500||/(timeout|servicetimeout|forwarding request|receiving response|rate limit|per_second|application_error|unexpected error)/i.test(hay);
+  return {code:code||null,message:message||'',retryable};
+}
+function makeKoshaError(info,status=0,attempt=1){
+  const err=new Error(info.message||`KOSHA API 응답 오류${status?' (HTTP '+status+')':''}`);
+  err.name='KoshaApiError';err.code=info.code||'';err.httpStatus=status||0;err.retryable=Boolean(info.retryable);err.attempt=attempt;return err;
+}
+function koshaProbeError(e){return {ok:false,status:e?.code||e?.name||'error',httpStatus:Number(e?.httpStatus)||0,message:String(e?.message||e||'KOSHA API 오류').slice(0,260),retryable:Boolean(e?.retryable),source:'KOSHA_API'}}
+async function koshaRequest(url,options={},config={}){
+  const attempts=Math.max(1,Math.min(3,Number(config.attempts)||2)),timeoutMs=Math.max(3000,Math.min(15000,Number(config.timeoutMs)||9000));let last;
+  for(let i=1;i<=attempts;i++){
+    try{
+      const headers=new Headers(options.headers||{});headers.set('cache-control','no-cache');headers.set('pragma','no-cache');
+      const r=await fetchTimed(url,{...options,headers},timeoutMs),text=await r.text();
+      const info=koshaErrorInfo(text,r.status);
+      const hasPayload=/<item[\s>]/i.test(text)||(/^\s*\{/.test(text)&&!info.message);
+      if(r.ok&&(hasPayload||!info.message))return {response:r,text,attempt:i};
+      const err=makeKoshaError(info,r.status,i);last=err;if(!err.retryable||i>=attempts)throw err;
+    }catch(e){
+      let err=e;if(e?.name==='AbortError'||String(e?.message||e).toLowerCase().includes('timeout'))err=makeKoshaError({code:'SERVICETIMEOUT_ERROR',message:'KOSHA API 응답 대기시간을 초과했습니다.',retryable:true},0,i);
+      else if(e?.name!=='KoshaApiError')err=makeKoshaError({code:'NETWORK_ERROR',message:'KOSHA API 네트워크 연결에 실패했습니다.',retryable:true},0,i);
+      last=err;if(!err.retryable||i>=attempts)throw err;
+    }
+    await sleep(300*i);
+  }
+  throw last||new Error('KOSHA API 호출 실패');
+}
+async function koshaFetch(path,key,params,config={}){
+  const {text}=await koshaRequest(makeKoshaUrl(path,key,params),{headers:{accept:'application/xml,text/xml,*/*'}},{attempts:config.attempts||2,timeoutMs:config.timeoutMs||9000});
   return {text,items:parseItems(text)};
 }
 function normalizeLegalText(v){
@@ -313,27 +393,31 @@ async function getDetail15(key,chemId){
   return koshaFetch('/getChemDetail15',key,{chemId});
 }
 async function msdsLookup(request,env){
-  const key=koshaMsdsKey(env);
-  if(!key)return json({ok:false,error:'외부 자료 조회 기능을 준비 중입니다.'},503);
+  const candidates=koshaMsdsSecrets(env);
+  if(!candidates.length)return json({ok:false,error:'KOSHA MSDS API 인증키가 Worker Runtime variables and secrets에 연결되지 않았습니다.',source:'KOSHA_API'},503);
   const url=new URL(request.url);const cas=normalizeCas(url.searchParams.get('cas')||'');if(!validateCas(cas))return json({ok:false,error:'올바른 CAS No. 형식이 아닙니다.'},400);
-  try{
-    const list=await searchChem(key,cas,1);
-    let publicSafety=null;try{publicSafety=await fetchChemicalContext(cas,env)}catch(e){publicSafety=null;}
-    const withCas=(list.items||[]).map(x=>({item:x,cas:findCas(x)}));
-    const exact=withCas.find(x=>x.cas===cas)?.item;
-    const anyReturnedCas=withCas.some(x=>x.cas);
-    const item=exact || (!anyReturnedCas ? list.items[0] : null);
-    if(!item)return json({ok:true,status:'NOT_FOUND',casNo:cas,matchedName:publicSafety?.nameKo||publicSafety?.nameEn||null,publicSafety,legal:{workEnvTarget:null,specialHealthTarget:null,specialManagement:null,managementTarget:null,cmr:{carcinogenic:null,mutagenic:null,reprotoxic:null},evidence:[],source:'KOSHA 자료 없음'}});
-    const chemId=findChemId(item);let d15={items:[]};try{d15=await getDetail15(key,chemId)}catch(e){d15={items:[],warning:e.message};}
-    const detail=d15.items[0]||{};const legal=parseLegal(d15.items);
-    return json({ok:true,status:'FOUND',casNo:cas,matchedName:findName(item)||findName(detail)||publicSafety?.nameKo||publicSafety?.nameEn||null,chemId:chemId||null,legal,publicSafety,meta:{source:'한국산업안전보건공단 물질안전보건자료 조회 서비스',referenceOnly:true,matchedCas:findCas(item)||cas,detail15Loaded:Boolean(d15.items.length),detail15Rows:d15.items.length,detail15Warning:d15.warning||null}});
-  }catch(e){return json({ok:false,error:e.message},502);}
+  let last=null;
+  for(const secret of candidates){
+    try{
+      const list=await searchChem(secret.value,cas,1);
+      const withCas=(list.items||[]).map(x=>({item:x,cas:findCas(x)}));
+      const exact=withCas.find(x=>x.cas===cas)?.item;const anyReturnedCas=withCas.some(x=>x.cas);const item=exact||(!anyReturnedCas?list.items[0]:null);
+      if(!item)return json({ok:true,status:'NOT_FOUND',casNo:cas,matchedName:null,publicSafety:null,legal:{workEnvTarget:null,specialHealthTarget:null,specialManagement:null,managementTarget:null,cmr:{carcinogenic:null,mutagenic:null,reprotoxic:null},evidence:[],source:'KOSHA 자료 없음'},meta:{source:'한국산업안전보건공단 물질안전보건자료 조회 서비스',secretBinding:secret.name,koshaOnly:true}});
+      const chemId=findChemId(item);let d15={items:[]};try{d15=await getDetail15(secret.value,chemId)}catch(e){d15={items:[],warning:e.message};}
+      const detail=d15.items[0]||{};const legal=parseLegal(d15.items);
+      return json({ok:true,status:'FOUND',casNo:cas,matchedName:findName(item)||findName(detail)||null,chemId:chemId||null,legal,publicSafety:null,meta:{source:'한국산업안전보건공단 물질안전보건자료 조회 서비스',referenceOnly:true,matchedCas:findCas(item)||cas,detail15Loaded:Boolean(d15.items.length),detail15Rows:d15.items.length,detail15Warning:d15.warning||null,secretBinding:secret.name,koshaOnly:true}});
+    }catch(e){last=e;}
+  }
+  const e=last||new Error('KOSHA MSDS API 호출 실패');return json({ok:false,error:e.message,source:'KOSHA_API',code:e.code||null,httpStatus:e.httpStatus||0,retryable:Boolean(e.retryable)},e.httpStatus===429?429:(e.httpStatus===403?403:(e.httpStatus===401?401:(e.code==='SERVICETIMEOUT_ERROR'?504:502))));
 }
 async function msdsSearch(request,env){
-  const key=koshaMsdsKey(env);
-  if(!key)return json({ok:false,error:'외부 자료 조회 기능을 준비 중입니다.'},503);
+  const candidates=koshaMsdsSecrets(env);if(!candidates.length)return json({ok:false,error:'KOSHA MSDS API 인증키가 Worker Runtime variables and secrets에 연결되지 않았습니다.',source:'KOSHA_API'},503);
   const u=new URL(request.url);const q=(u.searchParams.get('q')||'').trim();if(!q)return json({ok:false,error:'검색어가 필요합니다.'},400);
-  const isCas=validateCas(q);try{const r=await searchChem(key,q,isCas?1:0);return json({ok:true,items:r.items.slice(0,20)});}catch(e){return json({ok:false,error:e.message},502);}
+  const isCas=validateCas(q);let last=null;
+  for(const secret of candidates){try{const r=await searchChem(secret.value,q,isCas?1:0);return json({ok:true,items:r.items.slice(0,20),source:'KOSHA_API',secretBinding:secret.name});}catch(e){last=e;}}
+  const e=last||new Error('KOSHA MSDS API 호출 실패');
+  const status=e.httpStatus===429?429:(e.httpStatus===403?403:(e.httpStatus===401?401:(e.code==='SERVICETIMEOUT_ERROR'?504:502)));
+  return json({ok:false,error:e.message,source:'KOSHA_API',code:e.code||null,httpStatus:e.httpStatus||0,retryable:Boolean(e.retryable),koshaOnly:true,attemptedBindings:candidates.map(x=>x.name)},status);
 }
 
 
@@ -903,15 +987,16 @@ const SAFETY_INSTRUCTOR_LAW_UPDATES=[
 function cleanUpdateText(v){return String(v||'').replace(/\*\*/g,'').replace(/\s+/g,' ').trim()}
 function safetyInstructorQuestions(laws){return (laws||[]).filter(x=>x.question&&x.answer).map(x=>({question:cleanUpdateText(x.question),answer:cleanUpdateText(x.answer),basis:cleanUpdateText(x.basis),link:x.link,title:x.title,status:x.status}))}
 async function safetyInstructorUpdates(request,env){
-  const url=new URL(request.url),refresh=url.searchParams.get('refresh')==='1';let liveLaw=[];let officialNews=[];let errors=[];
-  const lawQueries=['산업안전보건법 2026 개정','안전검사 고시 2026'];
-  const lawTasks=lawQueries.map(q=>lawGoKrSearch(q,8,refresh?4200:3200).catch(e=>{errors.push(e.message);return[]}));
-  const newsTask=moelSafetyNews(refresh?4200:3200).catch(e=>{errors.push(e.message);return[]});
-  const settled=await Promise.all([...lawTasks,newsTask]);officialNews=settled.pop()||[];liveLaw=dedupeLawItems(settled.flat()).slice(0,10);
-  const curated=SAFETY_INSTRUCTOR_LAW_UPDATES.map(x=>({...x,source:'국가법령정보센터'}));
-  const extra=liveLaw.filter(x=>!curated.some(c=>normalizeMatchText(c.title)===normalizeMatchText(x.title))).map(x=>({title:cleanUpdateText(x.title),status:'공식검색',effectiveDate:'',basis:'국가법령정보센터 검색 결과',summary:cleanUpdateText(x.content),link:x.link,source:'국가법령정보센터'}));
+  const url=new URL(request.url),refresh=url.searchParams.get('refresh')==='1';let errors=[];
+  const candidates=koshaLawSecrets(env);if(!candidates.length)return json({ok:false,error:'KOSHA 안전보건법령 스마트검색 API 인증키가 Worker에 연결되지 않았습니다.',laws:[],news:[],questions:[],source:'KOSHA_API',code:'SERVICE_KEY_IS_NULL'},503);
+  const lawQueries=['산업안전보건법 2026 개정','안전검사 고시 2026','위험성평가 2026'];let liveLaw=[],used=null,last=null;
+  for(const secret of candidates){try{const settled=await Promise.all(lawQueries.map(q=>koshaLawSearch(q,10,secret.value,{attempts:2,timeoutMs:refresh?10000:9000})));liveLaw=dedupeLawItems(settled.flat()).slice(0,20);used=secret;break;}catch(e){last=e;}}
+  if(!used){const e=last||new Error('KOSHA 안전보건법령 API 호출 실패');return json({ok:false,error:e.message,laws:[],news:[],questions:[],source:'KOSHA_API',code:e.code||null,httpStatus:e.httpStatus||0,retryable:Boolean(e.retryable),attemptedBindings:candidates.map(x=>x.name)},e.code==='SERVICETIMEOUT_ERROR'?504:502);}
+  const officialNews=await moelSafetyNews(refresh?5000:4000).catch(e=>{errors.push(e.message);return[]});
+  const laws=liveLaw.map(x=>({title:cleanUpdateText(x.title),status:'KOSHA 검색',effectiveDate:'',basis:cleanUpdateText(x.categoryName||''),summary:cleanUpdateText(x.content),link:x.link,source:'한국산업안전보건공단'}));
   const news=dedupeNews([...(officialNews||[]),...OFFICIAL_NEWS_FALLBACK]).slice(0,10).map(x=>({...x,title:cleanUpdateText(x.title),summary:cleanUpdateText(x.summary||'')}));
-  return json({ok:true,checkedAt:new Date().toISOString(),degraded:errors.length>0,laws:[...curated,...extra].slice(0,20),news,questions:safetyInstructorQuestions(curated),sources:{law:'국가법령정보센터',news:'고용노동부 보도자료'},errors});
+  const questions=safetyInstructorQuestions(SAFETY_INSTRUCTOR_LAW_UPDATES);
+  return json({ok:true,checkedAt:new Date().toISOString(),degraded:errors.length>0,laws,news,questions,sources:{law:'한국산업안전보건공단 안전보건법령 스마트검색 API',news:'고용노동부 보도자료'},koshaOnly:true,secretBinding:used.name,errors});
 }
 
 // KOSHA Smart Search proxy: 인증키를 브라우저에 노출하지 않습니다.
@@ -930,10 +1015,8 @@ function flattenSearchItems(data){
 }
 function lawOfficialLink(item,query){
   const raw=String(item?.url||item?.link||'').trim();
-  if(/^https?:\/\//i.test(raw))return raw;
-  const cat=String(item?.category||'');
-  if(cat==='6'||cat==='7')return 'https://smartsearch.kosha.or.kr/?searchValue='+encodeURIComponent(query||item?.title||'');
-  return 'https://www.law.go.kr/lsSc.do?query='+encodeURIComponent(item?.title||query||'');
+  if(raw){try{return new URL(raw,'https://smartsearch.kosha.or.kr/').href}catch(e){}}
+  return 'https://smartsearch.kosha.or.kr/?searchValue='+encodeURIComponent(query||item?.title||'');
 }
 function normalizeMatchText(v){return cleanHtmlText(String(v||'')).replace(/\s+/g,' ').trim().toLowerCase();}
 function lawMatchType(item,query){
@@ -955,58 +1038,37 @@ function normalizeLawItem(x,query=''){
   const categoryName=LAW_CATEGORY[category]||cleanHtmlText(pickAny(x,['categoryName','cateName']))||'안전보건 자료';
   const item={category,categoryName,title:title||content.slice(0,80)||'검색 결과',content:content||title,url:rawUrl,raw:x};
   item.link=lawOfficialLink(item,query);
-  item.source=(category==='6'||category==='7')?'한국산업안전보건공단':'국가법령정보센터';
+  item.source='한국산업안전보건공단';
   item.matchType=lawMatchType(item,query);
   return item;
 }
-const LAW_FALLBACK_INDEX=[
-  {category:'4',categoryName:'산업안전보건기준에 관한 규칙',title:'제618조(정의) · 밀폐공간',content:'밀폐공간은 산소결핍, 유해가스로 인한 질식·화재·폭발 등의 위험이 있는 장소로서 별표 18에서 정한 장소를 말한다.',link:'https://www.law.go.kr/LSW/lsLinkCommonInfo.do?chrClsCd=010202&lsJoLnkSeq=1028062331',source:'국가법령정보센터',keywords:'밀폐공간 질식 산소결핍 유해가스 별표18'},
-  {category:'1',categoryName:'산업안전보건법',title:'제36조(위험성평가의 실시)',content:'유해·위험요인을 찾아 위험성의 크기가 허용 가능한 수준인지 결정하고 위험성을 줄이기 위한 개선대책을 수립·이행한다. 근로자 참여와 결과 공유 사항도 규정한다.',link:'https://law.go.kr/LSW/lsLinkCommonInfo.do?chrClsCd=010202&lsJoLnkSeq=1033350715',source:'국가법령정보센터',keywords:'위험성평가 근로자 참여 개선대책 TBM 위험요인'},
-  {category:'1',categoryName:'산업안전보건법',title:'제93조(안전검사)',content:'안전검사대상기계등을 사용하는 사업주는 고시된 검사기준에 맞는지 안전검사를 받아야 한다.',link:'https://law.go.kr/lsLinkCommonInfo.do?chrClsCd=010202&lsJoLnkSeq=1024074623',source:'국가법령정보센터',keywords:'안전검사 안전검사대상기계 검사주기'},
-  {category:'5',categoryName:'고시·훈령·예규',title:'안전검사 고시 [시행 2026. 6. 26.] [고용노동부고시 제2026-49호]',content:'혼합기, 파쇄기 또는 분쇄기가 안전검사 대상으로 편입되어 정의와 검사기준이 마련되었다. 관련 기준은 제27조부터 제33조까지, 별표 13 및 별표 14에 규정되어 있다.',link:'https://www.law.go.kr/admRulInfoP.do?admRulSeq=2100000281066&chrClsCd=010202&urlMode=admRulRvsInfoR',source:'국가법령정보센터',keywords:'안전검사 고시 혼합기 파쇄기 분쇄기 별표13 별표14'},
-  {category:'5',categoryName:'고시·훈령·예규',title:'안전검사 절차에 관한 고시 [시행 2026. 6. 26.] [고용노동부고시 제2026-50호]',content:'산업안전보건법 제93조부터 제98조까지의 안전검사 및 자율검사프로그램에 따른 안전검사 절차와 위임사항을 규정한다.',link:'https://www.law.go.kr/admRulLsInfoP.do?admRulSeq=2100000281068',source:'국가법령정보센터',keywords:'안전검사 절차 고시 자율검사프로그램'},
-  {category:'4',categoryName:'산업안전보건기준에 관한 규칙',title:'제191조~제195조 · 컨베이어 안전',content:'컨베이어의 이탈·역주행 방지, 비상정지장치, 낙하물 위험 방지, 트롤리 컨베이어 및 통행 제한 등을 규정한다.',link:'https://law.go.kr/lsLinkCommonInfo.do?chrClsCd=010202&lsJoLnkSeq=1024005793',source:'국가법령정보센터',keywords:'컨베이어 비상정지장치 이탈 역주행 낙하물'},
-  {category:'4',categoryName:'산업안전보건기준에 관한 규칙',title:'제241조의2(화재감시자)',content:'일정한 용접·용단 작업 장소에서는 화재감시자를 지정하여 배치하도록 규정한다.',link:'https://www.law.go.kr/LSW/lsLinkCommonInfo.do?chrClsCd=010202&lsJoLnkSeq=1030389561',source:'국가법령정보센터',keywords:'화재감시자 용접 용단 11미터 가연성물질'},
-  {category:'3',categoryName:'산업안전보건법 시행규칙',title:'산업재해 발생 보고 · 산업재해조사표',content:'사업주는 산업재해로 사망자가 발생하거나 3일 이상의 휴업이 필요한 부상·질병자가 발생한 경우 산업재해조사표를 작성하여 관할 지방고용노동관서의 장에게 제출해야 한다.',link:'https://www.law.go.kr/lsSc.do?query='+encodeURIComponent('산업안전보건법 시행규칙 산업재해조사표 3일 이상의 휴업'),source:'국가법령정보센터',keywords:'산업재해조사표 산업재해 발생 보고 3일 휴업 재해조사'},
-  {category:'3',categoryName:'산업안전보건법 시행규칙',title:'안전관리자 선임·해임 관련 보고',content:'안전관리자 선임·해임 등 보고에 관한 시행규칙 조항과 서식을 확인할 수 있다.',link:'https://www.law.go.kr/lsSc.do?query='+encodeURIComponent('산업안전보건법 시행규칙 안전관리자 선임 해임 보고'),source:'국가법령정보센터',keywords:'안전관리자 선임 해임 보고 안전관리 업무'},
-  {category:'4',categoryName:'산업안전보건기준에 관한 규칙',title:'밀폐공간 작업 프로그램·사전확인 사항',content:'밀폐공간 작업 시 위치와 유해·위험요인 관리, 사전 확인, 산소·유해가스 농도 측정, 보호구, 비상연락체계 등의 확인사항을 규정한다.',link:'https://www.law.go.kr/lsSc.do?query='+encodeURIComponent('산업안전보건기준에 관한 규칙 밀폐공간 작업 프로그램 사전 확인'),source:'국가법령정보센터',keywords:'밀폐공간 작업 프로그램 산소 유해가스 농도 측정 감시인 보호구'}
-];
-function lawTokens(v){return normalizeMatchText(v).replace(/[()\[\]{}·ㆍ,./:;!?~\-]/g,' ').split(/\s+/).filter(x=>x.length>=2)}
-function builtinLawFallback(query,limit=30){
-  const q=normalizeMatchText(query),terms=lawTokens(query);if(!q)return[];
-  return LAW_FALLBACK_INDEX.map(x=>({...x,matchType:'fallback'})).filter(x=>{const hay=normalizeMatchText(`${x.title} ${x.content} ${x.keywords||''}`);return hay.includes(q)||(terms.length&&terms.every(t=>hay.includes(t)))||(terms.length&&terms.some(t=>hay.includes(t)))}).slice(0,limit);
-}
-async function lawGoKrSearch(query,limit=20,timeoutMs=4200){
-  const url='https://www.law.go.kr/lsSc.do?query='+encodeURIComponent(query);const r=await fetchTimed(url,{redirect:'follow',headers:{'user-agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/152.0 Safari/537.36','accept':'text/html,*/*;q=0.8','accept-language':'ko-KR,ko;q=0.9'}},timeoutMs);const html=await r.text();if(!r.ok)throw new Error('국가법령정보센터 HTTP '+r.status);
-  const out=[],seen=new Set();for(const m of html.matchAll(/<a\b[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi)){
-    const title=cleanHtmlText(m[2]);if(!title||title.length<3||title.length>180)continue;if(!lawTokens(query).some(t=>normalizeMatchText(title).includes(t)))continue;
-    let link='';try{link=new URL(decodeXml(m[1]).replace(/&amp;/g,'&'),'https://www.law.go.kr/').href}catch(e){}if(!link||!/^https:\/\/www\.law\.go\.kr\//.test(link)||seen.has(link))continue;seen.add(link);
-    const cat=/(고시|훈령|예규|지침)/.test(title)?'5':/(시행규칙)/.test(title)?'3':/(시행령)/.test(title)?'2':/(기준에 관한 규칙)/.test(title)?'4':'1';out.push({category:cat,categoryName:LAW_CATEGORY[cat]||'법령',title,content:'국가법령정보센터 검색 결과',link,source:'국가법령정보센터',matchType:'official-search'});if(out.length>=limit)break;
-  }return out;
-}
-async function koshaLawSearch(query,limit,key){
-  if(!key)return[];const u=new URL(KOSHA_SMART_SEARCH);u.searchParams.set('serviceKey',normalizeServiceKey(key));u.searchParams.set('searchValue',query);u.searchParams.set('pageNo','1');u.searchParams.set('numOfRows',String(limit));u.searchParams.set('category','0');u.searchParams.set('dataType','JSON');
-  const r=await fetchTimed(u,{headers:{Accept:'application/json,text/plain,*/*'},cf:{cacheTtl:300,cacheEverything:true}},4600);const text=await r.text();if(!r.ok)throw new Error(`KOSHA Smart Search HTTP ${r.status}`);if(/SERVICE_ACCESS_DENIED|PERMISSION_DENIED|SERVICE_KEY_IS_NOT_REGISTERED|SERVICE_KEY_IS_NULL|APPLICATION_ERROR|LIMITED_NUMBER_OF_SERVICE_REQUESTS_EXCEEDS/i.test(text))throw new Error('KOSHA Smart Search 인증 또는 이용승인 확인 필요');let data;try{data=JSON.parse(text)}catch(e){throw new Error('KOSHA Smart Search JSON 응답 오류')}const resultCode=data?.response?.header?.resultCode||data?.header?.resultCode;if(resultCode&&!['00','0'].includes(String(resultCode)))throw new Error(data?.response?.header?.resultMsg||`KOSHA resultCode ${resultCode}`);return flattenSearchItems(data).map(x=>normalizeLawItem(x,query)).filter(x=>x.title||x.content).slice(0,limit);
+async function koshaLawSearch(query,limit,key,config={}){
+  if(!key)throw makeKoshaError({code:'SERVICE_KEY_IS_NULL',message:'KOSHA 안전보건법령 스마트검색 API 인증키가 Worker에 연결되지 않았습니다.',retryable:false},0,1);
+  const u=new URL(KOSHA_SMART_SEARCH);u.searchParams.set('serviceKey',normalizeServiceKey(key));u.searchParams.set('searchValue',query);u.searchParams.set('pageNo','1');u.searchParams.set('numOfRows',String(Math.max(1,Math.min(100,limit))));u.searchParams.set('category','0');u.searchParams.set('dataType','JSON');
+  const {text}=await koshaRequest(u,{headers:{Accept:'application/json,text/plain,*/*'}},{attempts:config.attempts||2,timeoutMs:config.timeoutMs||9500});
+  let data;try{data=JSON.parse(text)}catch(e){throw makeKoshaError({code:'INVALID_JSON_RESPONSE',message:'KOSHA 안전보건법령 스마트검색 API가 JSON이 아닌 응답을 반환했습니다.',retryable:true},200,1)}
+  const resultCode=data?.response?.header?.resultCode||data?.header?.resultCode;const resultMsg=data?.response?.header?.resultMsg||data?.header?.resultMsg;
+  if(resultCode&&!['00','0','NORMAL_SERVICE'].includes(String(resultCode)))throw makeKoshaError({code:String(resultCode),message:String(resultMsg||`KOSHA resultCode ${resultCode}`),retryable:/timeout|error/i.test(String(resultMsg||''))},200,1);
+  return flattenSearchItems(data).map(x=>normalizeLawItem(x,query)).filter(x=>x.title||x.content).slice(0,limit);
 }
 function dedupeLawItems(items){const seen=new Set(),out=[];for(const x of items||[]){const k=normalizeMatchText(`${x.title}|${x.link||''}`);if(!x?.title||seen.has(k))continue;seen.add(k);out.push(x)}return out}
 
 async function lawsSearch(request,env){
   const u0=new URL(request.url),q=(u0.searchParams.get('q')||u0.searchParams.get('searchValue')||'').trim(),limit=Math.max(1,Math.min(100,Number(u0.searchParams.get('limit'))||100));
-  if(!q)return json({ok:false,error:'검색어를 입력하세요.',items:[]},400);
-  const built=builtinLawFallback(q,limit),key=koshaLawKey(env);let errors=[];
-  // 자주 찾는 핵심 법령은 네트워크를 기다리지 않고 즉시 공식 원문 인덱스로 응답합니다.
-  if(built.length){return json({ok:true,query:q,total:built.length,items:built.slice(0,limit),updatedAt:new Date().toISOString(),searchedAtLabel:new Date().toLocaleTimeString('ko-KR',{timeZone:'Asia/Seoul',hour:'2-digit',minute:'2-digit'}),degraded:false,fastFallback:true});}
-  const tasks=[lawGoKrSearch(q,Math.min(limit,30),4200).catch(e=>{errors.push('국가법령정보센터: '+e.message);return[]})];
-  if(key)tasks.push(koshaLawSearch(q,limit,key).catch(e=>{errors.push('KOSHA: '+e.message);return[]}));
-  const results=await Promise.all(tasks),items=dedupeLawItems(results.flat()).slice(0,limit);
-  if(items.length)return json({ok:true,query:q,total:items.length,items,updatedAt:new Date().toISOString(),searchedAtLabel:new Date().toLocaleTimeString('ko-KR',{timeZone:'Asia/Seoul',hour:'2-digit',minute:'2-digit'}),degraded:errors.length>0,warning:errors.length?'일부 외부 검색이 지연되어 응답 가능한 공식자료만 표시했습니다.':'',errors});
-  return json({ok:false,error:'공식자료 검색 결과를 확인하지 못했습니다. 국가법령정보센터 원문검색을 이용해 주세요.',items:[],fallbackUrl:'https://www.law.go.kr/lsSc.do?query='+encodeURIComponent(q),errors},502);
+  if(!q)return json({ok:false,error:'검색어를 입력하세요.',items:[],source:'KOSHA_API'},400);
+  const candidates=koshaLawSecrets(env);if(!candidates.length)return json({ok:false,error:'KOSHA 안전보건법령 스마트검색 API 인증키가 Worker Runtime variables and secrets에 연결되지 않았습니다.',items:[],source:'KOSHA_API',code:'SERVICE_KEY_IS_NULL'},503);
+  let last=null;
+  for(const secret of candidates){
+    try{const items=dedupeLawItems(await koshaLawSearch(q,limit,secret.value,{attempts:2,timeoutMs:9500})).slice(0,limit);return json({ok:true,query:q,total:items.length,items,source:'KOSHA_API',api:'한국산업안전보건공단_안전보건법령 스마트검색',updatedAt:new Date().toISOString(),searchedAtLabel:new Date().toLocaleTimeString('ko-KR',{timeZone:'Asia/Seoul',hour:'2-digit',minute:'2-digit'}),koshaOnly:true,secretBinding:secret.name});}catch(e){last=e;}
+  }
+  const e=last||new Error('KOSHA 안전보건법령 스마트검색 API 호출 실패');const status=e.httpStatus===429?429:(e.httpStatus===403?403:(e.httpStatus===401?401:(e.code==='SERVICETIMEOUT_ERROR'?504:502)));
+  return json({ok:false,error:e.message,items:[],source:'KOSHA_API',code:e.code||null,httpStatus:e.httpStatus||0,retryable:Boolean(e.retryable),koshaOnly:true,attemptedBindings:candidates.map(x=>x.name)},status);
 }
 
 async function safetyLawSearch(request,env){
   const legacy=await lawsSearch(request,env);let data;try{data=await legacy.clone().json()}catch(e){return legacy}if(!legacy.ok||!data?.ok)return legacy;
   const items=Array.isArray(data.items)?data.items:[],law=items.filter(x=>!['6','7'].includes(String(x.category))),guide=items.filter(x=>String(x.category)==='7'),media=items.filter(x=>String(x.category)==='6');
-  return json({ok:true,query:data.query,total:items.length,law,guide,media,searchedAt:data.updatedAt,searchedAtLabel:data.searchedAtLabel||new Date().toLocaleTimeString('ko-KR',{timeZone:'Asia/Seoul',hour:'2-digit',minute:'2-digit'}),degraded:Boolean(data.degraded),fastFallback:Boolean(data.fastFallback),warning:data.warning||''});
+  return json({ok:true,query:data.query,total:items.length,law,guide,media,source:'KOSHA_API',api:data.api,koshaOnly:true,secretBinding:data.secretBinding||null,searchedAt:data.updatedAt,searchedAtLabel:data.searchedAtLabel||new Date().toLocaleTimeString('ko-KR',{timeZone:'Asia/Seoul',hour:'2-digit',minute:'2-digit'})});
 }
 
 

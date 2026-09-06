@@ -11,6 +11,7 @@
 
   document.addEventListener('DOMContentLoaded',waitForPanel);
   window.addEventListener('dup-unlocked',()=>{if(root)root.hidden=false});
+  window.addEventListener('dup-locked',()=>{if(root)root.hidden=true});
 
   function waitForPanel(){
     let n=0; const t=setInterval(()=>{
@@ -313,7 +314,7 @@
 
   async function loadLive(){
     const btn=$('si-live-refresh'); if(btn){btn.disabled=true;btn.textContent='확인 중…'}
-    $('si-live-law').innerHTML=loading('국가법령정보센터 공식자료 확인 중…');
+    $('si-live-law').innerHTML=loading('KOSHA 안전보건법령 API 확인 중…');
     $('si-live-news').innerHTML=loading('고용노동부·안전뉴스 확인 중…');
     $('si-live-expected').innerHTML=loading('공식 개정사항 기반 질문 정리 중…');
     try{
@@ -338,7 +339,7 @@
 
   function liveLawCard(x){
     const meta=[x.status,x.effectiveDate,x.basis].filter(Boolean).join(' · ');
-    return `<article class="si-live-row"><div><span>${esc(meta||x.source||'국가법령정보센터')}</span><b>${esc(x.title)}</b><p>${esc((x.summary||x.content||'').slice(0,420))}</p></div>${x.link?`<a href="${attr(x.link)}" target="_blank" rel="noopener">원문</a>`:''}</article>`;
+    return `<article class="si-live-row"><div><span>${esc(meta||x.source||'한국산업안전보건공단')}</span><b>${esc(x.title)}</b><p>${esc((x.summary||x.content||'').slice(0,420))}</p></div>${x.link?`<a href="${attr(x.link)}" target="_blank" rel="noopener">원문</a>`:''}</article>`;
   }
   function liveNewsCard(x){return `<article class="si-live-row"><div><span>${esc([x.source,x.pubDate||x.date].filter(Boolean).join(' · ')||'공식 안전뉴스')}</span><b>${esc(x.title)}</b>${x.summary?`<p>${esc(x.summary)}</p>`:''}</div>${x.link?`<a href="${attr(x.link)}" target="_blank" rel="noopener">원문</a>`:''}</article>`}
   function liveExpectedCard(x,i){
@@ -380,16 +381,16 @@
     if(!box)return; box.hidden=false; box.innerHTML=loading('공식 원문 검색 중…');
     try{
       const items=await fetchLaw(q,12);
-      box.innerHTML=items.length?items.slice(0,8).map(x=>sourceRow(x,q,isPast)).join(''):empty('검색 결과가 없습니다. 위 법제처 원문 링크도 확인해 주세요.');
-    }catch(e){box.innerHTML=empty('공식자료 검색 연결이 지연되고 있습니다.')}
+      box.innerHTML=items.length?items.slice(0,8).map(x=>sourceRow(x,q,isPast)).join(''):empty('KOSHA API 검색 결과가 없습니다.');
+    }catch(e){box.innerHTML=empty('KOSHA API 검색 연결이 지연되고 있습니다. 다른 법령 서비스로 대체하지 않습니다.')}
   }
   async function fetchLaw(q,limit=10){
-    const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),6500);
+    const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),24000);
     try{
       const r=await fetch(`/api/safety-law/search?q=${encodeURIComponent(q||'')}&limit=${limit}`,{cache:'no-store',signal:ctrl.signal});
       const j=await r.json().catch(()=>({}));if(!r.ok||!j.ok)throw new Error(j.error||'검색 실패');
       return [...(j.law||[]),...(j.guide||[])];
-    }catch(e){throw e?.name==='AbortError'?new Error('공식자료 검색 시간이 초과되었습니다.'):e}
+    }catch(e){throw e?.name==='AbortError'?new Error('KOSHA API 검색 시간이 초과되었습니다.'):e}
     finally{clearTimeout(timer)}
   }
   function sourceRow(x,q,isPast){

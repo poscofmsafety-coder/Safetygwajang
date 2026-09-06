@@ -446,8 +446,15 @@
     /* 탭 클릭 */
     tabsEl.querySelectorAll('.main-tab').forEach(btn => {
       btn.addEventListener('click', () => {
-        activateTab(btn.dataset.tab);
-        if (btn.dataset.tab === 'dup' && !isUnlocked()) openCodeModal();
+        const key = btn.dataset.tab;
+        const wasActive = btn.classList.contains('active');
+        if (key === 'dup' && wasActive && isUnlocked()) {
+          lockDup();
+          activateTab('dup');
+          return;
+        }
+        activateTab(key);
+        if (key === 'dup' && !isUnlocked()) openCodeModal();
       });
     });
 
@@ -545,6 +552,20 @@
     const tab = document.querySelector('.main-tab[data-tab="dup"]');
     if (tab) tab.innerHTML = tab.innerHTML.replace('🔒 ', '🔓 ');
     window.dispatchEvent(new Event('dup-unlocked'));
+  }
+
+  function lockDup() {
+    try { codeStore.removeItem(CODE_KEY); } catch (e) {}
+    const lock = $('dup-locked');
+    const grid = $('list-dup');
+    if (lock) lock.style.display = 'block';
+    if (grid) grid.style.display = 'none';
+    const tab = document.querySelector('.main-tab[data-tab="dup"]');
+    if (tab) {
+      if (tab.innerHTML.includes('🔓 ')) tab.innerHTML = tab.innerHTML.replace('🔓 ', '🔒 ');
+      else if (!tab.innerHTML.includes('🔒 ')) tab.innerHTML = '🔒 ' + tab.innerHTML;
+    }
+    window.dispatchEvent(new Event('dup-locked'));
   }
 
   function bindCodeModal() {
