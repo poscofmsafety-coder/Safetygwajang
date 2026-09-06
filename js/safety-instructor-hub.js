@@ -1,4 +1,4 @@
-/* 산업안전지도사 학습실 V27 - 문제 · 정답 · 원문 중심 */
+/* 산업안전지도사 학습실 V28 - 문제 · 정답 · 원문 중심 */
 (function(){
   'use strict';
 
@@ -158,14 +158,49 @@
 
   function secondCard(x,mode){
     const past=mode==='past', key=(past?'p2:':'n2:')+(x.id||x.no);
-    const label=past?`<span class="si-badge past">기출</span><span class="si-badge year">${esc(x.year)}</span><span class="si-badge">${esc(x.category||'기계안전')}</span>`:`<span class="si-badge new">신출</span>${x.grade?`<span class="si-badge hot">${esc(x.grade)}</span>`:''}${x.base?`<span class="si-badge">${esc(x.base)}</span>`:''}`;
+    const origin=x.origin==='복원'?'복원':(past?'기출':'신출');
+    const label=past?`<span class="si-badge ${origin==='복원'?'variant':'past'}">${origin}</span><span class="si-badge year">${esc(x.year)}</span><span class="si-badge">${esc(x.category||'기계안전')}</span>`:`<span class="si-badge new">신출</span>${x.grade?`<span class="si-badge hot">${esc(x.grade)}</span>`:''}${x.base?`<span class="si-badge">${esc(x.base)}</span>`:''}`;
     return `<article class="si-card si-question-card">
       <div class="si-card-top"><div>${label}</div>${star(key)}</div>
       <h3>${esc(x.question)}</h3>
       <div class="si-actions"><button type="button" class="si-answer-btn" data-reveal data-label="모범답안">답안 접기</button></div>
       <div class="si-answer-box"><b>모범답안</b><p>${esc(x.answer||'')}</p>${x.mnemonic?`<div class="si-mnemonic"><strong>암기</strong> ${esc(x.mnemonic)}</div>`:''}${x.note?`<p class="si-note">${esc(x.note)}</p>`:''}</div>
-      ${officialLinks(x,'2차')}
+      ${secondEvidence(x)}
     </article>`;
+  }
+
+  function secondEvidence(x){
+    const evidence=(x.evidence||[]).filter(e=>{
+      const text=`${e.title||''} ${e.location||''}`;
+      const url=String(e.url||'');
+      const official=/law\.go\.kr|kosha\.or\.kr/i.test(url);
+      const weak=/(욕조곡선 그래프|S-N곡선|해당 펌프에서 발생|연삭숫돌 표기내용|blog\.naver|youtube)/i.test(text);
+      const exact=Boolean(String(e.location||'').trim()&&String(e.excerpt||'').trim()&&(e.highlightLines||[]).length);
+      const genericKosha=/^https:\/\/smartsearch\.kosha\.or\.kr\/?$/i.test(url.trim());
+      return official&&!weak&&exact&&!genericKosha;
+    });
+    if(!evidence.length)return '';
+    return `<div class="si-evidence-wrap">
+      <button type="button" class="si-evidence-toggle" data-evidence data-count="${evidence.length}">관련 조항 · 근거 ${evidence.length}개 보기</button>
+      <div class="si-evidence-box" hidden>${evidence.map(e=>`<section class="si-evidence-item">
+        <div class="si-evidence-head"><span>${esc(e.type||'근거')}</span><strong>${esc(e.title||'관련 원문')}</strong></div>
+        ${e.location?`<div class="si-evidence-location">${esc(e.location)}</div>`:''}
+        ${e.excerpt?`<div class="si-evidence-text">${evidenceExcerpt(e)}</div>`:''}
+        ${e.url?`<a class="si-law-link" href="${attr(e.url)}" target="_blank" rel="noopener">해당 위치 원문 열기</a>`:''}
+      </section>`).join('')}</div>
+    </div>`;
+  }
+
+  function evidenceExcerpt(e){
+    const norm=v=>String(v||'').replace(/\s+/g,' ').trim();
+    const hits=(e.highlightLines||[]).map(norm).filter(Boolean);
+    return String(e.excerpt||'').split(/\n+/).map(v=>v.trim()).filter(Boolean).map(line=>{
+      const n=norm(line);
+      const isHit=hits.some(h=>n===h||n.includes(h)||h.includes(n));
+      const tag=isHit?'mark':'span';
+      const cls=tag==='mark'?' class="si-evidence-hit"':'';
+      return `<${tag}${cls}>${esc(line)}</${tag}>`;
+    }).join('');
   }
 
   function paintSourceLibrary(){
@@ -174,35 +209,16 @@
       p.innerHTML=`
         <div class="si-source-searchbar"><input id="si-src-live-query" class="si-input" placeholder="전체 원문 검색: 예) 제2차 금속산업, 프레스 덮개, 승강기 수시검사"><button id="si-src-live-btn" class="si-answer-btn" type="button">전체 원문 검색</button></div>
         <div id="si-src-live-results" class="si-source-results" hidden></div>
-        <div class="si-toolbar"><input id="si-src-search" class="si-input" placeholder="아래 주요 원문 목록 필터"><select id="si-src-type" class="si-select"><option value="">전체</option>${[...new Set(data.sources.map(x=>x.type))].map(t=>`<option>${esc(t)}</option>`).join('')}</select><span id="si-src-count" class="si-count"></span></div>
-        <div id="si-src-list" class="si-source-grid"></div>`;
+        <div class="si-source-list">${data.sources.map(sourceLibraryLine).join('')}</div>`;
       p.dataset.ready='1';
-      $('si-src-search').addEventListener('input',paintSourceLibraryRows);
-      $('si-src-type').addEventListener('change',paintSourceLibraryRows);
       $('si-src-live-btn').addEventListener('click',async()=>{const q=$('si-src-live-query').value.trim();if(q)await showSource($('si-src-live-results'),q,false)});
       $('si-src-live-query').addEventListener('keydown',async e=>{if(e.key==='Enter'){e.preventDefault();const q=e.currentTarget.value.trim();if(q)await showSource($('si-src-live-results'),q,false)}});
     }
-    paintSourceLibraryRows();
   }
 
-  function paintSourceLibraryRows(){
-    const q=$('si-src-search')?.value.trim().toLowerCase()||'', type=$('si-src-type')?.value||'';
-    const arr=data.sources.filter(x=>(!type||x.type===type)&&(!q||`${x.title} ${x.focus} ${x.query}`.toLowerCase().includes(q)));
-    $('si-src-count').textContent=`${arr.length}개`;
-    $('si-src-list').innerHTML=arr.map(sourceLibraryCard).join('')||empty('검색 결과가 없습니다.');
-    bindCommon($('si-src-list'));
-  }
-
-  function sourceLibraryCard(s){
+  function sourceLibraryLine(s){
     const h=s.hits||{}, linked=(h.total||0)>0;
-    return `<article class="si-source-card">
-      <div class="si-source-card-top"><span class="si-badge">${esc(s.type)}</span>${linked?`<span class="si-badge past">기출연계 ${h.total}</span>`:''}</div>
-      <h3>${esc(s.title)}</h3>
-      <div class="si-focus"><mark>${esc(s.focus||'관련 조항')}</mark></div>
-      ${linked?`<div class="si-hit-count"><span>1차 ${h.first||0}</span><span>2차 ${h.second||0}</span><span>3차 ${h.third||0}</span></div>`:''}
-      <div class="si-actions"><a class="si-law-link" href="${attr(s.url)}" target="_blank" rel="noopener">원문 열기</a><button class="si-source-btn" data-source="${attr(s.query||s.title)}" data-past="${linked?'1':'0'}">조항 검색</button></div>
-      <div class="si-source-results" hidden></div>
-    </article>`;
+    return `<div class="si-source-line"><div class="si-source-line-main"><div><span class="si-badge">${esc(s.type)}</span>${linked?`<span class="si-badge past">기출연계 ${h.total}</span>`:''}</div><strong>${esc(s.title)}</strong>${s.focus?`<small>${esc(s.focus)}</small>`:''}</div><a class="si-law-link" href="${attr(s.url)}" target="_blank" rel="noopener">원문 열기</a></div>`;
   }
 
   /* ================= 3차 ================= */
@@ -347,6 +363,10 @@
     scope.querySelectorAll('[data-reveal]').forEach(b=>b.addEventListener('click',()=>{
       const box=b.closest('.si-question-card,.si-random-card')?.querySelector('.si-answer-box'); if(!box)return;
       box.hidden=!box.hidden; const label=b.dataset.label||'답'; b.textContent=box.hidden?label:'접기';
+    }));
+    scope.querySelectorAll('[data-evidence]').forEach(b=>b.addEventListener('click',()=>{
+      const box=b.closest('.si-evidence-wrap')?.querySelector('.si-evidence-box'); if(!box)return;
+      box.hidden=!box.hidden; const n=b.dataset.count||'1'; b.textContent=box.hidden?`관련 조항 · 근거 ${n}개 보기`:'관련 조항 · 근거 접기';
     }));
     scope.querySelectorAll('[data-source]').forEach(b=>b.addEventListener('click',async()=>{
       const host=b.closest('.si-question-card,.si-source-card,.si-random-card,.si-answer-box');
